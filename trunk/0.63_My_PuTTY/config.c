@@ -2925,6 +2925,19 @@ void setup_config_box(struct controlbox *b, int midsession,
 			     HELPCTX(connection_loghost),
 			     conf_editbox_handler, I(CONF_loghost), I(1));
 	    }
+#ifdef PORTKNOCKINGPORT
+    // port knocking panel
+     if( !get_param("PUTTY") ) {
+//    ctrl_settitle(b, "Connection/Port knocking", "Options controlling port knocking") ;
+    s = ctrl_getset(b, "Connection", "PortKnocking",
+			"Port knocking sequence");
+    ctrl_editbox(s, "Sequence:",  NO_SHORTCUT, 100,
+		 HELPCTX(no_help),
+		 conf_editbox_handler, I(CONF_portknockingoptions), I(1));
+    ctrl_text(s, "The sequence is a list of port:protocol separated by comma. Valid protocols are tcp and udp.",HELPCTX(no_help));
+    ctrl_text(s, "Ex: 2001:tcp, 2002:udp",HELPCTX(no_help));
+	}
+#endif
 	}
 
 	/*
@@ -3576,20 +3589,6 @@ void setup_config_box(struct controlbox *b, int midsession,
 			  sshbug_handler, I(CONF_sshbug_maxpkt2));
 	}
     }
-#ifdef PORTKNOCKINGPORT
-    // port knocking panel
-     if( !get_param("PUTTY") ) {
-    ctrl_settitle(b, "Connection/Port knocking",
-		      "Options controlling port knocking") ;
-    s = ctrl_getset(b, "Connection/Port knocking", "PortKnocking",
-			"Port knocking sequence");
-    ctrl_editbox(s, "Sequence:",  NO_SHORTCUT, 100,
-		 HELPCTX(no_help),
-		 conf_editbox_handler, I(CONF_portknockingoptions), I(1));
-    ctrl_text(s, "The sequence is a list of port:protocol separated by comma. Valid protocols are tcp and udp.",HELPCTX(no_help));
-    ctrl_text(s, "Ex: 2001:tcp, 2002:udp",HELPCTX(no_help));
-	}
-#endif
 #ifdef ZMODEMPORT
     // z-modem panel
      if( (!get_param("PUTTY"))&&get_param("ZMODEM") ) {

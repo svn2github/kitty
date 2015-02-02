@@ -1230,21 +1230,22 @@ TrayIcone.hWnd = hwnd ;
 			   == RESIZE_DISABLED) ? MF_GRAYED : MF_ENABLED,
 		       IDM_FULLSCREEN, "&Full Screen");
 #ifdef PERSOPORT
-	if( !PuttyFlag ) {
-		AppendMenu(m, MF_ENABLED, IDM_PRINT, "Print clip&board");
-		AppendMenu(m, MF_ENABLED, IDM_TOTRAY, "Send to tra&y");
-		if( conf_get_int(conf,CONF_alwaysontop)/*cfg.alwaysontop*/ )
-			AppendMenu(m, MF_ENABLED|MF_CHECKED, IDM_VISIBLE, "Always visi&ble");
-		else
-			AppendMenu(m, MF_ENABLED, IDM_VISIBLE, "Always visi&ble");
-		AppendMenu(m, MF_ENABLED, IDM_PROTECT, "Prote&ct");
-		AppendMenu(m, MF_ENABLED, IDM_WINROL, "Roll-up");
-		AppendMenu(m, MF_ENABLED, IDM_SHOWPORTFWD, "Port forwarding");
-		AppendMenu(m, MF_ENABLED, IDM_SCRIPTFILE, "Send script file" ) ;
-		AppendMenu(m, MF_ENABLED, IDM_PSCP, "Send with pscp");
-		if( WinSCPPath!=NULL ) AppendMenu(m, MF_ENABLED, IDM_WINSCP, "Start WinSCP");
-		else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_WINSCP, "Start WinSCP");
-		}
+    if( !PuttyFlag ) {
+        AppendMenu(m, MF_ENABLED, IDM_PRINT, "Print clip&board");
+        AppendMenu(m, MF_ENABLED, IDM_TOTRAY, "Send to tra&y");
+        if( conf_get_int(conf,CONF_alwaysontop)/*cfg.alwaysontop*/ )
+            AppendMenu(m, MF_ENABLED|MF_CHECKED, IDM_VISIBLE, "Always visi&ble");
+        else
+            AppendMenu(m, MF_ENABLED, IDM_VISIBLE, "Always visi&ble");
+        AppendMenu(m, MF_ENABLED, IDM_PROTECT, "Prote&ct");
+        AppendMenu(m, MF_ENABLED, IDM_WINROL, "Roll-u&p");
+        AppendMenu(m, MF_ENABLED, IDM_SHOWPORTFWD, "Po&rt forwarding");
+        AppendMenu(m, MF_ENABLED, IDM_SCRIPTFILE, "Send scr&ipt file" ) ;
+        if( PSCPPath!=NULL ) AppendMenu(m, MF_ENABLED, IDM_PSCP, "Send wit&h pscp");
+        else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_PSCP, "Send wit&h pscp");
+        if( WinSCPPath!=NULL ) AppendMenu(m, MF_ENABLED, IDM_WINSCP, "&Start WinSCP");
+        else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_WINSCP, "&Start WinSCP");
+        }
 #endif
 #ifdef ZMODEMPORT
 	if( (!PuttyFlag) && ZModemFlag ) {
@@ -1706,8 +1707,8 @@ void connection_fatal(void *frontend, char *fmt, ...)
  		time_t tnow = time(NULL);
  		close_session();
  
- 		if(last_reconnect && (tnow - last_reconnect) < 5) {
- 			Sleep(5000);
+ 		if(last_reconnect && (tnow - last_reconnect) < ReconnectDelay ) {
+ 			Sleep(1000);
  		}
  
  		last_reconnect = tnow;
@@ -4740,7 +4741,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 				if(session_closed && !back) {
 					time_t tnow = time(NULL);
 					
-					if(last_reconnect && (tnow - last_reconnect) < 5) {
+					if(last_reconnect && (tnow - last_reconnect) < ReconnectDelay) {
 						Sleep(1000);
 					}
 					last_reconnect = tnow;

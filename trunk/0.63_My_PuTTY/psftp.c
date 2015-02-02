@@ -21,6 +21,9 @@ char *appname = "PSFTP";
 #else
 const char *const appname = "PSFTP";
 #endif
+#ifdef PORTKNOCKINGPORT
+int ManagePortKnocking( char* host, char *portstr ) ;
+#endif
 
 /*
  * Since SFTP is a request-response oriented protocol, it requires
@@ -2980,6 +2983,10 @@ int psftp_main(int argc, char *argv[])
     if (!userhost && conf_get_str(conf, CONF_host)[0] != '\0') {
 	userhost = dupstr(conf_get_str(conf, CONF_host));
     }
+
+#ifdef PORTKNOCKINGPORT
+    ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
+#endif
 
     /*
      * If a user@host string has already been provided, connect to

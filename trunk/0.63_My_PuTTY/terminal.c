@@ -771,7 +771,9 @@ static void readrle(struct buf *b, termline *ldata,
 
 	    int count = hdr + 1;
 	    while (count--) {
+#ifndef PERSOPORT
 		assert(n < ldata->cols);
+#endif
 		readliteral(b, ldata->chars + n, ldata, &state);
 		n++;
 	    }

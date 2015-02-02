@@ -4830,26 +4830,6 @@ static void ssh_setup_portfwd(Ssh ssh, Conf *conf)
 	    sfree(sportdesc);
 	    sfree(dportdesc);
 	}
-#ifdef PERSOPORT
-for (i = 0; (epf = index234(ssh->portfwds, i)) != NULL; i++) {
-	char buf[1024]="";
-	if( epf->type=='R' )
-	sprintf( buf, "[%c] %c\t %s:%d \t<-- \t%s%d\n"
-		, epf->status==DESTROY?'D':epf->status==KEEP?'K':epf->status==CREATE?'C':'?', epf->type 
-		, epf->daddr==NULL?"":epf->daddr, epf->dport
-		, epf->saddr==NULL?"":epf->saddr, epf->sport
-		//, epf->sserv, epf->dserv
-		) ;
-	else
-	sprintf( buf, "[%c] %c\t %s%d \t\t--> \t%s:%d\n"
-		, epf->status==DESTROY?'D':epf->status==KEEP?'K':epf->status==CREATE?'C':'?', epf->type 
-		, epf->saddr==NULL?"":epf->saddr, epf->sport
-		, epf->daddr==NULL?"":epf->daddr, epf->dport
-		//, epf->sserv, epf->dserv
-		) ;
-	AddNewPortForwardMsg(buf);
-	}
-#endif
 }
 
 static void ssh1_smsg_stdout_stderr_data(Ssh ssh, struct Packet *pktin)

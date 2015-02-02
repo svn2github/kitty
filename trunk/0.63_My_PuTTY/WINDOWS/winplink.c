@@ -398,7 +398,6 @@ int plink_main(int argc, char **argv)
 	
     IsPortableMode() ;
     //if( IsPortableMode() ) { printf( "Portable mode on\n" ) ; }
-
 #else
 
 int main(int argc, char **argv)
@@ -694,6 +693,10 @@ int main(int argc, char **argv)
 
     logctx = log_init(NULL, conf);
     console_provide_logctx(logctx);
+
+#ifdef PORTKNOCKINGPORT
+    ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
+#endif
 
     /*
      * Start up the connection.

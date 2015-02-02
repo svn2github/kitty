@@ -70,6 +70,73 @@ void PrintProcessNameAndID( DWORD processID, FILE * fp  ) {
 	fprintf( fp, TEXT("%05u %u \t%s\n"), (unsigned int)processID, (unsigned int)SizeOfImage, szProcessName ) ;
 	CloseHandle( hProcess );
 	}
+	
+void PrintWindowSettings( FILE * fp ) {
+	int ret ;
+	RECT r ;
+	char buffer[MAX_VALUE_NAME] ;
+	
+	ret = GetWindowText( MainHwnd, buffer, MAX_VALUE_NAME ) ; buffer[ret]='\0';
+	ret = GetWindowTextLength( MainHwnd ) ;
+	fprintf( fp, "Title (length)=%s (%d)\n", buffer, ret ) ;
+	if( GetWindowRect( MainHwnd, &r ) ) {
+		fprintf( fp, "WindowRect.left=%ld\n", r.left ) ;
+		fprintf( fp, "WindowRect.right=%ld\n", r.right ) ;
+		fprintf( fp, "WindowRect.top=%ld\n", r.top ) ;
+		fprintf( fp, "WindowRect.bottom=%ld\n", r.bottom ) ;
+		}
+	if( GetClientRect( MainHwnd, &r ) ) {
+		fprintf( fp, "ClientRect.left=%ld\n", r.left ) ;
+		fprintf( fp, "ClientRect.right=%ld\n", r.right ) ;
+		fprintf( fp, "ClientRect.top=%ld\n", r.top ) ;
+		fprintf( fp, "ClientRect.bottom=%ld\n", r.bottom ) ;
+		}
+	
+	ret = GetWindowModuleFileName( MainHwnd, buffer, MAX_VALUE_NAME ) ; buffer[ret]='\0';
+	fprintf( fp, "WindowModuleFileName=%s\n", buffer ) ;
+	
+	WINDOWINFO wi ;
+	wi.cbSize = sizeof( WINDOWINFO ) ;
+	if( GetWindowInfo( MainHwnd, &wi ) ) {
+		fprintf( fp, "WindowInfo.cbSize=%lu\n", wi.cbSize ) ;
+		fprintf( fp, "WindowInfo.rcWindow.left=%ld\n", wi.rcWindow.left ) ;
+		fprintf( fp, "WindowInfo.rcWindow.right=%ld\n", wi.rcWindow.right ) ;
+		fprintf( fp, "WindowInfo.rcWindow.top=%ld\n", wi.rcWindow.top ) ;
+		fprintf( fp, "WindowInfo.rcWindow.bottom=%ld\n", wi.rcWindow.bottom ) ;
+		fprintf( fp, "WindowInfo.rcClient.left=%ld\n", wi.rcWindow.left ) ;
+		fprintf( fp, "WindowInfo.rcClient.right=%ld\n", wi.rcWindow.right ) ;
+		fprintf( fp, "WindowInfo.rcClient.top=%ld\n", wi.rcWindow.top ) ;
+		fprintf( fp, "WindowInfo.rcClient.bottom=%ld\n", wi.rcWindow.bottom ) ;
+		fprintf( fp, "WindowInfo.dwStyle=%lu\n", wi.dwStyle ) ;
+		fprintf( fp, "WindowInfo.dwExStyle=%lu\n", wi.dwExStyle ) ;
+		fprintf( fp, "WindowInfo.dwWindowStatus=%lu\n", wi.dwWindowStatus ) ;
+		fprintf( fp, "WindowInfo.cxWindowBorders=%u\n", wi.cxWindowBorders ) ;
+		fprintf( fp, "WindowInfo.cyWindowBorders=%u\n", wi.cyWindowBorders ) ;
+		fprintf( fp, "WindowInfo.wCreatorVersion=%lu\n", wi.wCreatorVersion ) ;
+		}
+	
+	WINDOWPLACEMENT wp;
+	wp.length=sizeof(WINDOWPLACEMENT) ;
+	if( GetWindowPlacement( MainHwnd, &wp ) ) {
+		fprintf( fp, "WindowPlacement.length=%u\n", wp.length ) ;
+		fprintf( fp, "WindowPlacement.flags=%u\n", wp.flags ) ;
+		fprintf( fp, "WindowPlacement.showCmd=%u\n", wp.showCmd ) ;
+		fprintf( fp, "WindowPlacement.ptMinPosition.x=%ld\n", wp.ptMinPosition.x ) ;
+		fprintf( fp, "WindowPlacement.ptMinPosition.y=%ld\n", wp.ptMinPosition.y ) ;
+		fprintf( fp, "WindowPlacement.ptMaxPosition.x=%ld\n", wp.ptMaxPosition.x ) ;
+		fprintf( fp, "WindowPlacement.ptMaxPosition.y=%ld\n", wp.ptMaxPosition.y ) ;
+		fprintf( fp, "WindowPlacement.rcNormalPosition.left=%ld\n", wp.rcNormalPosition.left ) ;
+		fprintf( fp, "WindowPlacement.rcNormalPosition.right=%ld\n", wp.rcNormalPosition.right ) ;
+		fprintf( fp, "WindowPlacement.rcNormalPosition.top=%ld\n", wp.rcNormalPosition.top ) ;
+		fprintf( fp, "WindowPlacement.rcNormalPosition.bottom=%ld\n", wp.rcNormalPosition.bottom ) ;
+		}
+	
+	fprintf( fp, "IsIconic=%d\n", IsIconic( MainHwnd ) ) ;
+	fprintf( fp, "IsWindow=%d\n", IsWindow( MainHwnd ) ) ;
+	fprintf( fp, "IsWindowUnicode=%d\n", IsWindowUnicode( MainHwnd ) ) ;
+	fprintf( fp, "IsWindowVisible=%d\n", IsWindowVisible( MainHwnd ) ) ;
+	fprintf( fp, "IsZoomed=%d\n", IsZoomed( MainHwnd ) ) ;
+	}
 
 DWORD PrintAllProcess( FILE * fp ) {
 	DWORD aProcesses[1024], cbNeeded, cProcesses;
@@ -94,7 +161,7 @@ void SaveDumpListFile( FILE * fp, const char * directory ) {
 	struct dirent *de ;
 	char buffer[MAX_VALUE_NAME] ;
 	
-	fprintf( fp, "\n===> Listing directory %s\n", directory ) ;
+	fprintf( fp, "===> Listing directory %s\n", directory ) ;
 	if( ( dir=opendir( directory ) ) != NULL ) {
 		while( ( de=readdir( dir ) ) != NULL ) {
 			if( strcmp(de->d_name,".")&&strcmp(de->d_name,"..") ) {
@@ -474,6 +541,9 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
+#ifdef RECONNECTPORT
+	fprintf( fp,"ReconnectDelay=%d\n",ReconnectDelay );
+#endif
 #ifdef IVPORT
 	fprintf( fp,"BackgroundImageIVFlag=%d\n",BackgroundImageIVFlag );
 #endif
@@ -514,6 +584,7 @@ void SaveShortCuts( FILE *fp ) {
 	fprintf( fp, "viewer=%d\n", shortcuts_tab.viewer ) ;
 	fprintf( fp, "visible=%d\n", shortcuts_tab.visible ) ;
 	fprintf( fp, "winscp=%d\n", shortcuts_tab.winscp ) ;
+	fprintf( fp, "showportforward=%d\n", shortcuts_tab.showportforward ) ;
 	
 	fprintf( fp, "\nNbShortCuts=%d\n", NbShortCuts ) ;
 	if( NbShortCuts>0 ) {
@@ -552,6 +623,7 @@ void SaveDump( void ) {
 			while( fgets( buffer, 1024, fp ) != NULL ) fputs( buffer, fpout ) ;
 			fclose( fp ) ;
 			}
+		fputs( "\n", fpout ) ;
 		fflush( fpout ) ;
 
 		if( RegTestKey( HKEY_CURRENT_USER, TEXT("Software\\SimonTatham\\PuTTY") ) ) {
@@ -582,6 +654,9 @@ void SaveDump( void ) {
 			sprintf( buffer, "%s\\SshHostKeys", ConfigDirectory ) ; SaveDumpListConf( fpout, buffer ) ;
 			}
 		fflush( fpout ) ;
+			
+		fputs( "\n@ WindowSettings @\n\n", fpout ) ;
+		PrintWindowSettings( fpout ) ;
 
 		fputs( "\n@ RunningProcess @\n\n", fpout ) ;
 		PrintAllProcess( fpout ) ; fflush( fpout ) ;

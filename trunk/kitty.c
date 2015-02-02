@@ -197,6 +197,11 @@ extern int AutoStoreSSHKeyFlag ;
 // Flag pour repasser en mode Putty basic
 static int PuttyFlag = 0 ;
 
+#ifdef RECONNECTPORT
+// Delai avant de tenter une reconnexion automatique
+static int ReconnectDelay = 5 ;
+#endif
+
 // Flag pour afficher l'image de fond
 #if (defined IMAGEPORT) && (!defined FDJ)
 // Suite a PuTTY 0.61, le patch covidimus ne fonctionne plus tres bien
@@ -341,6 +346,7 @@ static struct TShortcuts {
 	int viewer ;
 	int visible ;
 	int winscp ;
+	int showportforward
 	} shortcuts_tab ;
 	
 static int NbShortCuts = 0 ;
@@ -1207,6 +1213,9 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#WinSCPProtocol", "sftp" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#autostoresshkey", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#UserPassSSHNoSave", "no" ) ;
+#ifdef RECONNECTPORT
+			writeINI( KittyIniFile, INIT_SECTION, "#ReconnectDelay", "5" ) ;
+#endif
 #ifdef PORTABLE
 			writeINI( KittyIniFile, INIT_SECTION, "savemode", "dir" ) ;
 #else
@@ -3129,22 +3138,83 @@ int WindowsCount( HWND hwnd ) {
 	
 	
 // Gestion de la fenetre d'affichage des portforward
-// void AddNewPortForwardMsg( char * st) est dans kitty_commun
-extern char*PortForwardMsg ;
+// Mettre la liste des port forward dans le presse-papier et l'afficher a l'ecran
+#include <iphlpapi.h>
+DWORD (WINAPI *pGetExtendedTcpTable)(
+  PVOID pTcpTable,
+  PDWORD pdwSize,
+  BOOL bOrder,
+  ULONG ulAf,
+  TCP_TABLE_CLASS TableClass,
+  ULONG Reserved
+);
 
 int ShowPortfwd( HWND hwnd, Conf * conf ) {
-	if( PortForwardMsg!=NULL ) {
-		MessageBox( NULL, PortForwardMsg, "Running port forwarding", MB_OK ) ;
-		return SetTextToClipboard( PortForwardMsg ) ;
-		}
-	else {
-		MessageBox( NULL, "No port forward", "Running port forwarding", MB_OK ) ;
-		return 1;
-		}
-	}
+	char pf[2048]="" ;
+	char *key, *val;
+	
+	MIB_TCPTABLE_OWNER_PID *pTCPInfo;
+	MIB_TCPROW_OWNER_PID *owner;
+	DWORD size;
+	DWORD dwResult;
+	DWORD dwLoop;
 
-// Mettre la liste des port forward dans le presse-papier et l'afficher a l'ecran
-	/*
+	HMODULE hLib = LoadLibrary( "iphlpapi.dll" );
+
+	if( hLib ) {
+		pGetExtendedTcpTable = (DWORD (WINAPI *)(PVOID,PDWORD,BOOL,ULONG,TCP_TABLE_CLASS,ULONG))
+		GetProcAddress(hLib, "GetExtendedTcpTable");
+		}
+	dwResult = pGetExtendedTcpTable(NULL, &size, 0, AF_INET, TCP_TABLE_OWNER_PID_LISTENER, 0);
+	pTCPInfo = (MIB_TCPTABLE_OWNER_PID*)malloc(size);
+	dwResult = pGetExtendedTcpTable(pTCPInfo, &size, 0, AF_INET, TCP_TABLE_OWNER_PID_LISTENER, 0);
+
+	for (val = conf_get_str_strs(conf, CONF_portfwd, NULL, &key);
+	val != NULL;
+	val = conf_get_str_strs(conf, CONF_portfwd, key, &key)) {
+		char *p;
+		
+		if( key[0]=='R' ) {
+			p = dupprintf("[-] %s \t\t<-- \t%s\n", key+1,val);
+			}
+		else if ( key[0]=='L' ) {
+			if( pGetExtendedTcpTable && (dwResult == NO_ERROR) ) {
+				int found=0 ;
+				if( pTCPInfo->dwNumEntries > 0 ) {
+					for (dwLoop = 0; dwLoop < pTCPInfo->dwNumEntries; dwLoop++) {
+						owner = &pTCPInfo->table[dwLoop];
+						if ( owner->dwState == MIB_TCP_STATE_LISTEN ) {
+							if( ntohs(owner->dwLocalPort) == atoi(key+1) ) {
+								if( GetCurrentProcessId() == owner->dwOwningPid ) p = dupprintf("[C] %s \t\t--> \t%s\n", key+1,val);
+								else p = dupprintf("[X] %s(%u)\t--> \t%s\n", key+1,owner->dwOwningPid,val) ;
+								found=1;
+								break;
+								}
+							}
+						}
+					}
+				if( !found ) { p = dupprintf("[-] %s \t\t--> \t%s\n", key+1,val); }
+				}
+			else {
+				p = dupprintf("[-] %s \t\t--> \t%s\n", key+1,val);
+				}
+			}
+		else if ( key[0]=='D' )
+			p = dupprintf("D%s\t\n", key+1);
+		else
+			p = dupprintf("%s\t%s\n", key, val);
+		
+		strcat( pf, p ) ;
+		sfree(p);
+		}
+	
+	if( hLib ) { FreeLibrary( hLib ) ; }
+		
+	strcat( pf, "\n[C] Listening in the current process\n[X] Listening in another process\n[-] No Listening\n" );
+	MessageBox( NULL, pf, "Port forwarding", MB_OK ) ;
+	return SetTextToClipboard( pf ) ;
+	}
+/*
 int ShowPortfwd( HWND hwnd, Conf * conf ) {
 	char pf[2048]="" ;
 	char *key, *val;
@@ -3161,8 +3231,7 @@ int ShowPortfwd( HWND hwnd, Conf * conf ) {
 		}
 	MessageBox( NULL, pf, "Port forwarding", MB_OK ) ;
 	return SetTextToClipboard( pf ) ;
-	}
-*/
+	}/**/
 /* ANCIENNE PROCEDURE
 int ShowPortfwd( HWND hwnd, char * portfwd ) {
 	char pf[2048], *p ;
@@ -3487,6 +3556,10 @@ echo "\033]0;__ws:"`pwd`"\007"
 }
 Il faut ensuite simplement taper: winscp
 C'est traite dans KiTTY par la fonction ManageLocalCmd
+
+Le chemin vers l'exécutable WinSCP est défini dans la variable WInSCPPath. Elle peut pointer sur un fichier .BAT pour passer des options supplémentaires.
+@ECHO OFF
+start "C:\Program Files\WinSCP\WinSCP.exe" "%1" "%2" "%3" "%4" "%5" "%6" "%7" "%8" "%9"
 */	
 // winscp.exe [(sftp|ftp|scp)://][user[:password]@]host[:port][/path/[file]] [/privatekey=key_file]
 void StartWinSCP( HWND hwnd, char * directory ) {
@@ -3792,11 +3865,11 @@ void ReadInitScript( const char * filename ) {
 			pst[0] = '\0' ;
 			l++ ;
 			fclose( fp ) ;
+			bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
 			if( IniFileFlag==SAVEMODE_REG ) {
-				bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
 				//WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
-				conf_set_str(conf, CONF_scriptfilecontent, buffer );
 				}
+			conf_set_str(conf, CONF_scriptfilecontent, buffer );
 			}
 		if( buffer!=NULL ) { free(buffer); buffer=NULL; }
 		}
@@ -4157,6 +4230,8 @@ void InitShortcuts( void ) {
 		shortcuts_tab.editor = SHIFTKEY+VK_F2 ;
 	if( !readINI(KittyIniFile,"Shortcuts","winscp",buffer) || ( (shortcuts_tab.winscp=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.winscp = SHIFTKEY+VK_F3 ;
+	if( !readINI(KittyIniFile,"Shortcuts","showportforward",buffer) || ( (shortcuts_tab.showportforward=DefineShortcuts(buffer))<=0 ) )
+		shortcuts_tab.showportforward = SHIFTKEY+VK_F6 ;
 	if( !readINI(KittyIniFile,"Shortcuts","print",buffer) || ( (shortcuts_tab.print=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.print = SHIFTKEY+VK_F7 ;
 	if( !readINI(KittyIniFile,"Shortcuts","printall",buffer) || ( (shortcuts_tab.printall=DefineShortcuts(buffer))<=0 ) )
@@ -4230,6 +4305,8 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		{ SendMessage( hwnd, WM_COMMAND, IDM_PROTECT, 0 ) ; InvalidateRect( hwnd, NULL, TRUE ) ; return 1 ; }
 	if( key == shortcuts_tab.rollup ) 				// Fonction winrol
 			{ SendMessage( hwnd, WM_COMMAND, IDM_WINROL, 0 ) ; return 1 ; }
+	if( key == shortcuts_tab.showportforward ) 				// Fonction show port forward
+			{ SendMessage( hwnd, WM_COMMAND, IDM_SHOWPORTFWD, 0 ) ; return 1 ; }
 
 	if( (ProtectFlag == 1) || (WinHeight != -1) ) return 1 ;
 		
@@ -4313,10 +4390,12 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&((key_num == VK_SUBTRACT)||(key_num == VK_DOWN)) ) // Diminuer l'opacite (augmenter la transparence)
 			{ SendMessage( hwnd, WM_COMMAND, IDM_TRANSPARDOWN, 0 ) ; return 1 ; }
 #ifdef LAUNCHERPORT
+		/*    ====> Ne fonctionne pas !!!
 		if (key_num == VK_LEFT ) //Fenetre KiTTY precedente
 			{ SendMessage( hwnd, WM_COMMAND, IDM_GOPREVIOUS, 0 ) ; return 1 ; }
 		if (key_num == VK_RIGHT ) //Fenetre KiTTY Suivante
 			{ SendMessage( hwnd, WM_COMMAND, IDM_GONEXT, 0 ) ; return 1 ; }
+		*/
 #endif
 		}
 	return 0 ;
@@ -4398,6 +4477,12 @@ void LoadParameters( void ) {
 		internal_delay = atoi( buffer ) ; 
 		if( internal_delay < 1 ) internal_delay = 1 ;
 		}
+#ifdef RECONNECTPORT
+	if( ReadParameter( INIT_SECTION, "ReconnectDelay", buffer ) ) { 
+		ReconnectDelay = atoi( buffer ) ;
+		if( ReconnectDelay < 1 ) ReconnectDelay = 1 ;
+		}
+#endif
 	if( ReadParameter( INIT_SECTION, "KiPP", buffer ) != 0 ) {
 		if( decryptstring( buffer, MASTER_PASSWORD ) ) ManagePassPhrase( buffer ) ;
 		}
