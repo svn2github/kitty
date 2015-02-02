@@ -30,6 +30,8 @@ int DirectoryBrowseFlag = 1 ;
 int DirectoryBrowseFlag = 0 ;
 #endif
 
+// Flag permettant de sauvegarder automatique les cles SSH des serveurs
+int AutoStoreSSHKeyFlag = 0 ;
 
 // Répertoire de sauvegarde de la configuration (savemode=dir)
 char * ConfigDirectory = NULL ;
@@ -84,7 +86,7 @@ int IsPortableMode( void ) {
 	FILE * fp = NULL ;
 	int ret = 0 ;
 	char buffer[256] ;
-		
+
 	if( (fp = fopen( "putty.ini", "r" )) != NULL ) {
 		fclose(fp ) ;
 		if( readINI( "putty.ini", "PuTTY", "savemode", buffer ) ) {
@@ -160,5 +162,10 @@ void debug_logevent( const char *fmt, ... ) {
 	}
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) { return memset( ptr, 0, cnt ) ; }
+
+// Fonction permettant de changer le statut du stockage automatique des ssh host keys
+void SetAutoStoreSSHKey( void ) {
+	AutoStoreSSHKeyFlag = 1 ;
+	}
 
 #endif

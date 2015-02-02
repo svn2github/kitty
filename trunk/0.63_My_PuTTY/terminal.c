@@ -4818,6 +4818,9 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 	 * TODO: We should find out somehow that the stuff on screen has changed since last
 	 *       paint. How to do it?
 	 */
+	
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
+	
 	int urlhack_underline_always = (conf_get_int(term->conf, CONF_url_underline) /*term->cfg.url_underline*/ == URLHACK_UNDERLINE_ALWAYS);
 
 	int urlhack_underline =
@@ -4830,29 +4833,35 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 	text_region urlhack_region;
 
 	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 	if (term->url_update) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		urlhack_reset();
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		for (i = 0; i < term->rows; i++) {
 			termline *lp = scrlineptr(term->disptop + i);
 
 			for (j = 0; j < term->cols; j++) {
 				urlhack_putchar((char)(lp->chars[j].chr & CHAR_MASK));
 			}
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			unlineptr(lp);
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		}
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 
 		urlhack_go_find_me_some_hyperlinks(term->cols);
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 	}
 	urlhack_region = urlhack_get_link_region(urlhack_region_index);
 	urlhack_toggle_x = urlhack_region.x0;
 	urlhack_toggle_y = urlhack_region.y0;
-
+debug_sock("%d	%s	%d %d\n", GetCurrentProcessId(),  __FILE__, __LINE__,urlhack_underline_always) ;
 	if (urlhack_underline_always)
 		urlhack_hover_current = 1;
 	else
 		urlhack_hover_current = urlhack_is_in_this_link_region(urlhack_region, urlhack_mouse_old_x, urlhack_mouse_old_y);
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 	}
 	/* HACK: PuttyTray / Nutty : END */
 #endif
@@ -5015,39 +5024,44 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
  		 * Hyperlink stuff: Underline link regions if user has configured us so
  		 */
 		if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  		if (urlhack_underline) {
+//debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  			if (j == urlhack_toggle_x && i == urlhack_toggle_y) {
  				urlhack_is_link = urlhack_is_link == 1 ? 0 : 1;
- 
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  				// Find next bound for the toggle
  				
  				if (urlhack_is_link == 1) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  					urlhack_toggle_x = urlhack_region.x1;
  					urlhack_toggle_y = urlhack_region.y1;
  
  					if (urlhack_toggle_x == term->cols - 1) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  						// Handle special case where link ends at the last char of the row
 						urlhack_toggle_y++;
  						urlhack_toggle_x = 0;
  					}
  				}
  				else {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  					urlhack_region = urlhack_get_link_region(++urlhack_region_index);
- 
+debug_sock("%d	%s	%d %d\n", GetCurrentProcessId(),  __FILE__, __LINE__,urlhack_underline_always) ;
  					if (urlhack_underline_always)
  						urlhack_hover_current = 1;
  					else
  						urlhack_hover_current = urlhack_is_in_this_link_region(urlhack_region, urlhack_mouse_old_x, urlhack_mouse_old_y);
- 
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  					urlhack_toggle_x = urlhack_region.x0;
  					urlhack_toggle_y = urlhack_region.y0;
  				}
  			}
- 
+//debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  			if (urlhack_is_link == 1 && urlhack_hover_current == 1) {	
  				tattr |= ATTR_UNDER;
  			}
- 
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
  			term->url_update = 0;
  		}
 		}
@@ -5983,8 +5997,11 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	      case MA_DRAG:
 #ifdef HYPERLINKPORT
 	      	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		if (term->xterm_mouse == 1) {// HACK: ADDED FOR hyperlink stuff
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			unlineptr(ldata); 
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
   		    return;
 		}
 		}
@@ -6007,8 +6024,11 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	      case MA_CLICK:
 #ifdef HYPERLINKPORT
 	        if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		if (term->mouse_is_down == braw) {// HACK: ADDED FOR hyperlink stuff
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 				  unlineptr(ldata); 
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 				  return;
 			  }	      
 		}
@@ -6042,7 +6062,11 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	    ldisc_send(term->ldisc, abuf, len, 0);
 	}
 #ifdef HYPERLINKPORT
-	if( !get_param("PUTTY") && get_param("HYPERLINK") ) unlineptr(ldata); // HACK: ADDED FOR hyperlink stuff
+	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
+		unlineptr(ldata); // HACK: ADDED FOR hyperlink stuff
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
+		}
 #endif
 	return;
     }
@@ -6074,30 +6098,34 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	 * the temporary buffer.
 	 */
 	} else if( !get_param("PUTTY") && get_param("HYPERLINK") && bcooked == MBT_SELECT && a == MA_RELEASE && term->selstate == ABOUT_TO) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 	deselect(term);
 	term->selstate = NO_SELECTION;
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 	if ((!conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/ || (conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/ && urlhack_is_ctrl_pressed())) && urlhack_is_in_link_region(x, y)) {
 		int i;
 		char *linkbuf = NULL;
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		text_region region = urlhack_get_link_bounds(x, y);
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		if (region.y0 == region.y1) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			linkbuf = snewn(region.x1 - region.x0 + 2, char);
-			
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			for (i = region.x0; i < region.x1; i++) {
 				linkbuf[i - region.x0] = (char)(ldata->chars[i].chr);
 			}
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			linkbuf[i - region.x0] = '\0';
 		}
 		else {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			termline *urldata = scrlineptr(region.y0);
 			int linklen, /*pos = region.x0,*/ row = region.y0;
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			linklen = (term->cols - region.x0) +
 				((region.y1 - region.y0 - 1) * term->cols) + region.x1 + 1;
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			linkbuf = snewn(linklen, char);
 
 			for (i = region.x0; i < linklen + region.x0; i++) {
@@ -6108,8 +6136,9 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 					row++;
 					urldata = lineptr(row);
 				}
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			}
-
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 			linkbuf[linklen - 1] = '\0';
 			unlineptr(urldata);
 		}
@@ -6117,11 +6146,12 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 		char buf[1024];
 		sprintf(buf, "Browser: %s",linkbuf);
 		logevent(NULL,buf);
-
+debug_sock("%d	%s	%d %d\n", GetCurrentProcessId(),  __FILE__, __LINE__,ctrl) ;
 		if( ctrl ) 
 		urlhack_launch_url(!conf_get_int(term->conf,CONF_url_defbrowser)/*term->cfg.url_defbrowser*/ ? conf_get_filename(term->conf,CONF_url_browser)->path/*term->cfg.url_browser*/ : NULL, linkbuf, 1);
 		else
 		urlhack_launch_url(!conf_get_int(term->conf,CONF_url_defbrowser)/*term->cfg.url_defbrowser*/ ? conf_get_filename(term->conf,CONF_url_browser)->path/*term->cfg.url_browser*/ : NULL, linkbuf, 0);
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		sfree(linkbuf);
 	}
 	/* HACK: PuttyTray / Nutty : END */
@@ -6139,8 +6169,11 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	       (bcooked == MBT_EXTEND && a != MA_RELEASE)) {
 #ifdef HYPERLINKPORT
 	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 	if (term->selstate == ABOUT_TO && poseq(term->selanchor, selpoint)) { // HACK: ADDED FOR HYPERLINK STUFF
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		unlineptr(ldata);
+debug_sock("%d	%s	%d\n", GetCurrentProcessId(),  __FILE__, __LINE__) ;
 		return;
 	}
 	}

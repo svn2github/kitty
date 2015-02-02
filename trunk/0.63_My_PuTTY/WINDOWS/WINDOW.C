@@ -414,7 +414,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
 #ifdef PERSOPORT
 
-// Initialisation specifique à KiTTY
+// Initialisation specifique a KiTTY
 hInstIcons = hinst ; 
 InitWinMain();
 
@@ -549,6 +549,8 @@ InitWinMain();
 			conf_set_int( conf, CONF_protocol, PROT_CYGTERM ) ; // cfg.protocol = PROT_CYGTERM ;
 			got_host = 1 ;
 #endif
+		} else if( !strcmp(p, "-auto_store_sshkey") ) {
+			AutoStoreSSHKeyFlag = 1 ;
 		} else if( !strcmp(p, "-cmd") ) {
 			i++ ;
 			conf_set_str( conf, CONF_autocommand, argv[i] ) ; //strcpy( cfg.autocommand, argv[i] ) ;
@@ -606,6 +608,8 @@ InitWinMain();
 			BackgroundImageFlag = 0 ;
 #endif
 		} else if( !strcmp(p, "-putty") ) {
+			AutoStoreSSHKeyFlag = 0 ;
+			UserPassSSHNoSave = 0 ;
 			NoKittyFileFlag = 1 ;
 			HyperlinkFlag = 0 ;
 			IconeFlag = -1 ;
@@ -613,6 +617,7 @@ InitWinMain();
 			TransparencyFlag = 0 ;
 			conf_set_int(conf,CONF_transparencynumber, -1) ;
 			ShortcutsFlag = 0 ;
+			MouseShortcutsFlag = 0 ;
 			SizeFlag = 0 ;
 			CapsLockFlag = 0 ;
 			WinHeight = -1 ;
@@ -811,16 +816,27 @@ InitWinMain();
                         /* Concatenate all the remaining arguments separating
                          * them with spaces to get the command line to execute.
                          */
-                        char *p = conf_get_str(conf,CONF_cygcmd) /*cfg.cygcmd*/;
-			char *const end = conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ + strlen( conf_get_str(conf,CONF_cygcmd) );
+                        //char *p = conf_get_str(conf,CONF_cygcmd) /*cfg.cygcmd*/;
+			//char *const end = conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ + strlen( conf_get_str(conf,CONF_cygcmd) );
+	    
                         //char *const end = conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ + sizeof conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/;
+			    
+			char *p,*pst;
+			pst=(char*)malloc(1000);
+			p=pst;
+			strcpy( p, conf_get_str(conf,CONF_cygcmd) );
+			char *const end = p + 1000 ;
+			    
                         for (; i < argc && p < end; i++) {
                             p = stpcpy_max(p, argv[i], end - p - 1);
                             *p++ = ' ';
                         }
-                        assert(p > conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ && p <= end);
+                        assert(p > pst/*conf_get_str(conf,CONF_cygcmd)*//*cfg.cygcmd*/ && p <= end);
                         *--p = '\0';
 			got_host = 1;
+			
+			conf_set_str( conf, CONF_cygcmd, pst );
+			free(pst); 
 #endif
 		    } else {
 			/*
@@ -966,13 +982,13 @@ else	{
 
 #ifdef PERSOPORT
 // Initialisation de la structure NOTIFYICONDATA
-TrayIcone.cbSize = sizeof(TrayIcone);						// On alloue la taille nécessaire pour la structure
-TrayIcone.uID = IDI_MAINICON_0 ;							// On lui donne un ID
-TrayIcone.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;	// On lui indique les champs valables
-	// On lui dit qu'il devra "écouter" son environement (clique de souris, etc)
+TrayIcone.cbSize = sizeof(TrayIcone);					// On alloue la taille necessaire pour la structure
+TrayIcone.uID = IDI_MAINICON_0 ;					// On lui donne un ID
+TrayIcone.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;			// On lui indique les champs valables
+	// On lui dit qu'il devra "ecouter" son environement (clique de souris, etc)
 TrayIcone.uCallbackMessage = MYWM_NOTIFYICON;
 TrayIcone.hIcon = LoadIcon(NULL, NULL);					// On ne load aucune icone pour le moment
-TrayIcone.szTip[1024] = "PuTTY That\'s all folks!\0" ;			// Le tooltip par défaut, soit rien
+TrayIcone.szTip[1024] = "PuTTY That\'s all folks!\0" ;			// Le tooltip par defaut, soit rien
 TrayIcone.hWnd = hwnd ;
 #endif
 
@@ -1235,7 +1251,7 @@ TrayIcone.hWnd = hwnd ;
 				}
 			}
 
-		// Paramétrage spécifique à la session
+		// Parametrage specifique a la session
 		if( GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "InitDelay", reg_buffer ) ) {
 			if( init_delay != (int)(1000*atof( reg_buffer ) ) ) { 
 					init_delay = (int)(1000*atof( reg_buffer ) ) ; 
@@ -1417,7 +1433,7 @@ void cleanup_exit(int code)
 	else if( IniFileFlag == SAVEMODE_FILE ) { // Mode de sauvegarde fichier
 		int nb ;
 		nb = WindowsCount( MainHwnd ) ;
-		if( nb == 1 ) { // c'est la derniere instance de kitty on vide la clé de registre
+		if( nb == 1 ) { // c'est la derniere instance de kitty on vide la cle de registre
 			HWND hdlg = InfoBox( hinst, NULL ) ;
 			InfoBoxSetText( hdlg, "Cleaning registry" ) ;
 			RegDelTree( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ;
@@ -1432,8 +1448,8 @@ void cleanup_exit(int code)
 	
 	
 	/*
-	Embryon de mecanisme de retour à la config box en sortant d'une session.
-	Le probleme est que ça retourne à la config box aussi en sortant ... de la config box si une session est chargée ...
+	Embryon de mecanisme de retour a la config box en sortant d'une session.
+	Le probleme est que ca retourne a la config box aussi en sortant ... de la config box si une session est chargee ...
 	*/
 	if( !PuttyFlag && ConfigBoxNoExitFlag )
 	if( backend_connected && strlen(conf_get_str(conf,CONF_sessionname))>0 ) {
@@ -2653,7 +2669,7 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	char buffer[4096] = "" ;
 
 	if( (conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ == PROT_SSH) && (!backend_connected) ) break ; // On sort si en SSH on n'est pas connecte
-	// Lancement d'une (ou plusieurs séparées par \\n) commande(s) automatique(s) à l'initialisation
+	// Lancement d'une (ou plusieurs separees par \\n) commande(s) automatique(s) a l'initialisation
 	KillTimer( hwnd, TIMER_INIT ) ;
 
 	if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ == PROT_TELNET ) {
@@ -2702,7 +2718,7 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	RefreshBackground( hwnd ) ;
 	}
 
-else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
+else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au demarrage
 
 	KillTimer( hwnd, TIMER_AUTOCOMMAND ) ; 
 	if( AutoCommand == NULL ) {
@@ -2713,7 +2729,7 @@ else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
 		//char bufauto[8192]="";
 		//GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "Autocommand", bufauto/*cfg.autocommand*/ ) ;
 		//conf_set_str( conf,CONF_autocommand, bufauto);
-		//AutoCommand = conf_get_str(conf,CONF_autocommand)/*cfg.autocommand */;  // Problème ou pas ?
+		//AutoCommand = conf_get_str(conf,CONF_autocommand)/*cfg.autocommand */;  // Probleme ou pas ?
 //logevent(NULL, AutoCommand );
 		}
 
@@ -3332,14 +3348,14 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		ShowPortfwd( hwnd, conf ) ; //ShowPortfwd( hwnd, cfg.portfwd ) ;
 		break ;
 #ifndef NO_TRANSPARENCY
-	  case IDM_TRANSPARUP: // Augmenter l'opacité (diminuer la transparence)
+	  case IDM_TRANSPARUP: // Augmenter l'opacite (diminuer la transparence)
 		if( TransparencyFlag && conf_get_int(conf,CONF_transparencynumber) > 0 ) {
 			conf_set_int( conf, CONF_transparencynumber, conf_get_int(conf,CONF_transparencynumber)-10 ) ;
 			if( conf_get_int(conf,CONF_transparencynumber)<0) conf_set_int( conf, CONF_transparencynumber, 0 );
 			SetTransparency( hwnd, 255-conf_get_int(conf,CONF_transparencynumber) ) ;
 			}
 		break ;
-	  case IDM_TRANSPARDOWN: // Diminuer l'opacité (augmenter la transparence)
+	  case IDM_TRANSPARDOWN: // Diminuer l'opacite (augmenter la transparence)
 		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1) && (conf_get_int(conf,CONF_transparencynumber)<255) ) {
 			if( conf_get_int(conf,CONF_transparencynumber)==245 ) MessageBox( hwnd, "      KiTTY made by      \r\nCyril Dupont\r\nLeonard Nero", "About", MB_OK ) ;
 			conf_set_int( conf, CONF_transparencynumber, conf_get_int(conf,CONF_transparencynumber)+10 ) ;
@@ -3465,11 +3481,13 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			break ;
 		}
 	break ;
-	
+	case WM_NCLBUTTONDBLCLK:
+		return DefWindowProc(hwnd, message, wParam, lParam) ;
+	break ;
 	case WM_NCLBUTTONDOWN:
-		if( GetKeyState( VK_CONTROL ) & 0x8000 ) 
-			if( wParam == HTCAPTION )
-				ManageWinrol( hwnd, conf_get_int(conf,CONF_resize_action)/*cfg.resize_action*/ ) ;
+		if( ( GetKeyState( VK_CONTROL ) & 0x8000 ) && ( wParam == HTCAPTION ) )
+			ManageWinrol( hwnd, conf_get_int(conf,CONF_resize_action)/*cfg.resize_action*/ ) ;
+		else return DefWindowProc(hwnd, message, wParam, lParam);
 	break;
 #endif
 
@@ -3486,7 +3504,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_MBUTTONUP:
       case WM_RBUTTONUP:
 #ifdef PERSOPORT
-        if(!PuttyFlag) {
+        if(!PuttyFlag && MouseShortcutsFlag) {
 	if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
 		if( back ) SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ;
 		else SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;
@@ -3504,7 +3522,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		break ;
 		}
 
-	else if ( PasteCommandFlag && (message == WM_RBUTTONDOWN) && ((wParam & MK_SHIFT) ) ) {// shift+bouton droit => coller (paste) amélioré (pour serveur lent, on utilise la methode autocommand par TIMER)
+	else if ( PasteCommandFlag && (message == WM_RBUTTONDOWN) && ((wParam & MK_SHIFT) ) ) {// shift+bouton droit => coller (paste) ameliore (pour serveur lent, on utilise la methode autocommand par TIMER)
 		SetPasteCommand() ;
 		break ;
 		}

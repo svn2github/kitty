@@ -28,6 +28,10 @@
  * executed immediately.)
  */
 
+#ifdef PERSOPORT
+void SetAutoStoreSSHKey( void ) ;
+#endif
+
 #define NPRIORITIES 2
 
 struct cmdline_saved_param {
@@ -209,6 +213,12 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 	default_protocol = PROT_RAW;
 	conf_set_int(conf, CONF_protocol, default_protocol);
     }
+#ifdef PERSOPORT
+    if (!strcmp(p, "-auto_store_sshkey")) {
+	RETURN(1);
+	SetAutoStoreSSHKey();
+    }
+#endif
 #ifdef CYGTERMPORT
     if (!strcmp(p, "-cygterm")) {
 	RETURN(1);

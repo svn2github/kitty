@@ -1,5 +1,5 @@
 
-// Essai de compilation séparée
+// Essai de compilation sÃƒÆ’Ã‚Â©parÃƒÆ’Ã‚Â©e
 #ifdef FDJ
 #undef IMAGEPORT
 #endif
@@ -44,15 +44,15 @@ static BOOL (WINAPI * pAlphaBlend)(HDC,int,int,int,int,HDC,int,int,int,int,BLEND
 //static HWND hwnd;
 #include "kitty_image.h"
 
- HDC textdc;
- HBITMAP textbm;
+ HDC textdc = NULL ;
+ HBITMAP textbm = NULL ;
  COLORREF colorinpixel;
- HDC colorinpixeldc;
- HBITMAP colorinpixelbm;
- HDC backgrounddc;
- HBITMAP backgroundbm;
- HDC backgroundblenddc;
- HBITMAP backgroundblendbm;
+ HDC colorinpixeldc = NULL ;
+ HBITMAP colorinpixelbm = NULL;
+ HDC backgrounddc = NULL ;
+ HBITMAP backgroundbm = NULL ;
+ HDC backgroundblenddc = NULL ;
+ HBITMAP backgroundblendbm = NULL;
  BOOL bBgRelToTerm;
 
  int resizing;
@@ -321,7 +321,8 @@ static BOOL load_wallpaper_bmp(HBITMAP* rawImage, int* style, int* x, int* y)
                       // this point.
 
     RegCloseKey(kDesktop);
-
+ 
+    if( *rawImage!=NULL ) { DeleteObject( *rawImage ) ; *rawImage=NULL ; }
     *rawImage = LoadImage(
         NULL, wpPath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE
     );
@@ -339,6 +340,7 @@ static BOOL load_file_bmp(HBITMAP* rawImage, int* style, int* x, int* y)
     *y = conf_get_int( conf,CONF_bg_image_abs_y ); // cfg.bg_image_abs_y;
     *style = conf_get_int( conf,CONF_bg_image_style); // cfg.bg_image_style;
 
+    if( *rawImage!=NULL ) { DeleteObject( *rawImage ) ; *rawImage=NULL ; }
     *rawImage = LoadImage(
         NULL, conf_get_filename( conf, CONF_bg_image_filename )/*cfg.bg_image_filename.*/->path, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE
     );
@@ -604,8 +606,8 @@ void init_dc_blend(void)
     	HDC hdc = GetDC(hwnd);
     	
     	// Create one pixel size bitmap for use in color_blend.
-        colorinpixeldc = CreateCompatibleDC(hdc);
-        colorinpixelbm = CreateCompatibleBitmap(hdc, 1, 1);
+        if( colorinpixeldc !=NULL ) DeleteDC(colorinpixeldc ); colorinpixeldc = CreateCompatibleDC(hdc);
+        if( colorinpixelbm!=NULL ) DeleteObject(colorinpixelbm); colorinpixelbm = CreateCompatibleBitmap(hdc, 1, 1);
         SelectObject(colorinpixeldc, colorinpixelbm);
         colorinpixel = 0;
         SetPixelV(colorinpixeldc, 0, 0, colorinpixel);
@@ -732,23 +734,23 @@ static void color_opacity_gradient( HDC destDc, int x, int y, int width, int hei
 				opacity = 100 - opacity ;
 				}
 				break ;
-			case 3: // De gauche à droite
+			case 3: // De gauche a droite
 				w++ ; if( w >= width ) { w = 0 ; }
 				opacity = OpacityMin + 1.0*( OpacityMax-OpacityMin ) * (1.0*w)/(1.0*width) ;
 				break ;
-			case 4: // De droite à gauche
+			case 4: // De droite a gauche
 				w++ ; if( w >= width ) { w = 0 ; }
 				opacity = OpacityMin + 1.0*( OpacityMax-OpacityMin ) * (1.0*w)/(1.0*width) ;
 				opacity = 100 - opacity ;
 				break ;
-			case 5: // Du centre vers l'extérieur
+			case 5: // Du centre vers l'exterieur
 				if( (i%(4*width)) == 0 ) { h++ ; }
 				w++ ; if( w >= width ) { w = 0 ; }
 				l = sqrt( pow(1.0*width/2.0-w,2.0)+pow(1.0*height/2.0-h,2.0) ) / 
 					sqrt( pow(1.0*width/2.0,2.0)+pow(1.0*height/2.0,2.0) );
 				opacity = OpacityMin + 1.0*( OpacityMax-OpacityMin ) * l ;
 				break ;
-			case 6: // De l'extérieur vers le centre
+			case 6: // De l'exterieur vers le centre
 				if( (i%(4*width)) == 0 ) { h++ ; }
 				w++ ; if( w >= width ) { w = 0 ; }
 				l = sqrt( pow(1.0*width/2.0-w,2.0)+pow(1.0*height/2.0-h,2.0) ) / 
@@ -937,8 +939,8 @@ BOOL load_bg_bmp()
         // selected the Solid background option, or the attempt to do something
         // fancier (use the system wallpaper or an image file) failed.
         /*
-        backgrounddc = CreateCompatibleDC(hdcPrimary);
-        backgroundbm
+        if( backgrounddc!=NULL ) DeleteDC(backgrounddc) ; backgrounddc = CreateCompatibleDC(hdcPrimary);
+        if( backgroundbm!=NULL ) DeleteObject(backgroundbm); backgroundbm
             = CreateCompatibleBitmap(hdcPrimary, deskWidth, deskHeight);
         SelectObject(backgrounddc, backgroundbm);
         */
@@ -958,12 +960,12 @@ BOOL load_bg_bmp()
 
         // Create a memory DC that has a new bitmap of the appropriate final
         // image size.
-        textdc = CreateCompatibleDC(hdcPrimary);
-        textbm = CreateCompatibleBitmap(hdcPrimary, deskWidth, deskHeight);
+        if( textdc!=NULL ) DeleteDC(textdc) ; textdc = CreateCompatibleDC(hdcPrimary);
+        if( textbm!= NULL ) DeleteObject(textbm) ; textbm = CreateCompatibleBitmap(hdcPrimary, deskWidth, deskHeight);
         SelectObject(textdc, textbm);
 
-        backgrounddc = CreateCompatibleDC(hdcPrimary);
-        backgroundbm
+        if( backgrounddc!=NULL ) DeleteDC(backgrounddc); backgrounddc = CreateCompatibleDC(hdcPrimary);
+        if( backgroundbm!=NULL ) DeleteObject(backgroundbm); backgroundbm
             = CreateCompatibleBitmap(hdcPrimary, deskWidth, deskHeight);
         SelectObject(backgrounddc, backgroundbm);
 
@@ -1017,14 +1019,14 @@ BOOL load_bg_bmp()
 		fill_dc(backgrounddc, deskWidth, deskHeight, backgroundcolor) ;
 		break ;
 	
-	case 5: // Stretch à la taille de la fenêtre
+	case 5: // Stretch a la taille de la fenetre
 		{
 		if( (ShrinkBitmapEnable)&&(clientWidth<rawImageInfo.bmWidth)&&(clientHeight<rawImageInfo.bmHeight) ) {
 			HBITMAP newhbmpBMP ;
 			if( (newhbmpBMP = ShrinkBitmap( rawImage,clientWidth,clientHeight)) != NULL ) {
 				DeleteDC(bmpdc) ;
 				bmpdc = CreateCompatibleDC(0) ;
-				DeleteDC(backgrounddc);backgrounddc = GetDC(hwnd);
+				DeleteDC(backgrounddc); backgrounddc = GetDC(hwnd);
 				SelectObject(bmpdc, newhbmpBMP ) ;
 				BitBlt(backgrounddc, 0, 0,clientWidth,clientHeight, bmpdc, 0, 0, SRCCOPY ) ;
 				DeleteObject(newhbmpBMP);
@@ -1038,18 +1040,17 @@ BOOL load_bg_bmp()
 		break ;
         }
 
-        DeleteObject(rawImage);
-        DeleteDC(bmpdc);
-
         // Create a version of the background DC with opacity already applied
         // for fast screen fill in areas with no text.
 
-        backgroundblenddc = CreateCompatibleDC(hdcPrimary);
-        backgroundblendbm = CreateCompatibleBitmap(
-            hdcPrimary, deskWidth, deskHeight
-        );
-        SelectObject(backgroundblenddc, backgroundblendbm);
-        BitBlt(
+        if( backgroundblenddc!=NULL ) DeleteDC(backgroundblenddc) ; backgroundblenddc = CreateCompatibleDC(hdcPrimary);
+        if( backgroundblendbm!=NULL ) DeleteObject(backgroundblendbm) ; backgroundblendbm = CreateCompatibleBitmap( hdcPrimary, deskWidth, deskHeight );
+        
+        DeleteObject(rawImage);
+        DeleteDC(bmpdc);
+	
+	SelectObject(backgroundblenddc, backgroundblendbm);
+	BitBlt(
             backgroundblenddc, 0, 0, deskWidth, deskHeight,
             backgrounddc, 0, 0, SRCCOPY
         );
@@ -1290,17 +1291,20 @@ void clean_bg(void) {
 	}
 
 void RedrawBackground( HWND hwnd ) {
-	if( (get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(conf_get_int(conf,CONF_bg_type)/*cfg.bg_type*/ != 0) ) {
-		clean_bg() ;
-		load_bg_bmp() ;
-		}
+	if(
+	     0 && // On inhibe cette fonction a cause du probleme de fuite memoire due a l'image de fond !!!  , mais probleme de rafraichissement ?
+		(get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(conf_get_int(conf,CONF_bg_type)/*cfg.bg_type*/ != 0) ) 
+			{
+			clean_bg() ;
+			load_bg_bmp() ;
+			}
 	InvalidateRect(hwnd, NULL, TRUE) ;
 	}
 
 
 #ifdef STARTBUTTON
 /*
- * Patch permettant de gérer le probleme de chargement de l'image de fond arrive avec putty 0.61
+ * Patch permettant de gerer le probleme de chargement de l'image de fond arrive avec putty 0.61
  */
 void BackgroundImagePatch( int num ) {
 	int key=0x47 ;  

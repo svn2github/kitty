@@ -21,8 +21,10 @@ void SearchCtHelper( void ) ;
 
 #ifdef __INTERIX
 #define CTHELPER "posix.exe /u /c cthelper.exe"
+#define CTHELPER64 "posix.exe /u /c cthelper64.exe"
 #else
 #define CTHELPER "cthelper"
+#define CTHELPER64 "cthelper64"
 #endif
 
 #if !defined(DEBUG)
@@ -136,10 +138,11 @@ cygterm_accepting(Plug plug, OSSocket sock)
 }
 
 
-static char *getCygwinBin(void);
+//static char *getCygwinBin(void);
+static char *getCygwinBin(int use64);
 static void appendPath(const char *append);
 static size_t makeAttributes(char *buf, Conf *conf/*Config *cfg*/);
-static const char *spawnChild(char *cmd, LPPROCESS_INFORMATION ppi, PHANDLE pin);
+static const char *spawnChild(char *cmd, Conf *conf, LPPROCESS_INFORMATION ppi, PHANDLE pin);
 
 /* Backend functions for the cygterm backend */
 void RunCommand( HWND hwnd, char * cmd ) ;
@@ -209,8 +212,15 @@ cygterm_init(void *frontend_handle, void **backend_handle,
 char * CTHELPER_PATH = getenv( "CTHELPER_PATH" ) ;
 	if( CTHELPER_PATH==NULL ) { SearchCtHelper() ; CTHELPER_PATH = getenv( "CTHELPER_PATH" ) ; }
 if( CTHELPER_PATH!=NULL ) cmdlinelen = sprintf(cmdline, "\"%s\" %u %s ", CTHELPER_PATH, cport, conf_get_str(local->conf,CONF_termtype)/*local->cfg.termtype*/);
-else
-	cmdlinelen = sprintf(cmdline, CTHELPER" %u %s ", cport,conf_get_str(local->conf,CONF_termtype)/*local->cfg.termtype*/);
+else {
+	//cmdlinelen = sprintf(cmdline, CTHELPER" %u %s ", cport,conf_get_str(local->conf,CONF_termtype)/*local->cfg.termtype*/);
+	if(conf_get_int(conf, CONF_cygterm64)) {
+		cmdlinelen = sprintf(cmdline, CTHELPER64" %u %s ", cport, conf_get_str(local->conf, CONF_termtype));
+		}
+	else {
+		cmdlinelen = sprintf(cmdline, CTHELPER" %u %s ", cport, conf_get_str(local->conf, CONF_termtype));
+		}
+	}
 	cmdlinelen += makeAttributes(cmdline + cmdlinelen, local->conf/*&local->cfg*/);
 
 	command = conf_get_str(conf,CONF_cygcmd);/*cfg->cygcmd;*/
@@ -235,7 +245,8 @@ else
 
 	/* Add the Cygwin /bin path to the PATH. */
 	if (conf_get_int(conf,CONF_cygautopath)/*cfg->cygautopath*/) {
-		char *cygwinBinPath = getCygwinBin();
+		//char *cygwinBinPath = getCygwinBin();
+		char *cygwinBinPath = getCygwinBin(conf_get_int(conf, CONF_cygterm64));
 		if (!cygwinBinPath) {
 			/* we'll try anyway */
 			cygterm_debug("cygwin bin directory not found");
@@ -250,7 +261,7 @@ else
 	
 	cygterm_debug("starting cthelper: %s", cmdline);
 	{ char buffer[1024] ; sprintf( buffer,"starting cthelper: %s", cmdline ) ; logevent( NULL,buffer ) ; }
-	if ((err = spawnChild(cmdline, &local->pi, &local->ctl)))
+	if ((err = spawnChild(cmdline, conf, &local->pi, &local->ctl)))
 		goto fail_close;
 
 	/*  This should be set to the local hostname, Apparently, realhost is used
@@ -463,15 +474,23 @@ makeAttributes(char *buf, Conf *conf/*Config *cfg*/)
 	return e - buf;
 }
 
-
+#ifndef KEY_WOW64_64KEY
+#define KEY_WOW64_64KEY 0x0100
+#endif
+#ifndef KEY_WOW64_32KEY
+#define KEY_WOW64_32KEY 0x0200
+#endif
+
 /* Utility functions for spawning cthelper process */
 static BOOL
-getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const char *valueName)
+//getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const char *valueName)
+getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const char *valueName, int use64)
 {
 	HKEY k;
 	LONG ret;
 
-	if (ERROR_SUCCESS != (ret = RegOpenKey(key, subKey, &k)))
+	//if (ERROR_SUCCESS != (ret = RegOpenKey(key, subKey, &k)))
+	if (ERROR_SUCCESS != (ret = RegOpenKeyEx(key, subKey, 0, KEY_READ | (use64 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY), &k )))
 		return ret;
 
 	ERROR_SUCCESS == (ret = RegQueryInfoKey(k, 0, 0, 0, 0, 0, 0, 0, 0, psize, 0, 0))
@@ -502,7 +521,8 @@ getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const 
 	"rootdir"
 
 static char *
-getCygwinBin(void)
+//getCygwinBin(void)
+getCygwinBin(int use64)
 {
 	char *dir;
 	DWORD size = MAX_PATH;
@@ -510,13 +530,13 @@ getCygwinBin(void)
 	dir = smalloc(size);
 	dir[0] = '\0';
 
-	if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_U_SETUP_ROOTDIR)
-	    || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_S_SETUP_ROOTDIR))
+	//if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_U_SETUP_ROOTDIR) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_S_SETUP_ROOTDIR))
+	if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_U_SETUP_ROOTDIR, use64) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_S_SETUP_ROOTDIR, use64))
 	{
 		strcat(dir, "\\bin");
 	}
-	else if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_SYS_ROOT_MOUNT)
-	    || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_USER_ROOT_MOUNT))
+	//else if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_SYS_ROOT_MOUNT) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_USER_ROOT_MOUNT))
+	else if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_SYS_ROOT_MOUNT, use64) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_USER_ROOT_MOUNT, use64))
 	{
 		strcat(dir, "\\bin");
 	}
@@ -551,7 +571,7 @@ appendPath(const char *append)
 }
 
 static const char *
-spawnChild(char *cmd, LPPROCESS_INFORMATION ppi, PHANDLE pin)
+spawnChild(char *cmd, Conf *conf, LPPROCESS_INFORMATION ppi, PHANDLE pin)
 {
 	STARTUPINFO si = {sizeof(si)};
 	SECURITY_ATTRIBUTES sa = {sizeof(sa)};
@@ -570,7 +590,8 @@ spawnChild(char *cmd, LPPROCESS_INFORMATION ppi, PHANDLE pin)
 
 	/* Add the Cygwin /bin path to the PATH env var. */
     if (!getenv("NOCYGWIN")) {
-        char *cygwinBinPath = getCygwinBin();
+        //char *cygwinBinPath = getCygwinBin();
+	char *cygwinBinPath = getCygwinBin(conf_get_int(conf, CONF_cygterm64));
         if (!cygwinBinPath) {
             /* we'll try anyway */
             cygterm_debug("cygwin bin directory not found");

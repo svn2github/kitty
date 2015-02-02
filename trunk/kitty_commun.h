@@ -35,4 +35,7 @@ void SetSSHConnected( void ) ;
 void debug_logevent( const char *fmt, ... ) ;
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) ;
+
+// Fonction permettant de changer le statut du stockage automatique des ssh host keys
+void SetAutoStoreSSHKey( void ) ;
 #endif

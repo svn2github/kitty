@@ -694,6 +694,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     //if (do_host)
 	write_setting_i(sesskey, "CygtermAltMetabit", conf_get_int(conf, CONF_alt_metabit));
 	write_setting_i(sesskey, "CygtermAutoPath", conf_get_int(conf, CONF_cygautopath) /*cfg->cygautopath*/);
+	write_setting_i(sesskey, "Cygterm64", conf_get_int(conf, CONF_cygterm64));
 	write_setting_s(sesskey, "CygtermCommand", conf_get_str(conf, CONF_cygcmd) /*cfg->cygcmd*/);
 #endif
 #ifdef ZMODEMPORT
@@ -1133,6 +1134,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 #ifdef CYGTERMPORT
     gppi(sesskey, "CygtermAltMetabit", 0, conf, CONF_alt_metabit);
     gppi(sesskey, "CygtermAutoPath", 1, conf, CONF_cygautopath /*&cfg->cygautopath*/);
+    gppi(sesskey, "Cygterm64", 0, conf, CONF_cygterm64);
     gpps(sesskey, "CygtermCommand", "", conf, CONF_cygcmd /*cfg->cygcmd, sizeof(cfg->cygcmd)*/);
 #endif
 #ifdef ZMODEMPORT

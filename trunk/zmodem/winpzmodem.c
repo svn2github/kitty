@@ -153,7 +153,7 @@ static int xyz_Check(Backend *back, void *backhandle, Terminal *term, int outerr
 
 void xyz_ReceiveInit(Terminal *term)
 {
-	if (xyz_SpawnProcess(term, conf_get_str(term->conf,CONF_rzcommand)/*term->cfg.rzcommand*/, conf_get_str(term->conf,CONF_rzoptions)/*term->cfg.rzoptions*/) == 0) {
+	if (xyz_SpawnProcess(term, conf_get_filename(term->conf,CONF_rzcommand)->path/*term->cfg.rzcommand*/, conf_get_str(term->conf,CONF_rzoptions)/*term->cfg.rzoptions*/) == 0) {
 		term->xyz_transfering = 1;
 	}
 }
@@ -195,8 +195,10 @@ void xyz_StartSending(Terminal *term)
 				curparams += sprintf(curparams, " \"%s\\%s\"", filenames, p);
 			}
 		}
-		if (xyz_SpawnProcess(term, conf_get_str(term->conf,CONF_szcommand)/*term->cfg.szcommand*/, sz_full_params) == 0) {
+
+		if (xyz_SpawnProcess(term, conf_get_filename(term->conf,CONF_szcommand)->path/*term->cfg.szcommand*/, sz_full_params) == 0) {
 			term->xyz_transfering = 1;
+
 		}
 	}
 }

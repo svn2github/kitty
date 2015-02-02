@@ -1118,6 +1118,10 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 	char *text = dupprintf(wrongmsg, appname, keytype, fingerprint,
 			       appname);
 	char *caption = dupprintf(mbtitle, appname);
+#ifdef PERSOPORT
+	if( get_param("AUTOSTORESSHKEY") ) { mbret=IDYES ; }
+	else 
+#endif
 	mbret = message_box(text, caption,
 			    MB_ICONWARNING | MB_YESNOCANCEL | MB_DEFBUTTON3,
 			    HELPCTXID(errors_hostkey_changed));
@@ -1136,6 +1140,10 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 	int mbret;
 	char *text = dupprintf(absentmsg, keytype, fingerprint, appname);
 	char *caption = dupprintf(mbtitle, appname);
+#ifdef PERSOPORT
+	if( get_param("AUTOSTORESSHKEY") ) { mbret=IDYES ; }
+	else 
+#endif
 	mbret = message_box(text, caption,
 			    MB_ICONWARNING | MB_YESNOCANCEL | MB_DEFBUTTON3,
 			    HELPCTXID(errors_hostkey_absent));

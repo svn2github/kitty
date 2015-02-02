@@ -177,8 +177,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "proxy_telnet_command=%s\n", 	conf_get_str(conf,CONF_proxy_telnet_command) ) ;
 
 	/* PERSOPORT Options */
-		// fprintf( fp, "bcdelay=%d\n", 			conf_get_int(conf,CONF_bcdelay) ) ;		// Non présent systématiquement
-		// fprintf( fp, "initdelay=%d\n",			conf_get_int(conf,CONF_initdelay) ) ;		// Non présent systématiquement
+		// fprintf( fp, "bcdelay=%d\n", 			conf_get_int(conf,CONF_bcdelay) ) ;		// Non present systematiquement
+		// fprintf( fp, "initdelay=%d\n",			conf_get_int(conf,CONF_initdelay) ) ;		// Non present systematiquement
 	fprintf( fp, "transparencynumber=%d\n", 	conf_get_int(conf,CONF_transparencynumber) ) ;
 	fprintf( fp, "sendtotray=%d\n",			conf_get_int(conf,CONF_sendtotray) ) ;
 	fprintf( fp, "maximize=%d\n",			conf_get_int(conf,CONF_maximize) ) ;
@@ -424,8 +424,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 		fprintf( fp, "\n" )  ;
 		}
 	if( IconFile!= NULL ) fprintf( fp, "IconFile=%s\n", IconFile ) ;
-	fprintf( fp, "DirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\n"
-	,DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
+	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\n"
+	,AutoStoreSSHKeyFlag,DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -447,7 +447,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	if( CtHelperPath!= NULL ) fprintf( fp, "CtHelperPath=%s\n", CtHelperPath ) ;
 	}
 
-// récupere la configuration des shortcuts
+// recupere la configuration des shortcuts
 void SaveShortCuts( FILE *fp ) {
 	int i ;
 	fprintf( fp, "autocommand=%d\n", shortcuts_tab.autocommand ) ;
@@ -475,7 +475,7 @@ void SaveShortCuts( FILE *fp ) {
 		}
 	}
 	
-// Récupere le menu utilisateur
+// Recupere le menu utilisateur
 void SaveSpecialMenu( FILE *fp ) {
 	int i ;
 	for( i=0 ; i<NB_MENU_MAX ; i++ )
@@ -483,7 +483,7 @@ void SaveSpecialMenu( FILE *fp ) {
 			fprintf( fp, "%d=%s\n", i, SpecialMenu[i] );
 	}
 	
-// récupère toute la configuration en un seul fichier
+// recupere toute la configuration en un seul fichier
 void SaveDump( void ) {
 	FILE * fp, * fpout ;
 	char buffer[1025], buffer2[1025] ;

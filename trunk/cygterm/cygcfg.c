@@ -22,6 +22,10 @@ int cygterm_get_flag( void ) {
 
 extern void config_protocolbuttons_handler(union control *, void *, void *, int);
 
+static int is64Bits() {
+	return (NULL != GetProcAddress(GetModuleHandle("kernel32"), "IsWow64Process")) ? 1 : 0;
+	}
+
 void cygterm_setup_config_box(struct controlbox *b, int midsession)
 {
     union control *c;
@@ -59,8 +63,15 @@ void cygterm_setup_config_box(struct controlbox *b, int midsession)
 	ctrl_checkbox(s, "Autodetect Cygwin installation", 'd',
 	              HELPCTX(no_help),
 	              conf_checkbox_handler/*dlg_stdcheckbox_handler*/,
-	              I(1)//I(offsetof(Config,cygautopath))
+	              I(CONF_cygautopath)
 		      );
+		if( is64Bits() )
+			{
+			ctrl_checkbox(s, "Use Cygwin64", 'u',
+			HELPCTX(no_help),
+			conf_checkbox_handler,
+			I(CONF_cygterm64));
+			}
     }
 }
 

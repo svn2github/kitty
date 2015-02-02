@@ -20,12 +20,16 @@ extern int IniFileFlag ;
 // Flag permettant la gestion de l'arborscence (dossier=folder) dans le cas d'un savemode=dir
 extern int DirectoryBrowseFlag ;
 
+// Flag permettant de sauvegarder automatique les cles SSH des serveurs
+extern int AutoStoreSSHKeyFlag ;
+
 #include "../../kitty_crypt.c"
 #include "../../kitty_commun.h"
 
 int get_param( const char * val ) {
 	if( !stricmp( val, "INIFILE" ) ) return IniFileFlag ;
 	else if( !stricmp( val, "DIRECTORYBROWSE" ) ) return DirectoryBrowseFlag ;
+	else if( !stricmp( val, "AUTOSTORESSHKEY" ) ) return AutoStoreSSHKeyFlag ;
 	return 0 ;
 	}
 
@@ -252,6 +256,10 @@ static void usage(void)
     printf("            open tunnel in place of session (SSH-2 only)\n");
     printf("  -sercfg configuration-string (e.g. 19200,8,n,1,X)\n");
     printf("            Specify the serial configuration (serial only)\n");
+#ifdef PERSOPORT
+    printf("  -auto_store_sshkey\n");
+    printf("            store automatically the servers ssh keys\n");
+#endif
     exit(1);
 }
 

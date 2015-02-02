@@ -924,6 +924,7 @@ void cleanup_exit(int);
 /* #ifdef CYGTERMPORT */ \
     /* Cygterm options */ \
     X(INT, NONE, cygautopath) \
+    X(INT, NONE, cygterm64) \
     X(STR, NONE, cygcmd) \
     X(INT, NONE, alt_metabit)  		       /* set meta instead of escape */ \
 /* #endif */ \

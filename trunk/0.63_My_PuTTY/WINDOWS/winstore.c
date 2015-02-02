@@ -1379,14 +1379,12 @@ int verify_host_key(const char *hostname, int port,
 
 		hFile = CreateFile(p, GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 		SetCurrentDirectory(oldpath);
-
 		if (hFile != INVALID_HANDLE_VALUE) {
 			/* JK: ok we got it -> read it to otherstr */
 			fileSize = GetFileSize(hFile, NULL);
 			otherstr = snewn(fileSize+1, char);
 			ReadFile(hFile, otherstr, fileSize, &bytesRW, NULL);
 			*(otherstr+fileSize) = '\0';
-
 			compare = strcmp(otherstr, key);
 
 			CloseHandle(hFile);
@@ -1495,6 +1493,8 @@ int verify_host_key(const char *hostname, int port,
 	else if( get_param("INIFILE")==SAVEMODE_DIR ) { /* key matched OK in registry */
 		/* JK: matching key found in registry -> warn user, ask what to do */
 		p = snewn(256, char);
+		if( get_param("AUTOSTORESSHKEY") ) { userMB=IDYES ; }
+		else
 		userMB = MessageBox(NULL, "Host key is cached but in registry. "
 			"Do you want to move it to file? \n\n"
 			"Yes \t-> Move (delete key in registry)\n"
