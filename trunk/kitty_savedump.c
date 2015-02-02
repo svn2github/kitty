@@ -409,7 +409,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	//FontSpec boldfont; //FontSpec widefont; //FontSpec wideboldfont;
 
 	fprintf( fp, "\n[[KiTTY specific configuration]]\n" ) ;
-	fprintf( fp, "internal_delay=%d\ninit_delay=%g\nautocommand_delay=%g\nbetween_char_delay=%d\nProtectFlag=%d\nIniFileFlag=%d\n"
+	fprintf( fp, "internal_delay=%d\ninit_delay=%d\nautocommand_delay=%d\nbetween_char_delay=%d\nProtectFlag=%d\nIniFileFlag=%d\n"
 	,internal_delay,init_delay,autocommand_delay,between_char_delay,ProtectFlag,IniFileFlag );
 	
 	fprintf( fp, "HyperlinkFlag=%d\n", HyperlinkFlag );
@@ -427,7 +427,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "DirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\n"
 	,DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
-	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,PuttyFlag);
+	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 #if (defined IMAGEPORT) && (!defined FDJ)
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #endif

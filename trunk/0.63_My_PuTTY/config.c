@@ -625,6 +625,9 @@ union control * ctrlSessionEdit = NULL ;
 union control * ctrlFolderList = NULL ;
 
 int get_param( const char * val ) ;
+#ifndef SAVEMODE_REG
+#define SAVEMODE_REG 0
+#endif
 #ifndef SAVEMODE_DIR
 #define SAVEMODE_DIR 2
 #endif
@@ -952,11 +955,10 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	    dlg_update_start(ctrl, dlg);
 	    dlg_listbox_clear(ctrl, dlg);
 #ifdef PERSOPORT
-		if( ssd->savedsession!=NULL ) strcpy( ssd->savedsession, dlg_editbox_get( ssd->editbox, dlg ) ) ; // ajout 0.63 pour que le filtre fonctionne
+		/*if( ssd->savedsession!=NULL ) strcpy( ssd->savedsession, dlg_editbox_get( ssd->editbox, dlg ) ) ; // ajout 0.63 pour que le filtre fonctionne
 		
 		ctrlSessionList = ctrl ;
 		if(get_param("INIFILE")==SAVEMODE_DIR) CleanFolderName( CurrentFolder ) ;
-		
 		for (i = 0; i < ssd->sesslist.nsessions; i++) {
 			char folder[1024] ;
 			char host[1024] ;
@@ -994,6 +996,57 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 				|| (stristr(host,ssd->savedsession)!=NULL)
 				|| (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) )
 					dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]) ;
+				}
+				
+			}*/
+		if( ssd->savedsession!=NULL ) strcpy( ssd->savedsession, dlg_editbox_get( ssd->editbox, dlg ) ) ; // ajout 0.63 pour que le filtre fonctionne
+		
+		ctrlSessionList = ctrl ;
+		if(get_param("INIFILE")==SAVEMODE_DIR) CleanFolderName( CurrentFolder ) ;
+
+		for (i = 0; i < ssd->sesslist.nsessions; i++) {
+			char folder[1024] ;
+			char host[1024] ;
+			strcpy( folder, "" ) ;
+			if( (get_param("INIFILE")==SAVEMODE_REG) || ((get_param("INIFILE")==SAVEMODE_DIR) && !get_param("DIRECTORYBROWSE")) ) {
+				GetSessionFolderName( ssd->sesslist.sessions[i], folder ) ;
+				}
+			strcpy( host, "" ) ;
+			if(get_param("INIFILE")==SAVEMODE_REG) {
+				GetSessionField( ssd->sesslist.sessions[i], folder, "HostName", host ) ;
+				}
+			if( get_param("PUTTY") )
+				dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
+			else if( (get_param("INIFILE")==SAVEMODE_DIR) && get_param("DIRECTORYBROWSE") )	{
+				CleanFolderName( folder ) ;
+				if (!strcmp( ssd->savedsession, "" )) {
+					if( (!strcmp(CurrentFolder,folder))
+						|| (!strcmp("",folder))
+						|| ( strstr(ssd->sesslist.sessions[i]," [")==ssd->sesslist.sessions[i] )
+						)
+						dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
+					}
+				else {
+					if( (!strcmp(CurrentFolder,folder))||(!strcmp("",folder)) ) {
+						if( !get_param("SESSIONFILTER") ) // filtre desactive
+							dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
+						else if( (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) 
+							|| ( strstr(ssd->sesslist.sessions[i]," [")==ssd->sesslist.sessions[i] ) )
+							dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
+						}
+					}
+				}
+			else if( !get_param("SESSIONFILTER") ) // filtre desactive
+				dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
+			else {
+				if( (!strcmp( CurrentFolder, "Default" )) || (!strcmp(CurrentFolder,folder)) ) {
+					if( (!strcmp( ssd->savedsession, "" )) 
+					|| ( strlen(ssd->savedsession)<=1 )
+					|| (stristr(host,ssd->savedsession)!=NULL)
+//					|| (!strcmp(host,""))
+					|| (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) )
+						dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]) ;
+					}
 				}
 				
 			}

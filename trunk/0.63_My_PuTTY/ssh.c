@@ -4131,7 +4131,8 @@ static int do_ssh1_login(Ssh ssh, unsigned char *in, int inlen,
 			char bufpass[128] ;
 			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 			MASKPASS(bufpass);
-			strcpy( s->cur_prompt->prompts[0]->result, bufpass ) ;
+			//strcpy( s->cur_prompt->prompts[0]->result, bufpass ) ;
+			ret=get_userpass_input(s->cur_prompt, bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"" ) ;
 			memset( bufpass, 0, strlen(bufpass) ) ;
 			ret = 1 ;
@@ -9066,12 +9067,13 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 			char bufpass[128] ;
 			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 			MASKPASS(bufpass);
-			strcpy( s->cur_prompt->prompts[0]->result, bufpass ) ;
+			//strcpy( s->cur_prompt->prompts[0]->result, bufpass ) ;
+			ret=get_userpass_input(s->cur_prompt, bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"") ; //strcpy( ssh->cfg.password , "" ) ;
 			memset(bufpass,0,strlen(bufpass));
 			ret = 1 ;
 	{ // Log de l'envoi du password
-	char *userlog = dupprintf("Send automatic password (Using keyboard-interactive authentication)" );
+	char *userlog = dupprintf("\nSend automatic password (Using keyboard-interactive authentication)" );
 	logevent(userlog);
 	if (flags & FLAG_INTERACTIVE &&
 		(!((flags & FLAG_STDERR) && (flags & FLAG_VERBOSE)))) {

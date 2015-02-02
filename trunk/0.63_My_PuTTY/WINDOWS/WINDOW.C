@@ -812,7 +812,8 @@ InitWinMain();
                          * them with spaces to get the command line to execute.
                          */
                         char *p = conf_get_str(conf,CONF_cygcmd) /*cfg.cygcmd*/;
-                        char *const end = conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ + sizeof conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/;
+			char *const end = conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ + strlen( conf_get_str(conf,CONF_cygcmd) );
+                        //char *const end = conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/ + sizeof conf_get_str(conf,CONF_cygcmd)/*cfg.cygcmd*/;
                         for (; i < argc && p < end; i++) {
                             p = stpcpy_max(p, argv[i], end - p - 1);
                             *p++ = ' ';
@@ -1434,16 +1435,19 @@ void cleanup_exit(int code)
 	Embryon de mecanisme de retour à la config box en sortant d'une session.
 	Le probleme est que ça retourne à la config box aussi en sortant ... de la config box si une session est chargée ...
 	*/
-	/*
-	if( strlen(cfg.sessionname)>0 ) {
-		STARTUPINFO si ;
-  		PROCESS_INFORMATION pi ;
-		ZeroMemory( &si, sizeof(si) );
-		si.cb = sizeof(si);
-		ZeroMemory( &pi, sizeof(pi) );
-		if( !CreateProcess(NULL, "putty.exe", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi) ) ;
+	if( !PuttyFlag && ConfigBoxNoExitFlag )
+	if( backend_connected && strlen(conf_get_str(conf,CONF_sessionname))>0 ) {
+		char buffer[4096]="",shortname[1024]="" ; ;
+		if( GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) 
+			if( GetShortPathName( buffer, shortname, 1023 ) ) {
+				STARTUPINFO si ;
+				PROCESS_INFORMATION pi ;
+				ZeroMemory( &si, sizeof(si) );
+				si.cb = sizeof(si);
+				ZeroMemory( &pi, sizeof(pi) );
+				if( !CreateProcess(NULL, shortname, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi) ) ;
+				}
 		}
-	*/
 #endif
 
     deinit_fonts();
@@ -6329,7 +6333,7 @@ void set_title(void *frontend, char *title) {
 
 #if (defined IMAGEPORT) && (!defined FDJ)
 	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)/*cfg.host*/ ) + strlen( conf_get_filename(conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path ) + 40 ) ; 
-	if( BackgroundImageFlag && ImageViewerFlag && (!PuttyFlag) ) {	sprintf( buffer, "%s", conf_get_filename(conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path ) ; }
+	if( BackgroundImageFlag && ImageViewerFlag && (!PuttyFlag) ) {sprintf( buffer, "%s", conf_get_filename(conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path ) ; }
 	else 
 #else
 	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)/*cfg.host*/ ) + 40 ) ; 

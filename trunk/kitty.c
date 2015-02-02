@@ -183,6 +183,9 @@ int ConfigBoxHeight = 21 ;
 // Hauteur de la fenêtre de la boîte de configuration (0=valeur par defaut)
 static int ConfigBoxWindowHeight = 0 ;
 
+// Flag pour retourner à la Config Box en fin d'exécution
+static int ConfigBoxNoExitFlag = 0 ;
+
 // Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
 static int UserPassSSHNoSave = 0 ;
 
@@ -566,7 +569,7 @@ void InitFolderList( void ) {
 			} 
 		RegCloseKey( hKey ) ;
 		}
-	else if( IniFileFlag == SAVEMODE_DIR ) {
+	else if( (IniFileFlag == SAVEMODE_DIR)&&(!DirectoryBrowseFlag) ) {
 		DIR * dir ;
 		struct dirent * de ;
 		sprintf( buffer, "%s\\Sessions", ConfigDirectory ) ;
@@ -1021,6 +1024,7 @@ void CreateDefaultIniFile( void ) {
 		
 			writeINI( KittyIniFile, "ConfigBox", "height", "21" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "filter", "yes" ) ;
+			writeINI( KittyIniFile, "ConfigBox", "noexit", "no" ) ;
 
 #if (defined IMAGEPORT) && (!defined FDJ)
 			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "no" ) ;
@@ -4244,6 +4248,9 @@ void LoadParameters( void ) {
 	if( readINI( KittyIniFile, "ConfigBox", "windowheight", buffer ) ) {
 		ConfigBoxWindowHeight = atoi( buffer ) ;
 		}
+	if( readINI( KittyIniFile, "ConfigBox", "noexit", buffer ) ) {
+		if( !stricmp( buffer, "YES" ) ) ConfigBoxNoExitFlag = 1 ;
+		}
 	if( readINI( KittyIniFile, "ConfigBox", "filter", buffer ) ) {
 		if( !stricmp( buffer, "NO" ) ) SessionFilterFlag = 0 ;
 		}
@@ -4462,7 +4469,7 @@ void InitWinMain( void ) {
 
 	// Initialise la liste des folders
 	InitFolderList() ;
-	
+
 	// Incremente et ecrit les compteurs
 	if( IniFileFlag == SAVEMODE_REG ) {
 		WriteCountUpAndPath() ;
@@ -4511,3 +4518,21 @@ int return_offset_width(void) { return offset_width ; }
 int return_font_height(void) { return font_height ; }
 int return_font_width(void) { return font_width ; }
 COLORREF return_colours258(void) { return colours[258]; }
+
+// Positionne le repertoire ou se trouve la configuration 
+void SetConfigDirectory( const char * Directory ) ;
+
+// Creation du fichier kitty.ini par defaut si besoin
+void CreateDefaultIniFile( void ) ;
+
+// Initialisation des parametres à partir du fichier kitty.ini
+void LoadParameters( void ) ;
+
+// Initialisation de noms de fichiers de configuration kitty.ini et kitty.sav
+void InitNameConfigFile( void ) ;
+
+// Ecriture de l'increment de compteurs
+void WriteCountUpAndPath( void ) ;
+
+// Initialisation spécifique à KiTTY
+void InitWinMain( void ) ;
