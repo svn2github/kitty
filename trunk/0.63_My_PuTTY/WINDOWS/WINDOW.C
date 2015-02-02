@@ -542,11 +542,13 @@ InitWinMain();
 			i++ ;
 			conf_set_str( conf, CONF_password, argv[i] ) ; //strcpy( cfg.password, argv[i] ) ;
 			memset( argv[i], 0, strlen(argv[i]) ) ;
+#ifdef CYGTERMPORT
 		} else if( !strcmp(p, "-cc") ) {
 			conf_set_str( conf, CONF_host, "cmd.exe /k" ) ; // strcpy( cfg.host, "cmd.exe /k" ) ;
 			conf_set_int( conf, CONF_port, 0 ) ; //cfg.port = 0 ;
 			conf_set_int( conf, CONF_protocol, PROT_CYGTERM ) ; // cfg.protocol = PROT_CYGTERM ;
 			got_host = 1 ;
+#endif
 		} else if( !strcmp(p, "-cmd") ) {
 			i++ ;
 			conf_set_str( conf, CONF_autocommand, argv[i] ) ; //strcpy( cfg.autocommand, argv[i] ) ;
@@ -555,7 +557,7 @@ InitWinMain();
 			conf_set_int( conf, CONF_fullscreen, 1 ) ; //cfg.fullscreen = 1 ;
 		} else if( !strcmp(p, "-initdelay") ) {
 			i++ ;
-			init_delay = atof( argv[i] ) ;
+			init_delay = (int)(1000*atof( argv[i] )) ;
 		} else if( !strcmp(p, "-log") ) {
 			i++ ;
 			conf_set_filename( conf, CONF_logfilename,filename_from_str(argv[i])) ; // cfg.logfilename = filename_from_str( argv[i] ) ;
@@ -605,6 +607,7 @@ InitWinMain();
 #endif
 		} else if( !strcmp(p, "-putty") ) {
 			NoKittyFileFlag = 1 ;
+			HyperlinkFlag = 0 ;
 			IconeFlag = -1 ;
 			hInstIcons = hinst ; 
 			TransparencyFlag = 0 ;
@@ -633,8 +636,10 @@ InitWinMain();
 #endif
 		} else if( !strcmp(p, "-ed") ) {
 			return Notepad_WinMain(inst, prev, cmdline, show) ;
+#ifdef LAUNCHERPORT
 		} else if( !strcmp(p, "-launcher") ) {
 			return Launcher_WinMain(inst, prev, cmdline, show) ;
+#endif
 		} else if( !strcmp(p, "-convert-dir") ) {
 			return Convert2Dir( ConfigDirectory ) ;
 		} else if( !strcmp(p, "-convert-reg") ) {
@@ -928,7 +933,7 @@ else	{
 	{
 	char buf[256] ;
 	strcpy( buf, conf_get_str(conf,CONF_password) );
-	//MASKPASS(buf);
+	MASKPASS(buf);
 	conf_set_str(conf,CONF_password,buf);
 	//MASKPASS(cfg.password) ;
 	memset(buf,0,strlen(buf));
@@ -1231,15 +1236,15 @@ TrayIcone.hWnd = hwnd ;
 
 		// Paramétrage spécifique à la session
 		if( GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "InitDelay", reg_buffer ) ) {
-			if( init_delay != atof( reg_buffer ) ) { 
-					conf_set_int(conf,CONF_initdelay,atof( reg_buffer ))/*cfg.initdelay = atof( reg_buffer )*/ ; 
-					init_delay = conf_get_int(conf,CONF_initdelay)/*cfg.initdelay*/ ; 
+			if( init_delay != (int)(1000*atof( reg_buffer ) ) ) { 
+					init_delay = (int)(1000*atof( reg_buffer ) ) ; 
+					conf_set_int(conf,CONF_initdelay,init_delay)/*cfg.initdelay = atof( reg_buffer )*/ ; 
 				}
 			}
 		if( GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "BCDelay", reg_buffer ) ) {
 			if( between_char_delay != atof( reg_buffer ) ) { 
+				between_char_delay = atof( reg_buffer ) ;
 				conf_set_int(conf,CONF_bcdelay, atof( reg_buffer ) ); //cfg.bcdelay = atof( reg_buffer ) ; 
-				between_char_delay = conf_get_int(conf,CONF_bcdelay)/*cfg.bcdelay*/ ; 
 				}
 			}
 
@@ -1252,7 +1257,7 @@ TrayIcone.hWnd = hwnd ;
 #endif
 		// Lancement du timer auto-command pour les connexions non SSH
 		if(conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ != PROT_SSH) backend_connected = 1 ;
-		SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
+		SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 
 		if( IniFileFlag == SAVEMODE_REG ) {
 			sprintf( reg_buffer, "%s@%s:%d (prot=%d) name=%s", conf_get_str(conf,CONF_username)/*cfg.username*/, conf_get_str(conf,CONF_host)/*cfg.host*/, conf_get_int(conf,CONF_port)/*cfg.port*/, conf_get_int(conf,CONF_protocol)/*cfg.protocol*/, conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/) ;
@@ -1270,9 +1275,6 @@ TrayIcone.hWnd = hwnd ;
 			if(ImageSlideDelay>0)
 			SetTimer(hwnd, TIMER_SLIDEBG, (int)(ImageSlideDelay*1000), NULL) ;
 			}
-		if( PuttyFlag ) {
-			conf_set_int(conf,CONF_url_underline,URLHACK_UNDERLINE_NEVER);//cfg.url_underline = URLHACK_UNDERLINE_NEVER ;
-			}
 
 		// Lancement du rafraichissement toutes les 10 secondes (pour l'image de fond, pour pallier bug d'affichage)
 		if( ReadParameter( INIT_SECTION, "redraw", reg_buffer ) ) {
@@ -1282,6 +1284,12 @@ TrayIcone.hWnd = hwnd ;
 #endif
 			
 		} // fin de if( !PuttyFlag )
+#ifdef HYPERLINKPORT
+else {
+	conf_set_int(conf,CONF_url_underline,URLHACK_UNDERLINE_NEVER);//cfg.url_underline = URLHACK_UNDERLINE_NEVER ;
+	}
+#endif
+
 #endif
 
     start_backend();
@@ -1290,11 +1298,13 @@ TrayIcone.hWnd = hwnd ;
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: Set the regular expression
 	 */
-	if( strlen( conf_get_str(conf,CONF_url_regex))==0 ) { conf_set_str(conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( conf, CONF_url_defregex, 1 ) ;*/ }
-	if( strlen( conf_get_str(term->conf,CONF_url_regex))==0 ) { conf_set_str(term->conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( term->conf, CONF_url_defregex, 1 ) ;*/ }
+	if( !PuttyFlag && HyperlinkFlag ) {
+		if( strlen( conf_get_str(conf,CONF_url_regex))==0 ) { conf_set_str(conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( conf, CONF_url_defregex, 1 ) ;*/ }
+		if( strlen( conf_get_str(term->conf,CONF_url_regex))==0 ) { conf_set_str(term->conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( term->conf, CONF_url_defregex, 1 ) ;*/ }
 	
-	if( conf_get_int(term->conf,CONF_url_defregex)/*term->cfg.url_defregex*/ == 0) {
-		urlhack_set_regular_expression(conf_get_str(term->conf,CONF_url_regex)/*term->cfg.url_regex*/);
+		if( conf_get_int(term->conf,CONF_url_defregex)/*term->cfg.url_defregex*/ == 0) {
+			urlhack_set_regular_expression(conf_get_str(term->conf,CONF_url_regex)/*term->cfg.url_regex*/);
+			}
 		}
 #endif
 
@@ -1369,13 +1379,10 @@ TrayIcone.hWnd = hwnd ;
 		close_session();
 #endif
 	}
-
 	/* The messages seem unreliable; especially if we're being tricky */
 	term_set_focus(term, GetForegroundWindow() == hwnd);
-
 	if (pending_netevent)
 	    enact_pending_netevent();
-
 	net_pending_errors();
     }
 
@@ -1649,7 +1656,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
  		term_pwron(term, FALSE);
 		backend_connected = 0 ;
  		start_backend();
-		SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
+		SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
  	} else {
  		va_start(ap, fmt);
 		stuff = dupvprintf(fmt, ap);
@@ -1711,7 +1718,9 @@ static void enact_pending_netevent(void)
     pending_netevent = FALSE;
 
     reentering = 1;
+
     select_result(pend_netevent_wParam, pend_netevent_lParam);
+
     reentering = 0;
 }
 
@@ -2678,9 +2687,9 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 		{ if( strlen( buffer ) > 0 ) MessageBox( hwnd, buffer, "Notes", MB_OK ) ; }
 
 	RenewPassword( conf/*&cfg*/ ) ;
-	
+
 	if( strlen( conf_get_str(conf,CONF_autocommand)/*cfg.autocommand*/ ) > 0 ) {
-		SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
+		SetTimer(hwnd, TIMER_AUTOCOMMAND, autocommand_delay, NULL) ;
 		}
 	if( conf_get_int(conf,CONF_logtimerotation)/*cfg.logtimerotation*/ > 0 ) {
 		SetTimer(hwnd, TIMER_LOGROTATION, (int)( conf_get_int(conf,CONF_logtimerotation)/*cfg.logtimerotation*/*1000), NULL) ;
@@ -2691,23 +2700,28 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	}
 
 else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
-	char buffer[8192] = "" ;
+
 	KillTimer( hwnd, TIMER_AUTOCOMMAND ) ; 
-	if( AutoCommand == NULL ) { 
+	if( AutoCommand == NULL ) {
 		ValidateRect( hwnd, NULL ) ; 
-		char bufauto[8192]="";
-		GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "Autocommand", bufauto/*cfg.autocommand*/ ) ;
-		conf_set_str( conf,CONF_autocommand, bufauto);
-		AutoCommand = conf_get_str(conf,CONF_autocommand)/*cfg.autocommand */;  // Problème ou pas ?
+		AutoCommand = (char*) malloc( strlen(conf_get_str(conf,CONF_autocommand))+10 ) ;
+		strcpy( AutoCommand, conf_get_str(conf,CONF_autocommand) ) ;
+		
+		//char bufauto[8192]="";
+		//GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "Autocommand", bufauto/*cfg.autocommand*/ ) ;
+		//conf_set_str( conf,CONF_autocommand, bufauto);
+		//AutoCommand = conf_get_str(conf,CONF_autocommand)/*cfg.autocommand */;  // Problème ou pas ?
 //logevent(NULL, AutoCommand );
 		}
+
+
+	char buffer[8192] = "" ;
 	int i = 0  ;
 	while( AutoCommand[i] != '\0' ) {
 		if( AutoCommand[i]=='\n' ) { i++ ; break ; }
 		else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'n') ) { i += 2 ; break ; }
 		else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'p') ) {
 			strcat( buffer, "\\p" ) ;
-			//Sleep( 1000 ) ;
 			i += 2 ;
 			break ;
 			}
@@ -2720,18 +2734,21 @@ else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
 			}
 		else { buffer[i] = AutoCommand[i] ; buffer[i+1] = '\0' ; i++ ; }
 		}
+		
 	//if( AutoCommand[i] != '\0' ) { AutoCommand += i ; }
-	AutoCommand += i ;
+	del( AutoCommand, 1, i ) ; //AutoCommand += i ;
 	if( strlen( buffer ) > 0 ) { SendAutoCommand( hwnd, buffer ) ; }
 	if( AutoCommand[0] == '\0' ) { 
-		AutoCommand = NULL ; 
-		char bufauto[8192]="";
-		GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "Autocommand", bufauto/*cfg.autocommand*/ ) ;
-		conf_set_str( conf,CONF_autocommand,bufauto);
+		free( AutoCommand ) ; AutoCommand = NULL ; 
 		InvalidateRect( hwnd, NULL, TRUE ) ;
+		
+		//char bufauto[8192]="";
+		//GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "Autocommand", bufauto/*cfg.autocommand*/ ) ;
+		//conf_set_str( conf,CONF_autocommand,bufauto);
 		}
-	else { SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ; }
+	else { SetTimer(hwnd, TIMER_AUTOCOMMAND, autocommand_delay, NULL) ; }
 	}
+
 else if((UINT_PTR)wParam == TIMER_AUTOPASTE) {  // AutoPaste
 	char buffer[4096] = "" ;
 	int i = 0, j  ;
@@ -2747,7 +2764,7 @@ else if((UINT_PTR)wParam == TIMER_AUTOPASTE) {  // AutoPaste
 			}
 		if( strlen( buffer ) > 0 ) { 
 			SendAutoCommand( hwnd, buffer ) ;
-			SetTimer(hwnd, TIMER_AUTOPASTE, (int)(autocommand_delay*1000), NULL) ;
+			SetTimer(hwnd, TIMER_AUTOPASTE, autocommand_delay, NULL) ;
 			}
 		}
 	}
@@ -2838,7 +2855,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		== IDOK) {
 			if( strlen( conf_get_str(conf,CONF_autocommandout)/*cfg.autocommandout*/ ) > 0 ) { //Envoie d'une command automatique en sortant
 				SendAutoCommand( hwnd, conf_get_str(conf,CONF_autocommandout)/*cfg.autocommandout*/ ) ;
-				conf_set_str(conf,CONF_autocommandout,"");//strcpy( cfg.autocommandout, "" );
+				conf_set_str(conf,CONF_autocommandout,"" );//strcpy( cfg.autocommandout, "" );
 				}
 			DestroyWindow(hwnd);
 			}
@@ -2901,6 +2918,12 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		HANDLE filemap = NULL;
 
 		if (wParam == IDM_DUPSESS) {
+#ifdef PERSOPORT
+		char bufpass[256];
+		strcpy(bufpass,conf_get_str(conf,CONF_password));
+		MASKPASS(bufpass);
+		conf_set_str(conf,CONF_password,bufpass);
+#endif
 		    /*
 		     * Allocate a file-mapping memory chunk for the
 		     * config structure.
@@ -2928,6 +2951,11 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		    inherit_handles = TRUE;
 		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
 		    cl = c;
+#ifdef PERSOPORT
+		strcpy(bufpass,conf_get_str(conf,CONF_password));
+		MASKPASS(bufpass);
+		conf_set_str(conf,CONF_password,bufpass);
+#endif
 		} else if (wParam == IDM_SAVEDSESS) {
 		    unsigned int sessno = ((lParam - IDM_SAVED_MIN)
 					   / MENU_SAVED_STEP) + 1;
@@ -2982,7 +3010,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 #ifdef PERSOPORT
 		backend_connected = 0 ;
 		start_backend();
-		SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
+		SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 #else
 		start_backend();
 #endif
@@ -3256,6 +3284,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			}
 		}
 		break ;
+#ifdef LAUNCHERPORT
 	  case IDM_HIDE:
 		if( VisibleFlag==VISIBLE_YES ) {
 			/*if (IsWindowVisible(hwnd) )*/ ShowWindow(hwnd, SW_HIDE) ;
@@ -3278,6 +3307,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_GOPREVIOUS:
 		GoPrevious( hwnd ) ;
 		break ;
+#endif
           case IDM_WINROL: 
 	    	ManageWinrol( hwnd, conf_get_int(conf,CONF_resize_action)/*cfg.resize_action*/ ) ;
 		RefreshBackground( hwnd ) ;
@@ -3619,7 +3649,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: Change cursor type if hovering over link
 	 */ 
-	if( !PuttyFlag )
+	if( !PuttyFlag && HyperlinkFlag )
 	if (urlhack_mouse_old_x != TO_CHR_X(X_POS(lParam)) || urlhack_mouse_old_y != TO_CHR_Y(Y_POS(lParam))) {
 		urlhack_mouse_old_x = TO_CHR_X(X_POS(lParam));
 		urlhack_mouse_old_y = TO_CHR_Y(Y_POS(lParam));
@@ -4072,7 +4102,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 #else
       case WM_MOVE:
 	sys_cursor_update();
-	if( cfg.saveonexit ) GetWindowCoord( hwnd ) ;
+	if( conf_get_int(conf,CONF_saveonexit)/*cfg.saveonexit*/ ) GetWindowCoord( hwnd ) ;
 	break;
 #endif
 #else
@@ -4296,7 +4326,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	 * WARNING: Spans over multiple CASEs
 	 */
 	case WM_KEYDOWN:
-		if( PuttyFlag ) goto KEY_END;
+		if( PuttyFlag || !HyperlinkFlag ) goto KEY_END;
 		if(wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/) {
 			GetCursorPos(&cursor_pt);
 			ScreenToClient(hwnd, &cursor_pt);
@@ -4310,7 +4340,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		}	
 
 	case WM_KEYUP:
-		if( PuttyFlag ) goto KEY_END;
+		if( PuttyFlag || !HyperlinkFlag ) goto KEY_END;
 		if (wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/) {
 			SetCursor(LoadCursor(NULL, IDC_IBEAM));
 			term_update(term);
@@ -4554,7 +4584,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 					term_pwron(term, FALSE);
 					backend_connected = 0 ;
 					start_backend();
-					SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
+					SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 				}
 				break;
 			case PBT_APMSUSPEND:
@@ -6241,9 +6271,10 @@ void set_title_internal(void *frontend, char *title) {
     sfree(window_name);
     window_name = snewn(1 + strlen(title), char);
     strcpy(window_name, title);
-    if (conf_get_int(conf,CONF_win_name_always)/*cfg.win_name_always*/ || !IsIconic(hwnd))
+    if (conf_get_int(conf, CONF_win_name_always) || !IsIconic(hwnd))
 	SetWindowText(hwnd, title);
-	}
+}
+
 
 /* Creer un titre de fenetre a partir d'un schema donne
 	%%s: nom de la session (vide sinon)
@@ -6301,7 +6332,7 @@ void set_title(void *frontend, char *title) {
 	if( BackgroundImageFlag && ImageViewerFlag && (!PuttyFlag) ) {	sprintf( buffer, "%s", conf_get_filename(conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path ) ; }
 	else 
 #else
-	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf_CONF_host)/*cfg.host*/ ) + 40 ) ; 
+	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)/*cfg.host*/ ) + 40 ) ; 
 #endif
 	if( (SizeFlag) && (!IsZoomed( MainHwnd )) ) {
 		if( strlen( title ) > 0 ) {
@@ -6326,8 +6357,13 @@ void set_title(void *frontend, char *title) {
 	
 void set_icon(void *frontend, char *title2)
 {
-	char title[1024] ;
-	make_title( title, "%s", title2 ) ;
+	char title[1024]="",buf[512]=""; ;
+	int i=0;
+	do { buf[i]=title2[i]; i++ ; }
+	while ( (i<511)&&(title2[i]!='\0') ) ;
+	buf[i+1]='\0';
+	
+	make_title( title, "%s", buf ) ;
     sfree(icon_name);
     icon_name = snewn(1 + strlen(title), char);
     strcpy(icon_name, title);

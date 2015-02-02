@@ -67,10 +67,10 @@ void xyz_updateMenuItems(Terminal *term);
 #define SI_RANDOM 2
 
 
-// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement à la connexion) (en seconde)
-static double init_delay = 2.0 ;
-// Delai entre chaque ligne de la commande automatique (en seconde)
-static double autocommand_delay = 0.0005 ;
+// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement à la connexion) (en milliseconde)
+static int init_delay = 2000 ;
+// Delai entre chaque ligne de la commande automatique (en milliseconde)
+static int autocommand_delay = 5 ;
 // Delai entre chaque caractères d'une commande (en millisecondes)
 static int between_char_delay = 0 ;
 // Delai entre deux lignes d'une même commande et entre deux raccourcis \x \k
@@ -83,6 +83,13 @@ static char * ScriptCommand = NULL ;
 // Pointeur sur la commande a passer ligne a ligne
 static char * PasteCommand = NULL ;
 static int PasteCommandFlag = 0 ;
+
+// Flag de gestion de la fonction hyperlink
+#ifdef HYPERLINKPORT
+static int HyperlinkFlag = 1 ;
+#else
+static int HyperlinkFlag = 0 ;
+#endif
 
 // Flag de gestion de la Transparence
 static int TransparencyFlag = 0 ;
@@ -235,6 +242,12 @@ extern int PrintMaxCharPerLine ;
 
 extern char puttystr[1024] ;
 
+// Handle sur la fenetre principale
+HWND MainHwnd ;
+
+// Decompte du nombre de fenêtres en cours de KiTTY
+static int NbWindows = 0 ;
+
 NOTIFYICONDATA TrayIcone ;
 #define MYWM_NOTIFYICON		(WM_USER+3)
 
@@ -242,6 +255,17 @@ static int IconeNum = 0 ;
 
 void SetNewIcon( HWND hwnd, char * iconefile, int icone, const int mode ) ;
 
+#define TIMER_INIT 8701
+#define TIMER_AUTOCOMMAND 8702
+#if (defined IMAGEPORT) && (!defined FDJ)
+#define TIMER_SLIDEBG 8703
+#endif
+#define TIMER_REDRAW 8704
+#define TIMER_AUTOPASTE 8705
+#define TIMER_BLINKTRAYICON 8706
+#define TIMER_LOGROTATION 8707
+
+/*
 #define TIMER_INIT 12341
 #define TIMER_AUTOCOMMAND 12342
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -251,6 +275,7 @@ void SetNewIcon( HWND hwnd, char * iconefile, int icone, const int mode ) ;
 #define TIMER_AUTOPASTE 12345
 #define TIMER_BLINKTRAYICON 12346
 #define TIMER_LOGROTATION 12347
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -311,7 +336,9 @@ char * InputBox( HINSTANCE hInstance, HWND hwnd ) ;
 char *itoa(int value, char *string, int radix);
 void GetAndSendLinePassword( HWND hwnd ) ;
 int unlink(const char *pathname);
+#ifdef LAUNCHERPORT
 void InitLauncherRegistry( void ) ;
+#endif
 void RunScriptFile( HWND hwnd, const char * filename ) ;
 void InfoBoxSetText( HWND hwnd, char * st ) ;
 void ReadInitScript( const char * filename ) ;
@@ -388,6 +415,7 @@ int get_param( const char * val ) {
 	else if( !stricmp( val, "SESSIONFILTER" ) ) return SessionFilterFlag ;
 	else if( !stricmp( val, "INIFILE" ) ) return IniFileFlag ;
 	else if( !stricmp( val, "DIRECTORYBROWSE" ) ) return DirectoryBrowseFlag ;
+	else if( !stricmp( val, "HYPERLINK" ) ) return HyperlinkFlag ;
 #ifdef ZMODEMPORT
 	else if( !stricmp( val, "ZMODEM" ) ) return ZModemFlag ;
 #endif
@@ -680,16 +708,19 @@ int GetSessionField( const char * session_in, const char * folder_in, const char
 		}
 	else if( IniFileFlag==SAVEMODE_DIR ) {
 		if( DirectoryBrowseFlag ) {
-			if( !strcmp(folder,"Default") ) sprintf(buffer,"%s\\Sessions\\%s", ConfigDirectory, session ) ;
+			if( !strcmp(folder,"Default") || !strcmp(folder,"") ) sprintf(buffer,"%s\\Sessions\\%s", ConfigDirectory, session ) ;
 			else sprintf(buffer,"%s\\Sessions\\%s\\%s", ConfigDirectory, folder, session ) ;
 			}
-		else sprintf(buffer,"%s\\Sessions\\%s", ConfigDirectory, session ) ;
+		else {
+			sprintf(buffer,"%s\\Sessions\\%s", ConfigDirectory, session ) ;
+			}
+
 		if( debug_flag ) { debug_logevent( "GetSessionField(%s,%s,%s,%s)=%s", ConfigDirectory, session, folder, field, buffer ) ; }
 		if( (fp=fopen(buffer,"r"))!=NULL ) {
 			while( fgets(buffer,1024,fp)!=NULL ) {
 				while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
 				if( buffer[strlen(buffer)-1]=='\\' )
-					if( strstr( buffer, field ) == buffer ) {
+					if( (strstr( buffer, field )==buffer) && ((buffer+strlen(field))[0]=='\\') ) {
 						if( buffer[strlen(field)]=='\\' ) strcpy( result, buffer+strlen(field)+1 ) ;
 						result[strlen(result)-1] = '\0' ;
 						unmungestr(result, buffer,MAX_PATH) ;
@@ -1012,6 +1043,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "scriptfilefilter", "All files (*.*)|*.*" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "size", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "shortcuts", "yes" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "hyperlink", "yes" ) ;
 #ifndef NO_TRANSPARENCY
 			writeINI( KittyIniFile, INIT_SECTION, "transparency", "no" ) ;
 #endif
@@ -1035,7 +1067,7 @@ void CreateDefaultIniFile( void ) {
 #endif
 
 			writeINI( KittyIniFile, INIT_SECTION, "bcdelay", "0" ) ;
-			writeINI( KittyIniFile, INIT_SECTION, "commanddelay", "0.0005" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "commanddelay", "5" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "initdelay", "2.0" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "internaldelay", "10" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "slidedelay", "0" ) ;
@@ -1424,6 +1456,61 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 		}
 	else { if( debug_flag ) logevent(NULL, "No automatic command !" ) ; }
 	}
+	
+// Command sender (envoi d'une meme commande a toutes les fenetres)
+BOOL CALLBACK SendCommandProc( HWND hwnd, LPARAM lParam ) {
+	char buffer[256] ;
+	GetClassName( hwnd, buffer, 256 ) ;
+	
+	if( !strcmp( buffer, KiTTYClassName ) )
+	if( hwnd != MainHwnd ) {
+		SendKeyboardPlus( hwnd, (char*)lParam ) ;
+		NbWindows++ ;
+		}
+
+	return TRUE ;
+	}
+
+int SendCommandAllWindows( HWND hwnd, char * cmd ) {
+	NbWindows=0 ;
+	if( cmd==NULL ) return 0 ;
+	if( strlen(cmd) > 0 ) EnumWindows( SendCommandProc, (LPARAM)cmd ) ;
+	return NbWindows ;
+	}
+	
+// Gestion de la taille des fenetres de la meme classe
+BOOL CALLBACK ResizeWinListProc( HWND hwnd, LPARAM lParam ) {
+	char buffer[256] ;
+	GetClassName( hwnd, buffer, 256 ) ;
+	
+	if( !strcmp( buffer, KiTTYClassName ) )
+	if( hwnd != MainHwnd ) {
+		RECT * rc = (RECT*) lParam ;
+		LPARAM pos = MAKELPARAM( rc->left, rc->top ) ;
+		LPARAM size = MAKELPARAM( rc->right, rc->bottom ) ;
+		//SendNotifyMessage( hwnd, WM_COMMAND, IDM_RESIZE, size ) ;
+		//SendNotifyMessage( hwnd, WM_COMMAND, IDM_REPOS, pos ) ;
+		PostMessage( hwnd, WM_COMMAND, IDM_REPOS, pos ) ;
+		PostMessage( hwnd, WM_COMMAND, IDM_RESIZE, size ) ;
+		//PostMessage( hwnd, WM_COMMAND, IDM_RESIZEH, rc->bottom ) ;
+		//SetWindowPos( hwnd, 0, 0, 0, rc->right-rc->left+1, rc->bottom-rc->top+1, SWP_NOZORDER|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOACTIVATE ) ;
+		//SetWindowPos( hwnd, 0, 0, 0, 50,50, SWP_NOZORDER|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOACTIVATE);
+		NbWindows++ ;
+		}
+
+	return TRUE ;
+	}
+
+int ResizeWinList( HWND hwnd, int width, int height ) {
+	NbWindows=0 ;
+	RECT rc;
+	GetWindowRect(hwnd, &rc) ;
+	rc.right = width ;
+	rc.bottom = height ;
+	EnumWindows( ResizeWinListProc, (LPARAM)&rc ) ;
+	SetForegroundWindow( hwnd ) ;
+	return NbWindows ;
+	}
 
 void ManageProtect( HWND hwnd, char * title ) {
 	HMENU m ;
@@ -1575,8 +1662,10 @@ void RunScriptFile( HWND hwnd, const char * filename ) {
 			fclose( fp ) ;
 			if( oldcmd!=NULL ) strcat( ScriptCommand, oldcmd ) ;
 			if( strlen( ScriptCommand) > 0 ) {
-				AutoCommand = ScriptCommand ;
-				SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
+				if( AutoCommand!= NULL ) { free(AutoCommand); AutoCommand=NULL; }
+				AutoCommand = (char*) malloc( strlen(ScriptCommand) + 10 ) ;
+				strcpy( AutoCommand, ScriptCommand ) ;//AutoCommand = ScriptCommand ;
+				SetTimer(hwnd, TIMER_AUTOCOMMAND, autocommand_delay, NULL) ;
 				}
 			}
 		if( oldcmd!=NULL ) free( oldcmd ) ;
@@ -2310,7 +2399,6 @@ void InfoBoxSetText( HWND hwnd, char * st ) { SendMessage( hwnd, WM_COMMAND, 100
 void InfoBoxClose( HWND hwnd ) { EndDialog(hwnd, LOWORD(0)) ; DestroyWindow( hwnd ) ; }
 
 //CallBack du dialog InputBox
-HWND MainHwnd ;
 static int InputBox_Flag = 0 ;
 
 static LRESULT CALLBACK InputCallBack (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam ) {
@@ -2610,7 +2698,7 @@ void routine_inputbox_password( void * phwnd ) {
 
 // Demarre le timer d'autocommand à la connexion
 void CreateTimerInit( void ) {
-	SetTimer(MainHwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ; 
+	SetTimer(MainHwnd, TIMER_INIT, init_delay, NULL) ; 
 	}
 
 // Positionne le repertoire ou se trouve la configuration 
@@ -2861,10 +2949,6 @@ void ManageSpecialCommand( HWND hwnd, int menunum ) {
 		}
 	}
 
-
-// Decompte du nombre de fenêtres en cours de KiTTY
-static int NbWindows = 0 ;
-
 BOOL CALLBACK EnumWindowsProc( HWND hwnd, LPARAM lParam ) {
 	char buffer[256] ;
 	GetClassName( hwnd, buffer, 256 ) ;
@@ -2944,6 +3028,9 @@ int InternalCommand( HWND hwnd, char * st ) {
 		{ RegCopyTree( HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY", PUTTY_REG_POS ) ; return 1 ; }
 	else if( !strcmp( st, "/backgroundimage" ) ) { BackgroundImageFlag = abs( BackgroundImageFlag - 1 ) ; return 1 ; }
 	else if( !strcmp( st, "/debug" ) ) { debug_flag = abs( debug_flag - 1 ) ; return 1 ; }
+#ifdef HYPERLINKPORT
+	else if( !strcmp( st, "/hyperlink" ) ) { HyperlinkFlag = abs( HyperlinkFlag - 1 ) ; return 1 ; }
+#endif
 #ifdef SAVEDUMPPORT
 	else if( !strcmp( st, "/savedump" ) ) { SaveDump() ; return 1 ; }
 #endif
@@ -3072,7 +3159,9 @@ int InternalCommand( HWND hwnd, char * st ) {
 	else if( strstr( st, "/PrintCharSize " ) == st ) { PrintCharSize=atoi( st+15 ) ; return 1 ; }
 	else if( strstr( st, "/PrintMaxLinePerPage " ) == st ) { PrintMaxLinePerPage=atoi( st+21) ; return 1 ; }
 	else if( strstr( st, "/PrintMaxCharPerLine " ) == st ) { PrintMaxCharPerLine=atoi( st+21 ) ; return 1 ; }
+#ifdef LAUNCHERPORT
 	else if( !strcmp( st, "/initlauncher" ) ) { InitLauncherRegistry() ; return 1 ; }
+#endif
 	else if( !strcmp( st, "/wintitle" ) ) { TitleBarFlag = abs(TitleBarFlag -1) ; return 1 ; }
 	else if( strstr( st, "/command " ) == st ) { SendCommandAllWindows( hwnd, st+9 ) ; return 1 ; }
 	else if( !strcmp( st, "/sizeall" ) ) { ResizeWinList( hwnd, conf_get_int(conf,CONF_width)/*cfg.width*/, conf_get_int(conf,CONF_height)/*cfg.height*/ ) ; return 1 ; }
@@ -3985,8 +4074,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 	else if( key == shortcuts_tab.autocommand ) 		// Rejouer la commande de demarrage
 		{ RenewPassword( conf/*&cfg*/ ) ; 
 			//SendAutoCommand( hwnd, cfg.autocommand ) ; 
-			SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
-			
+			SetTimer(hwnd, TIMER_AUTOCOMMAND,autocommand_delay, NULL) ;
 			return 1 ; }
 	if( key == shortcuts_tab.print ) {	// Impression presse papier
 		SendMessage( hwnd, WM_COMMAND, IDM_PRINT, 0 ) ; 
@@ -4031,10 +4119,12 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 			{ SendMessage( hwnd, WM_COMMAND, IDM_TRANSPARUP, 0 ) ; return 1 ; }
 		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&((key_num == VK_SUBTRACT)||(key_num == VK_DOWN)) ) // Diminuer l'opacité (augmenter la transparence)
 			{ SendMessage( hwnd, WM_COMMAND, IDM_TRANSPARDOWN, 0 ) ; return 1 ; }
+#ifdef LAUNCHERPORT
 		if (key_num == VK_LEFT ) //Fenetre KiTTY precedente
 			{ SendMessage( hwnd, WM_COMMAND, IDM_GOPREVIOUS, 0 ) ; return 1 ; }
 		if (key_num == VK_RIGHT ) //Fenetre KiTTY Suivante
 			{ SendMessage( hwnd, WM_COMMAND, IDM_GONEXT, 0 ) ; return 1 ; }
+#endif
 		}
 	return 0 ;
 	}
@@ -4051,7 +4141,7 @@ void SetPasteCommand( void ) {
 			if( ( pst = GlobalLock( hglb ) ) != NULL ) {
 				PasteCommand = (char*) malloc( strlen(pst)+1 ) ;
 				strcpy( PasteCommand, pst ) ;
-				SetTimer(hwnd, TIMER_AUTOPASTE, (int)(autocommand_delay*1000), NULL) ;
+				SetTimer(hwnd, TIMER_AUTOPASTE, autocommand_delay, NULL) ;
 				logevent(NULL,"Sent paste command");
 				GlobalUnlock( hglb ) ;
 				}
@@ -4072,10 +4162,13 @@ void LoadParameters( void ) {
 		}
 
 	if( ReadParameter( INIT_SECTION, "initdelay", buffer ) ) { 
-		init_delay = atof( buffer ) ;
-		if( init_delay < 0. ) init_delay = 2.0 ; 
+		init_delay = (int)(1000*atof( buffer )) ;
+		if( init_delay < 0 ) init_delay = 2000 ; 
 		}
-	if( ReadParameter( INIT_SECTION, "commanddelay", buffer ) ) { autocommand_delay = atof( buffer ) ; }
+	if( ReadParameter( INIT_SECTION, "commanddelay", buffer ) ) {
+		autocommand_delay = (int)(1000*atof( buffer )) ;
+		if(autocommand_delay<5) autocommand_delay = 5 ; 
+		}
 #if (defined IMAGEPORT) && (!defined FDJ)
 	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { if( !stricmp( buffer, "NO" ) ) BackgroundImageFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { if( !stricmp( buffer, "YES" ) ) BackgroundImageFlag = 1 ; }
@@ -4132,7 +4225,9 @@ void LoadParameters( void ) {
 			WinSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( WinSCPPath, buffer ) ;
 			}
 		}
-
+#ifdef HYPERLINKPORT
+	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  if( !stricmp( buffer, "NO" ) ) HyperlinkFlag = 0 ; }
+#endif
 #ifndef NO_TRANSPARENCY
 	if( ReadParameter( INIT_SECTION, "transparency", buffer ) ) {
 		if( !stricmp( buffer, "YES" ) ) { TransparencyFlag = 1 ; }
@@ -4276,10 +4371,11 @@ void InitWinMain( void ) {
 #ifdef NO_TRANSPARENCY
 	sprintf( BuildVersionTime, "%s.%dn @ %s", BUILD_VERSION, BUILD_SUBVERSION, BUILD_TIME ) ;
 #endif	
-	
+#ifdef CYGTERMPORT
 	// Par defaut Cygterm est desactive, il faut l'activer dans le fichier kitty.ini
 	cygterm_set_flag(0);
-	
+#endif
+
 	//sprintf( BuildVersionTime, "%s.%d @ %s", "0.60", 60, "07/02/2008-22:07:31(GMT)" ) ; // Pour compilation CygWin
 
 	// Initialisation de la librairie de cryptage
@@ -4357,10 +4453,12 @@ void InitWinMain( void ) {
 	if( (IniFileFlag == SAVEMODE_REG)||( IniFileFlag == SAVEMODE_FILE) ) 
 		RegTestOrCreate( HKEY_CURRENT_USER, buffer, NULL, NULL ) ;
 	
+#ifdef LAUNCHERPORT
 	// Initialisation du launcher
 	sprintf( buffer, "%s\\%s", TEXT(PUTTY_REG_POS), "Launcher" ) ;
 	if( (IniFileFlag == SAVEMODE_REG)||( IniFileFlag == SAVEMODE_FILE) )  
 		if( !RegTestKey( HKEY_CURRENT_USER, buffer ) ) { InitLauncherRegistry() ; }
+#endif
 
 	// Initialise la liste des folders
 	InitFolderList() ;

@@ -33,4 +33,6 @@ void SetSSHConnected( void ) ;
 
 // Affichage d'un message dans l'event log
 void debug_logevent( const char *fmt, ... ) ;
+
+PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) ;
 #endif

@@ -1635,7 +1635,7 @@ void winctrl_layout(struct dlgparam *dp, struct winctrls *wc,
 	    shortcuts[nshortcuts++] = ctrl->fileselect.shortcut;
 	    editbutton(&pos, escaped, base_id, base_id+1,
 		       "Bro&wse...", base_id+2);
-#ifndef ZMODEMPORT
+#if (defined PERSOPORT) && (!defined ZMODEMPORT)
 	    if(get_param( "ZMODEM" )) shortcuts[nshortcuts++] = 'w';
 #endif
 	    shortcuts[nshortcuts++] = 'w';

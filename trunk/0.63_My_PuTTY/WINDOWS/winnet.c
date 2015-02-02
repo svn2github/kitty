@@ -1700,7 +1700,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	    }
 	}
 #if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
-	if( get_param("ZMODEM") ) {
+	if( get_param("ZMODEM") &&0) {
 	if( !s->closing ) {
 	if (ret < 0) {
 	    return plug_closing(s->plug, winsock_error_string(err), err,

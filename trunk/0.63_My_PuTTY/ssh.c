@@ -2885,7 +2885,6 @@ static void ssh_gotdata(Ssh ssh, unsigned char *data, int datalen)
     if (ssh->logctx)
 	log_packet(ssh->logctx, PKT_INCOMING, -1, NULL, data, datalen,
 		   0, NULL, NULL);
-
     crBegin(ssh->ssh_gotdata_crstate);
 
     /*

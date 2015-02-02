@@ -412,6 +412,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "internal_delay=%d\ninit_delay=%g\nautocommand_delay=%g\nbetween_char_delay=%d\nProtectFlag=%d\nIniFileFlag=%d\n"
 	,internal_delay,init_delay,autocommand_delay,between_char_delay,ProtectFlag,IniFileFlag );
 	
+	fprintf( fp, "HyperlinkFlag=%d\n", HyperlinkFlag );
 	if( AutoCommand!= NULL ) fprintf( fp, "AutoCommand=%s\n", AutoCommand ) ;
 	if( ScriptCommand!= NULL ) fprintf( fp, "ScriptCommand=%s\n", ScriptCommand ) ;
 	if( PasteCommand!= NULL ) fprintf( fp, "PasteCommand=%s\n", PasteCommand ) ;

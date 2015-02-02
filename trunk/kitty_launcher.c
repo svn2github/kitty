@@ -240,49 +240,6 @@ void DelDir( const char * directory ) {
 	}
 */
 
-// Creer un repertoire recurssif (rep1 / rep2 / ...)
-void MakeDir( const char * directory ) {
-	char buffer[MAX_VALUE_NAME], fullpath[MAX_VALUE_NAME], *p, *pst ;
-	int i,j ;
-	
-	if( directory==NULL ) return ; if( strlen(directory)==0 ) return ;
-
-	for( i=0, j=0 ; i<=strlen(directory) ; i++,j++ ) { // On supprime les espaces après un '\' 
-		if( (directory[i]=='\\')||(directory[i]=='/') ) {
-			fullpath[j]='\\' ;
-			while( (directory[i+1]==' ')||(directory[i+1]=='	') ) i++ ;
-			}
-		else fullpath[j]=directory[i] ;
-		}
-	fullpath[j+1]='\0' ;
-		
-	// On supprime les espaces à la fin
-	while( (fullpath[strlen(fullpath)-1]==' ')||(fullpath[strlen(fullpath)-1]=='	') ) fullpath[strlen(fullpath)-1]='\0';
-
-	for( i=strlen(fullpath), j=strlen(fullpath) ; i>=0 ; i--, j-- ) { // On supprime les espaces avant un '\'
-		if( fullpath[i] == '\\' ) {
-			buffer[j]='\\' ;
-			while( (i>0)&&((fullpath[i-1]==' ')||(fullpath[i-1]=='	')) ) i-- ;
-			}
-		else buffer[j]=fullpath[i] ;
-		}
-	j++;
-		
-	// On supprime les espace au début
-	while( ((buffer+j)[0]==' ')||((buffer+j)[0]=='	') ) j++ ;
-	strcpy( fullpath, buffer+j ) ;
-	
-	// On crée les répertoire
-	pst = fullpath ;
-	while( (strlen(pst)>0)&&((p=strstr(pst,"\\"))!=NULL) ) {
-		p[0]='\0' ;
-		_mkdir( fullpath ) ;
-		p[0]='\\' ;
-		pst=p+1;
-		}
-	_mkdir( fullpath ) ;
-	}
-	
 // Initialise l'arborescence Launcher en mode savemode=dir avec arborescence
 void InitLauncherDir( const char * directory ) {
 	char fullpath[MAX_VALUE_NAME], buffer[MAX_VALUE_NAME] ;
@@ -555,40 +512,6 @@ int RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
 	free( session ) ;
 	return return_code ;
 	}
-
-// Gestion de la taille des fenetres de la meme classe
-BOOL CALLBACK ResizeWinListProc( HWND hwnd, LPARAM lParam ) {
-	char buffer[256] ;
-	GetClassName( hwnd, buffer, 256 ) ;
-	
-	if( !strcmp( buffer, KiTTYClassName ) )
-	if( hwnd != MainHwnd ) {
-		RECT * rc = (RECT*) lParam ;
-		LPARAM pos = MAKELPARAM( rc->left, rc->top ) ;
-		LPARAM size = MAKELPARAM( rc->right, rc->bottom ) ;
-		//SendNotifyMessage( hwnd, WM_COMMAND, IDM_RESIZE, size ) ;
-		//SendNotifyMessage( hwnd, WM_COMMAND, IDM_REPOS, pos ) ;
-		PostMessage( hwnd, WM_COMMAND, IDM_REPOS, pos ) ;
-		PostMessage( hwnd, WM_COMMAND, IDM_RESIZE, size ) ;
-		//PostMessage( hwnd, WM_COMMAND, IDM_RESIZEH, rc->bottom ) ;
-		//SetWindowPos( hwnd, 0, 0, 0, rc->right-rc->left+1, rc->bottom-rc->top+1, SWP_NOZORDER|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOACTIVATE ) ;
-		//SetWindowPos( hwnd, 0, 0, 0, 50,50, SWP_NOZORDER|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOACTIVATE);
-		NbWin++ ;
-		}
-
-	return TRUE ;
-	}
-
-int ResizeWinList( HWND hwnd, int width, int height ) {
-	NbWin=0 ;
-	RECT rc;
-	GetWindowRect(hwnd, &rc) ;
-	rc.right = width ;
-	rc.bottom = height ;
-	EnumWindows( ResizeWinListProc, (LPARAM)&rc ) ;
-	SetForegroundWindow( hwnd ) ;
-	return NbWin ;
-	}
 	
 // Gestion Hide/UnHide all
 static int CurrentVisibleWin = -1 ; /* -1 = toutes visibles */
@@ -613,27 +536,6 @@ BOOL CALLBACK RefreshWinListProc( HWND hwnd, LPARAM lParam ) {
 int RefreshWinList( HWND hwnd ) {
 	NbWin=0 ;
 	EnumWindows( RefreshWinListProc, 0 ) ;
-	return NbWin ;
-	}
-	
-// Command sender (envoi d'une meme commande a toutes les fenetres)
-BOOL CALLBACK SendCommandProc( HWND hwnd, LPARAM lParam ) {
-	char buffer[256] ;
-	GetClassName( hwnd, buffer, 256 ) ;
-	
-	if( !strcmp( buffer, KiTTYClassName ) )
-	if( hwnd != MainHwnd ) {
-		SendKeyboardPlus( hwnd, (char*)lParam ) ;
-		NbWin++ ;
-		}
-
-	return TRUE ;
-	}
-
-int SendCommandAllWindows( HWND hwnd, char * cmd ) {
-	NbWin=0 ;
-	if( cmd==NULL ) return 0 ;
-	if( strlen(cmd) > 0 ) EnumWindows( SendCommandProc, (LPARAM)cmd ) ;
 	return NbWin ;
 	}
 	

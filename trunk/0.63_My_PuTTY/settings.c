@@ -682,7 +682,7 @@ void save_open_settings(void *sesskey, Conf *conf)
 	//write_setting_s(sesskey, "HyperlinkBrowser", conf_get_str(conf, CONF_url_browser) /*cfg->url_browser*/);
 	write_setting_i(sesskey, "HyperlinkRegularExpressionUseDefault", conf_get_int(conf, CONF_url_defregex) /*cfg->url_defregex*/);
 #ifndef NO_HYPERLINK
-	if( !strcmp(conf_get_str(conf, CONF_url_regex),"@°@°@NO REGEX--")||!strcmp(conf_get_str(conf, CONF_url_regex),"") ) 
+	if( !strcmp(conf_get_str(conf, CONF_url_regex),"@°@°@NO REGEX--") ) 
 		write_setting_s(sesskey, "HyperlinkRegularExpression", urlhack_default_regex ) ;
 	else
 		write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex) /*cfg->url_regex*/);
@@ -732,8 +732,9 @@ void save_open_settings(void *sesskey, Conf *conf)
     strcpy( pst, conf_get_str(conf, CONF_password ) );
     cryptstring( pst /*cfg->password*/, PassKey ) ;
     write_setting_s(sesskey, "Password", pst /*cfg->password*/);
-    decryptstring( pst /*cfg->password*/, PassKey ) ;
-    conf_set_str( conf, CONF_password, pst) ;
+    memset(pst,0,strlen(pst));
+    //decryptstring( pst /*cfg->password*/, PassKey ) ;
+    //conf_set_str( conf, CONF_password, pst) ;
 #endif
 }
 
@@ -1122,7 +1123,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 	//gpps(sesskey, "HyperlinkBrowser", "", conf, CONF_url_browser /*cfg->url_browser, sizeof(cfg->url_browser)*/);
 	gppi(sesskey, "HyperlinkRegularExpressionUseDefault", 1, conf, CONF_url_defregex /*&cfg->url_defregex*/);
 #ifndef NO_HYPERLINK
-	gpps(sesskey, "HyperlinkRegularExpression", "@°@°@NO REGEX--"/*urlhack_default_regex*/, conf, CONF_url_regex /*cfg->url_regex, sizeof(cfg->url_regex)*/);
+	gpps(sesskey, "HyperlinkRegularExpression", urlhack_default_regex, conf, CONF_url_regex /*cfg->url_regex, sizeof(cfg->url_regex)*/);
 #endif
 
 //	if( conf_get_str(conf,CONF_url_regex)== NULL ) { conf_set_int( conf, CONF_url_defregex, 1 ) ; }
@@ -1182,7 +1183,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 			}
 		}
 	}
-    MASKPASS(pst);
+    //MASKPASS(pst);
     conf_set_str( conf, CONF_password, pst ) ; // decryptstring( cfg->password, PassKey ) ;
     memset(pst,0,strlen(pst));
 

@@ -28,6 +28,7 @@ typedef struct terminal_tag Terminal;
 #include "misc.h"
 
 #ifdef PERSOPORT
+void debug_log( const char *fmt, ...) ;
 int switch_private_key_flag( void ) ;
 #endif
 
@@ -1521,7 +1522,7 @@ void timer_change_notify(unsigned long next);
 
 /* SURROGATE PAIR */
 
-#ifdef PERSOPORT
+
 #ifndef HIGH_SURROGATE_START
 #define HIGH_SURROGATE_START 0xd800
 #endif
@@ -1534,7 +1535,7 @@ void timer_change_notify(unsigned long next);
 #ifndef LOW_SURROGATE_END
 #define LOW_SURROGATE_END 0xdfff
 #endif
-#endif
+
 
 #ifndef IS_HIGH_SURROGATE
 #define HIGH_SURROGATE_START 0xd800

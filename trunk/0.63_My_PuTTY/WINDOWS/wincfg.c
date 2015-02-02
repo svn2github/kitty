@@ -383,7 +383,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, int has_help,
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: The Window/Hyperlinks panel.
 	 */
-	if( !get_param("PUTTY") ) {
+	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
 	ctrl_settitle(b, "Window/Hyperlinks", "Options controlling behaviour of hyperlinks");
 	s = ctrl_getset(b, "Window/Hyperlinks", "general", "General options for hyperlinks");
 

@@ -61,7 +61,8 @@ int get_param( const char * val ) ;
 void CreateSSHHandler() ;
 
 #ifndef TIMER_SLIDEBG
-#define TIMER_SLIDEBG 12343
+//#define TIMER_SLIDEBG 12343
+#define TIMER_SLIDEBG 8703
 #endif
 
 int print_event_log( FILE * fp, int i ) {
@@ -236,9 +237,11 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 	case WM_INITDIALOG: {
 		char buffer[1024] ;
 		LOGFONT lf;
-		
+
+#ifdef FDJ
 		/* Positionnement du ssh handler */
 		CreateSSHHandler() ;
+#endif
 		
 		//sprintf( buffer, "That's all folks ! version - %s", BuildVersionTime ) ;
 		sprintf( buffer, "KiTTY - %s", BuildVersionTime ) ;

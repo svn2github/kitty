@@ -142,8 +142,6 @@ int backend_connected = 0 ;
 
 void SetSSHConnected( void ) { backend_connected = 1 ; }
 
-PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) { return memset( ptr, 0, cnt ) ; }
-
 char *dupvprintf(const char *fmt, va_list ap) ;
 void logevent(void *frontend, const char *string);
 
@@ -160,4 +158,7 @@ void debug_logevent( const char *fmt, ... ) {
 		free(buf);
 		}
 	}
+
+PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) { return memset( ptr, 0, cnt ) ; }
+
 #endif
