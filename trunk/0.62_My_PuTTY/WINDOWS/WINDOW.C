@@ -528,6 +528,11 @@ InitWinMain();
 			i++ ;
 			strcpy( cfg.password, argv[i] ) ;
 			memset( argv[i], 0, strlen(argv[i]) ) ;
+		} else if( !strcmp(p, "-cc") ) {
+			strcpy( cfg.host, "cmd.exe /k" ) ;
+			cfg.port = 0 ;
+			cfg.protocol = PROT_CYGTERM ;
+			got_host = 1 ;
 		} else if( !strcmp(p, "-cmd") ) {
 			i++ ;
 			strcpy( cfg.autocommand, argv[i] ) ;
@@ -1270,7 +1275,7 @@ TrayIcone.hWnd = hwnd ;
 		close_session();
 #endif
 #ifdef ZMODEMPORT
-	     continue;
+	     if( ZModemFlag ) continue;
 #endif
 
 	} else
@@ -1285,7 +1290,7 @@ TrayIcone.hWnd = hwnd ;
 	    /* Send the paste buffer if there's anything to send */
 	    term_paste(term);
 #ifdef ZMODEMPORT
-	    	    if (xyz_Process(back, backhandle, term))
+	    	    if (ZModemFlag && xyz_Process(back, backhandle, term))
 		    continue;
 #endif
 	    /* If there's nothing new in the queue then we can do everything
@@ -2633,7 +2638,7 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
 	}
-else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL
+else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (echo "\007" pour simuler)
 	static int BlinkingState = 0 ;
 	static hBlinkingIcon = NULL ; 
 
@@ -6857,8 +6862,12 @@ void do_beep(void *frontend, int mode)
     /* Otherwise, either visual bell or disabled; do nothing here */
     if (!term->has_focus) {
 #ifdef PERSOPORT
-	if( VisibleFlag==VISIBLE_TRAY ) {
-		SetTimer(hwnd, TIMER_BLINKTRAYICON, (int)500, NULL) ;
+	if( VisibleFlag!=VISIBLE_TRAY ) {
+		ShowWindow(hwnd, SW_RESTORE);
+		SetForegroundWindow( MainHwnd ) ;
+	} else if( VisibleFlag==VISIBLE_TRAY ) {
+		if( cfg.foreground_on_bell ) { SendMessage( MainHwnd, WM_COMMAND, IDM_FROMTRAY, 0 ); }
+		else SetTimer(hwnd, TIMER_BLINKTRAYICON, (int)500, NULL) ;
 		//SendMessage( MainHwnd, WM_COMMAND, IDM_FROMTRAY, 0 );
 		//flash_window(2);	       /* start */
 	    	//ShowWindow( MainHwnd, SW_MINIMIZE);

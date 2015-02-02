@@ -542,6 +542,7 @@ struct config_tag {
 	int save_windowpos;
 	int xpos, ypos ;
 	int windowstate ;
+	int foreground_on_bell ;
 #endif
     /* SSH options */
     char remote_cmd[512];

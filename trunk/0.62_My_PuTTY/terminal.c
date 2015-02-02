@@ -11,6 +11,14 @@
 #include "putty.h"
 #include "terminal.h"
 
+#ifdef EXTENDEDMOUSEPORT
+#include "charset.h"
+#include "SBCS.C"
+#include "UTF8.C"
+#include "SBCSDAT.C"
+#include "FROMUCS.C"
+#include "SLOOKUP.C"
+#endif
 #ifdef PERSOPORT
 int get_param( const char * val ) ;
 #endif
@@ -1239,6 +1247,10 @@ static void power_on(Terminal *term, int clear)
     term->alt_which = 0;
     term_print_finish(term);
     term->xterm_mouse = 0;
+#ifdef EXTENDEDMOUSEPORT
+    term->xterm_extended_mouse = 0;
+    term->urxvt_extended_mouse = 0;
+#endif
     set_raw_mouse_mode(term->frontend, FALSE);
     {
 	int i;
@@ -2422,6 +2434,14 @@ static void toggle_mode(Terminal *term, int mode, int query, int state)
 	    term->xterm_mouse = state ? 2 : 0;
 	    set_raw_mouse_mode(term->frontend, state);
 	    break;
+#ifdef EXTENDEDMOUSEPORT
+	  case 1005:		       /* xterm extended mouse */
+	    term->xterm_extended_mouse = state ? 1 : 0;
+	    break;
+	  case 1015:		       /* urxvt extended mouse */
+	    term->urxvt_extended_mouse = state ? 1 : 0;
+	    break;
+#endif
 	  case 1047:                   /* alternate screen */
 	    compatibility(OTHER);
 	    deselect(term);
@@ -5819,7 +5839,12 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
     if (raw_mouse &&
 	(term->selstate != ABOUT_TO) && (term->selstate != DRAGGING)) {
 	int encstate = 0, r, c;
+#ifdef EXTENDEDMOUSEPORT
+	char abuf[32];
+	int len = 0;
+#else
 	char abuf[16];
+#endif
 
 	if (term->ldisc) {
 
@@ -5876,11 +5901,35 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 		encstate += 0x04;
 	    if (ctrl)
 		encstate += 0x10;
+#ifdef EXTENDEDMOUSEPORT
+	    r = y + 1;
+	    c = x + 1;
+	    if (term->urxvt_extended_mouse) {
+		len = sprintf(abuf, "\033[%d;%d;%dM", encstate, c, r);
+	    } else if (term->xterm_extended_mouse) {
+		if (c <= 2015 && r <= 2015) {
+		    wchar_t input[2];
+		    wchar_t *inputp = input;
+		    int inputlen = 2;
+		    input[0] = c + 32;
+		    input[1] = r + 32;
+
+		    len = sprintf(abuf, "\033[M%c", encstate);
+		    len += charset_from_unicode(&inputp, &inputlen,
+						abuf + len, 4,
+						CS_UTF8, NULL, NULL, 0);
+		}
+	    } else if (c <= 223 && r <= 223) {
+		len = sprintf(abuf, "\033[M%c%c%c", encstate, c + 32, r + 32);
+	    }
+	    ldisc_send(term->ldisc, abuf, len, 0);
+#else
 	    r = y + 33;
 	    c = x + 33;
 
 	    sprintf(abuf, "\033[M%c%c%c", encstate, c, r);
 	    ldisc_send(term->ldisc, abuf, 6, 0);
+#endif
 	}
 #ifdef HYPERLINKPORT
 	unlineptr(ldata); // HACK: ADDED FOR hyperlink stuff
@@ -6611,12 +6660,10 @@ int term_ldisc(Terminal *term, int option)
 int term_data(Terminal *term, int is_stderr, const char *data, int len)
 {
 #ifdef ZMODEMPORT
-	if (term->xyz_transfering && !is_stderr)
-    {
-	return xyz_ReceiveData(term, data, len);
-    }
-    else
-    {
+	if ( get_param( "ZMODEM" ) && term->xyz_transfering && !is_stderr)
+		{ return xyz_ReceiveData(term, data, len) ; }
+	else
+	{
 #endif
     bufchain_add(&term->inbuf, data, len);
 

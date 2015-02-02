@@ -199,7 +199,7 @@ static int BackgroundImageFlag = 0 ;
 #endif
 
 // Flag pour inhiber les fonctions ZMODEM
-static int ZModemFlag = 1 ;
+static int ZModemFlag = 0 ;
 
 // Flag pour inhiber le filtre sur la liste des sessions de la boîte de configuration
 static int SessionFilterFlag = 1 ;
@@ -425,6 +425,7 @@ char * get_param_str( const char * val ) {
 #ifdef ZMODEMPORT
 void xyz_updateMenuItems(Terminal *term)
 {
+	if( !ZModemFlag ) return ;
 	HMENU m = GetSystemMenu(hwnd, FALSE);
 	EnableMenuItem(m, IDM_XYZSTART, term->xyz_transfering?MF_GRAYED:MF_ENABLED);
 	EnableMenuItem(m, IDM_XYZUPLOAD, term->xyz_transfering?MF_GRAYED:MF_ENABLED);
@@ -2995,6 +2996,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 	else if( !strcmp( st, "/wintitle" ) ) { TitleBarFlag = abs(TitleBarFlag -1) ; return 1 ; }
 	else if( strstr( st, "/command " ) == st ) { SendCommandAllWindows( hwnd, st+9 ) ; return 1 ; }
 	else if( !strcmp( st, "/sizeall" ) ) { ResizeWinList( hwnd, cfg.width, cfg.height ) ; return 1 ; }
+	else if( !strcmp( st, "/zmodem" ) ) { ZModemFlag = abs(ZModemFlag-1) ; }
 	return 0 ;
 	}
 
@@ -3639,6 +3641,7 @@ int DefineShortcuts( char * buf ) {
 	else if( strstr( pst, "{NUMPAD7}" )==pst ) { key = key + VK_NUMPAD7 ; pst += 9 ; }
 	else if( strstr( pst, "{NUMPAD8}" )==pst ) { key = key + VK_NUMPAD8 ; pst += 9 ; }
 	else if( strstr( pst, "{NUMPAD9}" )==pst ) { key = key + VK_NUMPAD9 ; pst += 9 ; }
+	else if( strstr( pst, "{DECIMAL}" )==pst ) { key = key + VK_DECIMAL ; pst += 9 ; }
 	else if( strstr( pst, "{BREAK}" )==pst ) { key = key + VK_CANCEL ; pst += 7 ; }
 	
 	else if( pst[0] == '{' ) {key = 0 ; }
@@ -3992,7 +3995,10 @@ void LoadParameters( void ) {
 		}
 #endif
 #ifdef ZMODEMPORT
-	if( ReadParameter( INIT_SECTION, "zmodem", buffer ) ) {  if( !stricmp( buffer, "NO" ) ) ZModemFlag = 0 ; }
+	if( ReadParameter( INIT_SECTION, "zmodem", buffer ) ) { 
+		if( !stricmp( buffer, "NO" ) ) ZModemFlag = 0 ; 
+		if( !stricmp( buffer, "YES" ) ) ZModemFlag = 1 ; 
+		}
 #endif
 	}
 
@@ -4103,7 +4109,8 @@ void InitWinMain( void ) {
 	appname = KiTTYClassName ;
 #endif
 
-	// Initialiste le tableau des menus
+
+	// Initialise le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;
 	
 	// Test le mode de fonctionnement de la sauvegarde des sessions

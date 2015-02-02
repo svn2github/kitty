@@ -2014,6 +2014,11 @@ void setup_config_box(struct controlbox *b, int midsession,
 		      "None (bell disabled)", I(BELL_DISABLED),
 		      "Make default system alert sound", I(BELL_DEFAULT),
 		      "Visual bell (flash window)", I(BELL_VISUAL), NULL);
+#ifdef PERSOPORT
+   ctrl_checkbox(s, "Put window on foreground on bell", NO_SHORTCUT,
+		  HELPCTX(bell_foregroundonbell),
+		  dlg_stdcheckbox_handler, I(offsetof(Config,foreground_on_bell)));
+#endif
 
     s = ctrl_getset(b, "Terminal/Bell", "overload",
 		    "Control the bell overload behaviour");
