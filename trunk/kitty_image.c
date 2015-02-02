@@ -968,7 +968,6 @@ BOOL load_bg_bmp()
             y = (deskHeight - rawImageInfo.bmHeight) / 2;
 
         case 3: {  // Place at given (X,Y)
-
             // Start out with a background color fill.
             fill_dc(backgrounddc, deskWidth, deskHeight, backgroundcolor);
 
@@ -1044,7 +1043,6 @@ BOOL load_bg_bmp()
     }
 
     ReleaseDC(hwnd, hdcPrimary);
-
     return TRUE;
 }
 
@@ -1052,7 +1050,7 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
 {
     if(backgrounddc == 0)
         load_bg_bmp();
-		
+
     if(backgrounddc)
     {
         LONG topLeftX = paint_left;
@@ -1067,10 +1065,10 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
 		
         if(!bBgRelToTerm)
             ClientToScreen(hwnd, &srcTopLeft);
-		
+
         if(!srcdc)
             srcdc = backgrounddc;
-	
+
 	if(resizing)
 	{
 	    GetClientRect(hwnd, &size_now);
@@ -1082,6 +1080,8 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
 	        return;
             }
 	}
+//debug_log("1: %d %d %d %d\n",size_before.top,size_before.bottom,size_before.left,size_before.right) ;
+//debug_log("2: %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %d\n",topLeftX,topLeftY,width,height,srcTopLeft.x,srcTopLeft.y,size_now.top,size_now.bottom,size_now.left,size_now.right,resizing) ;
 	
         // Draw top edge
         BitBlt(
@@ -1132,6 +1132,10 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
         	offset_width+font_width*term->cols,
         	offset_height+font_height*term->rows);
 
+//debug_log("3: %d %d %d %d %d %d %d\n",resizing,paint_left, paint_top, paint_right, paint_bottom,offset_width,offset_height ) ;
+//debug_log("4: %d %d %d %d\n",size_before.top,size_before.bottom,size_before.left,size_before.right) ;
+//debug_log("5: %d %d %d %d %d %d\n",paint_top,paint_bottom,paint_left,paint_right,term->cols,term->rows);
+
         Rectangle(hdc, paint_left, paint_top,
             paint_right, paint_bottom);
 
@@ -1145,15 +1149,15 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
 
 
 void clean_bg(void) {
-	DeleteDC(textdc);
-	DeleteObject(textbm);
+	DeleteDC(textdc);textdc=NULL;
+	DeleteObject(textbm);textbm=NULL;
 	//DeleteObject(colorinpixel);
 	//DeleteDC(colorinpixeldc);
 	//DeleteObject(colorinpixelbm);
-	DeleteDC(backgrounddc);
-	DeleteObject(backgroundbm);
-	DeleteDC(backgroundblenddc);
-	DeleteObject(backgroundblendbm);
+	DeleteDC(backgrounddc);backgrounddc=NULL;
+	DeleteObject(backgroundbm);backgroundbm=NULL;
+	DeleteDC(backgroundblenddc);backgroundblenddc=NULL;
+	DeleteObject(backgroundblendbm);backgroundblendbm=NULL;
 	}
 
 void RedrawBackground( HWND hwnd ) {

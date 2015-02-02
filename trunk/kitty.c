@@ -177,7 +177,7 @@ static int ConfigBoxWindowHeight = 0 ;
 static int PuttyFlag = 0 ;
 
 // Flag pour afficher l'image de fond
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 static int BackgroundImageFlag = 1 ;
 #else
 static int BackgroundImageFlag = 0 ;
@@ -243,7 +243,7 @@ void SetNewIcon( HWND hwnd, Config cfg, const int mode ) ;
 
 #define TIMER_INIT 12341
 #define TIMER_AUTOCOMMAND 12342
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 #define TIMER_SLIDEBG 12343
 #endif
 #define TIMER_REDRAW 12344
@@ -330,6 +330,7 @@ void set_sshver( const char * vers ) ;
 int ResizeWinList( HWND hwnd, int width, int height ) ;
 int SendCommandAllWindows( HWND hwnd, char * cmd ) ;
 int decode64 (char *buffer) ;
+void RunCommand( HWND hwnd, char * cmd ) ;
 
 static char * InputBoxResult = NULL ;
 
@@ -447,7 +448,7 @@ int get_param( const char * val ) {
 #ifdef ZMODEMPORT
 	else if( !stricmp( val, "ZMODEM" ) ) return ZModemFlag ;
 #endif
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	else if( !stricmp( val, "BACKGROUNDIMAGE" ) ) return BackgroundImageFlag ;
 #endif
 #ifdef CYGTERMPORT
@@ -455,6 +456,15 @@ int get_param( const char * val ) {
 #endif
 	return 0 ;
 	}
+
+#if (defined IMAGEPORT) && (!defined FDJ)
+	/* Le patch Background image ne marche plus bien sur la version PuTTY 0.61
+		- il est en erreur lorsqu'on passe par la config box
+		- il est ok lorsqu'on démarrer par -load ou par duplicate session
+	   On le désactive dans la config box (fin du fichier WINCFG.C)
+	*/
+void DisableBackgroundImage( void ) { BackgroundImageFlag = 0 ; }
+#endif
 
 // Procedure de recuperation de la valeur d'une chaine
 char * get_param_str( const char * val ) {
@@ -1017,7 +1027,7 @@ void QueryKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out ) {
 					case REG_SZ:
 						//fprintf( fp_out, "\"" ) ;
 						sprintf( str, "\"%s\"=\"", achValue ) ;
-						for( j=0; j<strlen(lpData) ; j++ ) {
+						for( j=0; j<strlen((char*)lpData) ; j++ ) {
 							//fprintf( fp_out, "%c", lpData[j] ) ;
 							b[0]=lpData[j] ;
 							strcat( str, b ) ;
@@ -1187,7 +1197,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, "ConfigBox", "height", "21" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "filter", "yes" ) ;
 
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "yes" ) ;
 #endif
 
@@ -2010,7 +2020,7 @@ for file in ${*} ; do echo "\033]0;__rv:"${file}"\007" ; done
 }
 Il faut ensuite simplement taper: get filename
 C'est traité dans KiTTY par la fonction ManageLocalCmd
-*/	
+*/
 void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 	char buffer[4096], pscppath[4096]="", pscpport[16]="22", dir[4096]=".", b1[256] ;
 	
@@ -2261,6 +2271,13 @@ void RunCmd( HWND hwnd ) {
 // Gestion de commandes à dstance
 static char * RemotePath = NULL ;
 void StartWinSCP( HWND hwnd, char * directory ) ;
+/* Execution de commande en local
+cmd()
+{
+if [ $# -eq 0 ] ; then echo "Usage: cmd command" ; return 0 ; fi
+printf "\033]0;__cm:"$*"\007"
+}
+*/
 int ManageLocalCmd( HWND hwnd, char * cmd ) {
 	char buffer[1024] = "", title[1024] = "" ;
 	if( cmd == NULL ) return 0 ; if( (cmd[2] != ':')&&(cmd[2] != '\0') ) return 0 ;
@@ -2291,6 +2308,10 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		strcpy( RemotePath, cmd+3 ) ;
 		StartWinSCP( hwnd, RemotePath ) ;
 		free( RemotePath ) ;
+		return 1 ;
+		}
+	else if( (cmd[0]=='c')&&(cmd[1]=='m')&&(cmd[2]==':') ) { // Execute une commande externe
+		RunCommand( hwnd, cmd+3 ) ;
 		return 1 ;
 		}
 	return 0 ;
@@ -2400,21 +2421,21 @@ void ManageWinrol( HWND hwnd ) {
 	InvalidateRect(hwnd, NULL, TRUE);
 	}
 	
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 BOOL load_bg_bmp() ;
 void clean_bg( void ) ;
 void RedrawBackground( HWND hwnd ) ;
 #endif
 
 void RefreshBackground( HWND hwnd ) {
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	if( BackgroundImageFlag ) RedrawBackground( hwnd ) ; 
 	else
 #endif
 	InvalidateRect(hwnd, NULL, TRUE) ;
 	}
 
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 /* Changement du fond d'ecran */
 int GetExt( const char * filename, char * ext) {
 	int i;
@@ -3263,7 +3284,7 @@ int ShowPortfwd( HWND hwnd ) {
 
 // Procedures de generation du dump "memoire" (/savedump)
 #include "kitty_savedump.c"
-	
+
 int InternalCommand( HWND hwnd, char * st ) {
 	char buffer[1024] ;
 
@@ -4026,7 +4047,7 @@ int Convert2Reg( const char * Directory ) {
 	return 0 ;
 	}
 
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 // Gestion de l'image viewer
 int ManageViewer( HWND hwnd, WORD wParam ) { // Gestion du mode image
 	if( wParam==VK_BACK ) 
@@ -4244,7 +4265,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 			{ SendKeyboardPlus( hwnd, shortcuts_tab2[i].st ) ; return 1 ; }
 		}
 	
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	if( BackgroundImageFlag && ImageViewerFlag ) { // Gestion du mode image
 		if( ManageViewer( hwnd, key_num ) ) return 1 ;
 		}
@@ -4306,7 +4327,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 			}
 #endif
 
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	else if( BackgroundImageFlag && (key == shortcuts_tab.imagechange) ) 		// Changement d'image de fond
 		{ if( NextBgImage( hwnd ) ) InvalidateRect(hwnd, NULL, TRUE) ; return 1 ; }
 #endif
@@ -4346,7 +4367,7 @@ void SetPasteCommand( void ) {
 	}
 	
 // Initialisation des parametres à partir du fichier kitty.ini
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 void SetShrinkBitmapEnable(int) ;
 #endif
 void LoadParameters( void ) {
@@ -4359,7 +4380,7 @@ void LoadParameters( void ) {
 		if( init_delay < 0. ) init_delay = 2.0 ; 
 		}
 	if( ReadParameter( INIT_SECTION, "commanddelay", buffer ) ) { autocommand_delay = atof( buffer ) ; }
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { if( !stricmp( buffer, "NO" ) ) BackgroundImageFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { if( !stricmp( buffer, "YES" ) ) BackgroundImageFlag = 1 ; }
 #endif
@@ -4431,7 +4452,7 @@ void LoadParameters( void ) {
 			}
 #endif
 
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	if( ReadParameter( INIT_SECTION, "shrinkbitmap", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetShrinkBitmapEnable(0) ; }
 #endif
 	if( readINI( KittyIniFile, "ConfigBox", "height", buffer ) ) {
@@ -4573,6 +4594,7 @@ void InitWinMain( void ) {
 		{ if( strlen( buffer ) > 0 ) strcpy( KiTTYClassName, buffer ) ; }
 	appname = KiTTYClassName ;
 #endif
+
 
 	// Initialiste le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;

@@ -225,7 +225,7 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 	//FontSpec font;
 	//Filename logfilename;
 	/* IMAGEPORT Options */
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	fprintf( fp, "bg_opacity=%d\nbg_slideshow=%d\nbg_type=%d\nbg_image_style=%d\nbg_image_abs_x=%d\nbg_image_abs_y=%d\nbg_image_abs_fixed=%d\n"
 	,cfg.bg_opacity,cfg.bg_slideshow,cfg.bg_type,cfg.bg_image_style,cfg.bg_image_abs_x,cfg.bg_image_abs_y,cfg.bg_image_abs_fixed );
 #endif
@@ -286,7 +286,7 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 	,DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,PuttyFlag);
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #endif
 #ifdef CYGTERMPORT
