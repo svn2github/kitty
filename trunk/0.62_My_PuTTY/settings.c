@@ -607,6 +607,7 @@ void save_open_settings(void *sesskey, Config *cfg)
     //sprintf( buf, "%g", cfg->initdelay ) ; write_setting_s(sesskey, "InitDelay", buf ) ;
     write_setting_i(sesskey, "TransparencyValue", (unsigned int) cfg->transparencynumber) ;
     write_setting_i(sesskey, "SendToTray", cfg->sendtotray);
+    write_setting_i(sesskey, "Maximize", cfg->maximize);
     write_setting_i(sesskey, "SaveOnExit", cfg->saveonexit);
     sprintf( PassKey, "%s%sKiTTY", cfg->host, cfg->termtype ) ;
     write_setting_i(sesskey, "Icone", cfg->icone);
@@ -1017,15 +1018,14 @@ void load_open_settings(void *sesskey, Config *cfg)
     //char buf[25] ="" ;
     //gpps(sesskey, "BCDelay", "0.", buf, sizeof(buf)) ; cfg->bcdelay = atof(buf) ;
     //gpps(sesskey, "InitDelay", "2.0", buf, sizeof(buf)) ; cfg->initdelay = atof(buf) ;
-    
+
     gppi(sesskey, "SendToTray", 0, &cfg->sendtotray);
+    gppi(sesskey, "Maximize", 0, &cfg->maximize);
     gppi(sesskey, "SaveOnExit", 0, &cfg->saveonexit);
-    //gpps(sesskey, "TransparencyValue", 0, buf, sizeof(buf)) ; cfg->transparencynumber = 255-atoi(buf) ;
-    gppi(sesskey, "TransparencyValue", 0, &cfg->transparencynumber ) ; 
-    //cfg->transparencynumber = 255-cfg->transparencynumber ;
+    gppi(sesskey, "TransparencyValue", 0, &cfg->transparencynumber ) ;
     if( cfg->transparencynumber < -1 ) cfg->transparencynumber = -1 ;
     if( cfg->transparencynumber > 255 ) cfg->transparencynumber = 255 ;
-    
+
     char PassKey[1024] = "" ;
     sprintf( PassKey, "%s%sKiTTY", cfg->host, cfg->termtype ) ;
     gpps(sesskey, "Folder", "", cfg->folder, sizeof(cfg->folder));

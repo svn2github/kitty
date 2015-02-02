@@ -1182,9 +1182,8 @@ TrayIcone.hWnd = hwnd ;
 			}
 
 #ifndef NO_TRANSPARENCY
-		if( TransparencyNumber != -1 )
-		if( cfg.transparencynumber != TransparencyNumber ) { 
-			TransparencyNumber = 255 - cfg.transparencynumber ;
+		if( (TransparencyNumber != -1) && (cfg.transparencynumber != -1) ) {
+			if( cfg.transparencynumber > 0 ) { TransparencyNumber = 255 - cfg.transparencynumber ; }
 			SetTransparency( hwnd, TransparencyNumber ) ;
 			}
 #endif
@@ -2549,7 +2548,10 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 
 	// Envoi automatiquement dans le systeme tray si besoin
 	if( AutoSendToTray ) ManageToTray( hwnd ) ;
-		
+	
+	// Maximize automatic
+	if( cfg.maximize ) {  PostMessage( hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)NULL ) ; }
+
 	// Affichage d'une note de la session s'il y en a une
 	if( GetSessionField( cfg.sessionname, cfg.folder, "Notes", buffer )  )
 		{ if( strlen( buffer ) > 0 ) MessageBox( hwnd, buffer, "Notes", MB_OK ) ; }
@@ -2558,7 +2560,6 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	
 	if( strlen( cfg.autocommand ) > 0 ) {
 		SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
-		logevent(NULL, "Send automatic command" );
 		}
 	if( cfg.logtimerotation > 0 ) {
 		SetTimer(hwnd, TIMER_LOGROTATION, (int)(cfg.logtimerotation*1000), NULL) ;
@@ -2570,7 +2571,6 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 
 else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
 	char buffer[4096] = "" ;
-	int i = 0  ;
 	KillTimer( hwnd, TIMER_AUTOCOMMAND ) ; 
 	if( AutoCommand == NULL ) { 
 		ValidateRect( hwnd, NULL ) ; 
@@ -2578,6 +2578,7 @@ else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
 		AutoCommand = cfg.autocommand ; 
 //logevent(NULL, AutoCommand );
 		}
+	int i = 0  ;
 	while( AutoCommand[i] != '\0' ) {
 		if( AutoCommand[i]=='\n' ) { i++ ; break ; }
 		else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'n') ) { i += 2 ; break ; }
@@ -3094,11 +3095,13 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			return ManageToTray( hwnd ) ;
 			}
 		break ;
-	  case IDM_FROMTRAY:
+	  case IDM_FROMTRAY:{
+//char b[256];sprintf(b,"%d",VisibleFlag);MessageBox(hwnd,b,"Info",MB_OK);
 		if( VisibleFlag==VISIBLE_TRAY ) {
 			VisibleFlag = VISIBLE_YES ;
 			return SendMessage( hwnd, MYWM_NOTIFYICON, 0, WM_LBUTTONDBLCLK ) ;
 			}
+		}
 		break ;
 	  case IDM_HIDE:
 		if( VisibleFlag==VISIBLE_YES ) {
@@ -4336,6 +4339,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    term_do_paste(term);
 	return 0;
 #ifdef RECONNECTPORT
+      case WM_POWERBROADCAST:
 	if(cfg.wakeup_reconnect) {
 		switch(wParam) {
 			case PBT_APMRESUMESUSPEND:

@@ -165,7 +165,7 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 	cfg.proxy_telnet_command[511]='\0' ; fprintf( fp, "proxy_telnet_command=%s\n", cfg.proxy_telnet_command ) ;
 	/* PERSOPORT OptionS */
 	fprintf( fp, "bcdelay=%g\ninitdelay=%g\n", cfg.bcdelay, cfg.initdelay ) ;
-	fprintf( fp, "transparencynumber=%d\nsendtotray=%d\nicone =%d\n", cfg.transparencynumber,cfg.sendtotray,cfg.icone  );
+	fprintf( fp, "transparencynumber=%d\nsendtotray=%d\nmaximize=%d\nicone =%d\n", cfg.transparencynumber,cfg.sendtotray,cfg.maximize,cfg.icone  );
 	cfg.folder[127]='\0' ; fprintf( fp, "folder=%s\n", cfg.folder ) ;
 	MASKPASS(cfg.password);
 	cfg.password[127]='\0' ; fprintf( fp, "password=%s\n", cfg.password ) ;

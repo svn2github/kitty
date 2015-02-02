@@ -361,6 +361,9 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, int has_help,
 		ctrl_checkbox(s, "Send to tray on startup", '`',
 		  HELPCTX(behaviour_sendtotray),
 		  dlg_stdcheckbox_handler, I(offsetof(Config,sendtotray)));
+		ctrl_checkbox(s, "Maximize on startup", NO_SHORTCUT,
+		  HELPCTX(behaviour_maximize),
+		  dlg_stdcheckbox_handler, I(offsetof(Config,maximize)));
 		ctrl_checkbox(s, "Save position and size on exit", '=',
 		  HELPCTX(behaviour_saveonexit),
 		  dlg_stdcheckbox_handler, I(offsetof(Config,saveonexit)));

@@ -457,7 +457,7 @@ int get_param( const char * val ) ;
 #define SAVEMODE_DIR 2
 #endif
 
-void SetInitCurrentFolder( const char * name ) { if( StringList_Exist(FolderList, name) ) strcpy( CurrentFolder, name ) ; }
+void SetInitCurrentFolder( const char * name ) { if( StringList_Exist((const char **)FolderList, name) ) strcpy( CurrentFolder, name ) ; }
 
 static void folder_handler(union control *ctrl, void *dlg,
 			   void *data, int event)
@@ -730,11 +730,16 @@ static int load_selected_session(struct sessionsaver_data *ssd,
     isdef = !strcmp(ssd->sesslist.sessions[i], "Default Settings");
     load_settings(ssd->sesslist.sessions[i], cfg);
 #ifdef PERSOPORT
-	strcpy( CurrentFolder, "Default" ) ;
-	if( cfg->folder )
-	if( strlen(cfg->folder)>0 ) {
-		strcpy( CurrentFolder, cfg->folder ) ;
-		StringList_Add( FolderList, cfg->folder ) ;
+	if( (get_param("INIFILE")==SAVEMODE_DIR) && get_param("DIRECTORYBROWSE") ) {
+		strcpy( cfg->folder, CurrentFolder ) ;
+		}
+	else {
+		strcpy( CurrentFolder, "Default" ) ;
+		if( cfg->folder )
+		if( strlen(cfg->folder)>0 ) {
+			strcpy( CurrentFolder, cfg->folder ) ;
+			StringList_Add( FolderList, cfg->folder ) ;
+			}
 		}
 #endif
     if (!isdef) {
@@ -924,14 +929,13 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 #endif
 		dlg_end(dlg, 1);       /* it's all over, and succeeded */
 	    }
-#ifdef PERSOPORT
-		if( get_param("DIRECTORYBROWSE") ) {
-			strcpy( CurrentFolder, cfg->folder );
-			CleanFolderName( CurrentFolder );
-			}
-#endif
 	} else if (ctrl == ssd->savebutton) {
 	    int isdef = !strcmp(savedsession, "Default Settings");
+#ifdef PERSOPORT
+	if( (get_param("INIFILE")==2/*SAVEMODE_DIR*/) && get_param("DIRECTORYBROWSE") ) {
+		if( !isdef ) { if(strlen(cfg->sessionname)>0) strcpy(savedsession,cfg->sessionname); }
+		}
+#endif
 	    if (!savedsession[0]) {
 		int i = dlg_listbox_index(ssd->listbox, dlg);
 		if (i < 0) {
@@ -949,8 +953,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	    }
             {
 #ifdef PERSOPORT
-				if( !get_param("DIRECTORYBROWSE") ) 
-					strcpy( cfg->folder, CurrentFolder );
+		strcpy( cfg->folder, CurrentFolder );
 #endif
                 char *errmsg = save_settings(savedsession, cfg);
                 if (errmsg) {

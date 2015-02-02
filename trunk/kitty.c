@@ -386,6 +386,18 @@ void debug_msg( const char * msg ) {
 	MessageBox( NULL, msg, "Info", MB_OK ) ;
 	}
 
+// Affichage d'un message dans l'event log
+void debug_logevent( const char *fmt, ... ) {
+	va_list ap;
+	char *buf;
+
+	va_start(ap, fmt);
+	buf = dupvprintf(fmt, ap) ;
+	va_end(ap);
+	logevent(NULL,buf);
+	sfree(buf);
+	}
+
 #ifdef CYGTERMPORT
 void cygterm_set_flag( int flag ) ;
 int cygterm_get_flag( void ) ;
@@ -476,7 +488,7 @@ int delINI( const char * filename, const char * section, const char * key ) ;
 #include <dirent.h>
 // Initialise la liste des folders à partir des sessions deja existantes et du fichier kitty.ini
 void InitFolderList( void ) {
-	char * pst, fList[4096], buffer[1024] ;
+	char * pst, fList[4096], buffer[4096] ;
 	int i ;
 	FolderList=(char**)malloc( 1024*sizeof(char*) );
 	FolderList[0] = NULL ;
@@ -697,6 +709,7 @@ int GetSessionField( const char * session_in, const char * folder_in, const char
 			else sprintf(buffer,"%s\\Sessions\\%s\\%s", ConfigDirectory, folder, session ) ;
 			}
 		else sprintf(buffer,"%s\\Sessions\\%s", ConfigDirectory, session ) ;
+		if( debug_flag ) { debug_logevent( "GetSessionField(%s,%s,%s,%s)=%s", ConfigDirectory, session, folder, field, buffer ) ; }
 		if( (fp=fopen(buffer,"r"))!=NULL ) {
 			while( fgets(buffer,1024,fp)!=NULL ) {
 				while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
@@ -706,6 +719,7 @@ int GetSessionField( const char * session_in, const char * folder_in, const char
 						result[strlen(result)-1] = '\0' ;
 						unmungestr(result, buffer,MAX_PATH) ;
 						strcpy( result, buffer) ;
+						if( debug_flag ) debug_logevent( "Result=%s", result );
 						res = 1 ;
 						break ;
 						}
@@ -1117,7 +1131,7 @@ void GetSaveMode( void ) {
 		while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')||(buffer[strlen(buffer)-1]==' ')||(buffer[strlen(buffer)-1]=='\t') ) buffer[strlen(buffer)-1]='\0';
 		if( !stricmp( buffer, "registry" ) ) IniFileFlag = SAVEMODE_REG ;
 		else if( !stricmp( buffer, "file" ) ) IniFileFlag = SAVEMODE_FILE ;
-		else if( !stricmp( buffer, "dir" ) ) IniFileFlag = SAVEMODE_DIR ;
+		else if( !stricmp( buffer, "dir" ) ) { IniFileFlag = SAVEMODE_DIR ; DirectoryBrowseFlag = 1 ; }
 		}
 #endif
 	if( IniFileFlag!=SAVEMODE_DIR ) DirectoryBrowseFlag = 0 ;
@@ -1421,6 +1435,12 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 			SendKeyboard( hwnd, "\n" ) ;
 			fclose( fp ) ;
 			}*/
+		char *buf;
+		buf=(char*)malloc( strlen(cmd)+30 ) ;
+		strcpy( buf, "Send automatic command" ) ;
+		if( debug_flag ) { strcat( buf, ": ") ; strcat( buf, cmd ) ; }
+		logevent(NULL, buf ) ;
+		free(buf);
 		if( existfile( cmd ) ) RunScriptFile( hwnd, cmd ) ;
 		else if( (toupper(cmd[0])=='C')&&(toupper(cmd[1])==':')&&(toupper(cmd[2])=='\\') ) {
 			//MessageBox( NULL, cmd,"Info", MB_OK );
@@ -1428,6 +1448,7 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 			}
 		else { SendKeyboardPlus( hwnd, cmd ) ; }
 		}
+	else { if( debug_flag ) logevent(NULL, "No automatic command !" ) ; }
 	}
 
 
@@ -1486,6 +1507,7 @@ int ManageToTray( HWND hwnd ) {
 		strcpy( TrayIcone.szTip, buffer ) ;
 		ResShell = Shell_NotifyIcon(NIM_MODIFY, &TrayIcone);
 		if (IsWindowVisible(hwnd)) ShowWindow(hwnd, SW_HIDE);
+		VisibleFlag = VISIBLE_TRAY ;
 		//SendMessage(hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
 		return 1 ;
 		}
@@ -2102,7 +2124,8 @@ void SaveWindowCoord( Config cfg ) {
 			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermWidth", cfg.width ) ;
 			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermHeight", cfg.height ) ;
 			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "WindowState", cfg.windowstate ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TransparencyValue", cfg.transparencynumber ) ;
+			if( TransparencyNumber != 1 ) { RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TransparencyValue", cfg.transparencynumber ) ; }
+			//else { RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TransparencyValue", TransparencyNumber ) ; }
 			}
 		else { 
 			int xpos=cfg.xpos, ypos=cfg.ypos, width=cfg.width, height=cfg.height, windowstate=cfg.windowstate, transparency=cfg.transparencynumber ;
@@ -3916,7 +3939,6 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		{ RenewPassword( &cfg ) ; 
 			//SendAutoCommand( hwnd, cfg.autocommand ) ; 
 			SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
-			logevent(NULL,"Send automatic command");
 			
 			return 1 ; }
 	if( key == shortcuts_tab.print ) {	// Impression presse papier
@@ -3997,7 +4019,7 @@ void SetShrinkBitmapEnable(int) ;
 #endif
 
 void LoadParameters( void ) {
-	char buffer[256] ;
+	char buffer[4096] ;
 	if( ReadParameter( INIT_SECTION, "configdir", buffer ) ) { 
 		if( strlen( buffer ) > 0 ) { if( existdirectory(buffer) ) SetConfigDirectory( buffer ) ; }
 		}
@@ -4249,7 +4271,7 @@ void InitWinMain( void ) {
 	
 	// Initialisation des parametres à partir du fichier kitty.ini
 	LoadParameters() ;
-	
+
 	// Initialisation des shortcuts
 	InitShortcuts() ;
 
@@ -4323,7 +4345,7 @@ void InitWinMain( void ) {
 		{ if( strlen( buffer ) > 0 ) MessageBox( NULL, buffer, "Notes", MB_OK ) ; }
 		
 	// Genère un fichier d'initialisation de toute les Sessions
-	sprintf( buffer, "%s\\kitty.ses.updt", InitialDirectory ) ;
+	sprintf( buffer, "%s\\%s.ses.updt", InitialDirectory, appname ) ;
 	if( existfile( buffer ) ) { InitAllSessions( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), "Sessions", buffer ) ; }
 	
 	// Initialise les logs

@@ -6027,7 +6027,6 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 		urlhack_launch_url(!term->cfg.url_defbrowser ? term->cfg.url_browser : NULL, linkbuf, 1);
 		else
 		urlhack_launch_url(!term->cfg.url_defbrowser ? term->cfg.url_browser : NULL, linkbuf, 0);
-		
 		sfree(linkbuf);
 	}
 	/* HACK: PuttyTray / Nutty : END */

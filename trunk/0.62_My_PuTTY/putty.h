@@ -528,6 +528,7 @@ struct config_tag {
 	double initdelay ;
 	int transparencynumber ;
 	int sendtotray ;
+	int maximize ;
 	int saveonexit ;
 	int icone ;
 	char iconefile[128] ;

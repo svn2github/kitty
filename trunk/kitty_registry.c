@@ -442,6 +442,7 @@ return 1 ;
 					RegDeleteValue( hSubKey, "BgImageAbsoluteX" ) ;
 					RegDeleteValue( hSubKey, "BgImageAbsoluteY" ) ;
 					RegDeleteValue( hSubKey, "BgImagePlacement" ) ;
+					RegDeleteValue( hSubKey, "Maximize" ) ;
 					RegDeleteValue( hSubKey, "SendToTray" ) ;
 					RegDeleteValue( hSubKey, "SaveOnExit" ) ;
 					RegDeleteValue( hSubKey, "Folder" ) ;

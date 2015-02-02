@@ -504,7 +504,11 @@ void log_reconfig(void *handle, Config *cfg)
  */
 static void xlatlognam(Filename *dest, Filename src,
 		       char *hostname, struct tm *tm) {
+#ifdef PERSOPORT
+    char buf[100], *bufp;
+#else
     char buf[10], *bufp;
+#endif
     int size;
     char buffer[FILENAME_MAX];
     int len = sizeof(buffer)-1;
@@ -535,7 +539,13 @@ static void xlatlognam(Filename *dest, Filename src,
 		size = strftime(buf, sizeof(buf), "%H%M%S", tm);
 		break;
 	      case 'h':
+#ifdef PERSOPORT
+	      strcpy(buf,hostname) ;
+	      int i ; while( (i=poss(":",buf))>0 ) { buf[i-1]='-' ;	}
+	      bufp=buf ;
+#else
 		bufp = hostname;
+#endif
 		size = strlen(bufp);
 		break;
 	      default:
@@ -555,9 +565,5 @@ static void xlatlognam(Filename *dest, Filename src,
 	len -= size;
     }
     *d = '\0';
-#ifdef PERSOPORT
-    int i ; while( (i=poss(":",buffer))>0 ) { buffer[i-1]='-' ;	}
-#endif
-
     *dest = filename_from_str(buffer);
 }

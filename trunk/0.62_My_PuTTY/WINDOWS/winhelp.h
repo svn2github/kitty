@@ -188,6 +188,7 @@
 
 #ifdef PERSOPORT
 #define WINHELP_CTX_behaviour_sendtotray "behaviour.sendtotray:config-sendtotray"
+#define WINHELP_CTX_behaviour_maximize "behaviour.maximize:config-maximize"
 #define WINHELP_CTX_behaviour_saveonexit "behaviour.saveonexit:config-saveonexit"
 #define WINHELP_CTX_session_folder "session.folder:config-folder"
 #define WINHELP_CTX_appearance_icone "appearance.icone:config-icone"
