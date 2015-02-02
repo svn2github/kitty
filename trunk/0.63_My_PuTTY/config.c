@@ -2554,7 +2554,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 		 conf_editbox_handler, I(CONF_ypos), I(-1) ) ; // dlg_stdeditbox_handler, I(offsetof(Config,ypos)), I(-1));
     ctrl_editbox(s, "Left:", NO_SHORTCUT, 20,
 		 HELPCTX(no_help),
-		 conf_editbox_handler, I(CONF_ypos), I(-1) ) ; // dlg_stdeditbox_handler, I(offsetof(Config,xpos)), I(-1));
+		 conf_editbox_handler, I(CONF_xpos), I(-1) ) ; // dlg_stdeditbox_handler, I(offsetof(Config,xpos)), I(-1));
 	}
 
     if( !get_param("PUTTY") && (get_param("ICON")>0) ) {

@@ -952,8 +952,8 @@ InitWinMain();
 int xpos_init=0, ypos_init=0 ;
 	if( (conf_get_int(conf,CONF_saveonexit)/*cfg.saveonexit*/||conf_get_int(conf,CONF_save_windowpos)/*cfg.save_windowpos*/)
 		&& (conf_get_int(conf,CONF_xpos)/*cfg.xpos*/>=0) && (conf_get_int(conf,CONF_ypos)/*cfg.ypos*/>=0) ) {
-		xpos_init=conf_get_int(conf,CONF_xpos)/*cfg.xpos*/ ; if( xpos_init>(GetSystemMetrics(SM_CXSCREEN)-10) ) xpos_init = 10 ;
-		ypos_init=conf_get_int(conf,CONF_ypos)/*cfg.ypos*/ ; if( ypos_init>(GetSystemMetrics(SM_CYSCREEN)-10) ) ypos_init = 10 ;
+		xpos_init=conf_get_int(conf,CONF_xpos)/*cfg.xpos*/ ; //if( xpos_init>(GetSystemMetrics(SM_CXSCREEN)-10) ) xpos_init = 10 ;
+		ypos_init=conf_get_int(conf,CONF_ypos)/*cfg.ypos*/ ; //if( ypos_init>(GetSystemMetrics(SM_CYSCREEN)-10) ) ypos_init = 10 ;
 		}
 
 while( conf_get_int(conf,CONF_icone)/*cfg.icone*/ > NumberOfIcons ) { 

@@ -17,6 +17,7 @@ IDI_MAINICON ICON "putty.ico"
 
 #ifndef FDJ
 IDI_MAINICON_0 ICON "../../kitty.ico"
+//IDI_MAINICON_0 ICON "../../res/football.ico"
 IDI_MAINICON_1 ICON "putty.ico"
 #else
 IDI_MAINICON_0 ICON "putty.ico"

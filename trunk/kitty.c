@@ -1205,8 +1205,8 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#downloaddir", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#uploaddir", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#remotedir", "" ) ;
-			writeINI( KittyIniFile, INIT_SECTION, "#pscpdir", "" ) ;
-			writeINI( KittyIniFile, INIT_SECTION, "#winscpdir", "" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#PSCPPath", "" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#WinSCPPath", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#antiidle=", " \\k08\\" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#antiidledelay", "60" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#sshversion", "OpenSSH_5.5" ) ;
@@ -3139,6 +3139,7 @@ int WindowsCount( HWND hwnd ) {
 	
 // Gestion de la fenetre d'affichage des portforward
 // Mettre la liste des port forward dans le presse-papier et l'afficher a l'ecran
+// [C] en Listen dans le process courant, [X] en listen dans un autre process, [-] absent
 #include <iphlpapi.h>
 DWORD (WINAPI *pGetExtendedTcpTable)(
   PVOID pTcpTable,
@@ -3320,6 +3321,12 @@ int InternalCommand( HWND hwnd, char * st ) {
 		sprintf( buffer,"ConfigDirectory=%s\nIniFileFlag=%d\nDirectoryBrowseFlag=%d\nInitialDirectory=%s\nKittyIniFile=%s\nKittySavFile=%s\nKiTTYClassName=%s\n"
 			,ConfigDirectory,IniFileFlag,DirectoryBrowseFlag,InitialDirectory,KittyIniFile,KittySavFile,KiTTYClassName ) ;
 		MessageBox(hwnd,buffer,"Configuration infomations",MB_OK);
+		return 1 ; 
+		}
+	else if( !strcmp( st, "/capslock" ) ) { 
+		conf_set_int( conf, CONF_xpos, 10 ) ;
+		conf_set_int( conf, CONF_ypos, 10 ) ;
+		SetWindowPos( hwnd, 0, 10, 10, 0, 0, SWP_NOSIZE|SWP_NOZORDER|SWP_NOOWNERZORDER|SWP_NOACTIVATE ) ;
 		return 1 ; 
 		}
 	else if( !strcmp( st, "/size" ) ) { SizeFlag = abs( SizeFlag - 1 ) ; set_title( NULL, conf_get_str(conf,CONF_wintitle)/*cfg.wintitle*/ ) ; return 1 ; }
@@ -4735,31 +4742,34 @@ void InitWinMain( void ) {
 	if( IniFileFlag == SAVEMODE_REG ) { // Mode de sauvegarde registry
 		// Si la cle n'existe pas ...
 		if( !RegTestKey( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ) { 
+			HWND hdlg = InfoBox( hinst, NULL ) ;
 			if( existfile( KittySavFile ) ) {// ... et que le fichier kitty.sav existe on le charge ...
-				HWND hdlg = InfoBox( hinst, NULL ) ;
-				InfoBoxSetText( hdlg, "Initializing registry" ) ;
-				InfoBoxSetText( hdlg, "Loading saved sessions" ) ;
+				InfoBoxSetText( hdlg, "Initializing registry." ) ;
+				InfoBoxSetText( hdlg, "Loading saved sessions from file." ) ;
 				LoadRegistryKey( hdlg ) ; 
 				InfoBoxClose( hdlg ) ;
 				}
 			else // Sinon on regarde si il y a la cle de PuTTY et on la recupere
+				InfoBoxSetText( hdlg, "Initializing registry." ) ;
+				InfoBoxSetText( hdlg, "First time running. Loading saved sessions from PuTTY registry." ) ;
 				TestRegKeyOrCopyFromPuTTY( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ; 
+				InfoBoxClose( hdlg ) ;
 			}
 		}
 	else if( IniFileFlag == SAVEMODE_FILE ){ // Mode de sauvegarde fichier
 		if( !RegTestKey( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ) { // la cle de registre n'existe pas 
 			HWND hdlg = InfoBox( hinst, NULL ) ;
-			InfoBoxSetText( hdlg, "Initializing registry" ) ;
-			InfoBoxSetText( hdlg, "Loading saved sessions" ) ;
+			InfoBoxSetText( hdlg, "Initializing registry." ) ;
+			InfoBoxSetText( hdlg, "Loading saved sessions from file." ) ;
 			LoadRegistryKey( hdlg ) ; 
 			InfoBoxClose( hdlg ) ;
 			}
 		else { // la cle de registre existe deja 
 			if( WindowsCount( MainHwnd ) == 1 ) { // Si c'est le 1er kitty on sauvegarde la cle de registre avant de charger le fichier kitty.sav
 				HWND hdlg = InfoBox( hinst, NULL ) ;
-				InfoBoxSetText( hdlg, "Initializing registry" ) ;
+				InfoBoxSetText( hdlg, "Initializing registry." ) ;
 				RegRenameTree( hdlg, HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), TEXT(PUTTY_REG_POS_SAVE) ) ;
-				InfoBoxSetText( hdlg, "Loading saved sessions" ) ;
+				InfoBoxSetText( hdlg, "Loading saved sessions." ) ;
 				LoadRegistryKey( hdlg ) ;
 				InfoBoxClose( hdlg ) ;
 				}
