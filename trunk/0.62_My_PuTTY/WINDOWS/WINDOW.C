@@ -142,10 +142,6 @@ static HMENU savedsess_menu;
 
 Config cfg;			       /* exported to windlg.c */
 
-#ifdef PERSOPORT
-#include "../../kitty.c"
-#endif
-
 static struct sesslist sesslist;       /* for saved-session menu */
 
 struct agent_callback {
@@ -191,8 +187,12 @@ static RGBTRIPLE defpal[NALLCOLOURS];
 
 static HBITMAP caretbm;
 
+#ifdef PERSOPORT
+#include "../../kitty.c"
+#endif
+
 #if (defined IMAGEPORT) && (!defined FDJ)
-#include "../../kitty_image.c"
+#include "../../kitty_image.h"
 #endif
 #ifdef RECONNECTPORT
 static time_t last_reconnect = 0;
@@ -1146,6 +1146,7 @@ TrayIcone.hWnd = hwnd ;
 	    sfree(str);
 	}
     }
+
 #ifdef PERSOPORT
 	if( !PuttyFlag ) {
 		// Lancement automatique dans le Tray
@@ -1183,8 +1184,8 @@ TrayIcone.hWnd = hwnd ;
 			SetTransparency( hwnd, TransparencyNumber ) ;
 			}
 #endif
-
-		// Lancement des timer (autocommande, changement image de fond)
+		// Lancement du timer auto-command pour les connexions non SSH
+		if(cfg.protocol != PROT_SSH) backend_connected = 1 ;
 		SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
 
 		if( IniFileFlag == SAVEMODE_REG ) {
@@ -1193,6 +1194,7 @@ TrayIcone.hWnd = hwnd ;
 			WriteParameter( INIT_SECTION, "KiLastSe", reg_buffer ) ;
 			}
 		
+		// Lancement des timer (changement image de fond, rafraichissement)
 #if (defined IMAGEPORT) && (!defined FDJ)
 		if( (!BackgroundImageFlag) || PuttyFlag ) cfg.bg_type = 0 ;
 		if( cfg.bg_type!=0 ) {
@@ -1248,6 +1250,7 @@ TrayIcone.hWnd = hwnd ;
 #ifdef ZMODEMPORT
 	netsc = netscheduler_new();
 #endif
+
     while (1) {
 	HANDLE *handles;
 	int nhandles, n;
@@ -1559,6 +1562,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
  		last_reconnect = tnow;
  		logevent(NULL, "Lost connection, reconnecting...");
  		term_pwron(term, FALSE);
+		backend_connected = 0 ;
  		start_backend();
 		SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
  	} else {
@@ -2515,6 +2519,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	char buffer[4096] = "" ;
 
+	if( (cfg.protocol == PROT_SSH) && (!backend_connected) ) break ; // On sort si en SSH on n'est pas connecte
 	// Lancement d'une (ou plusieurs séparées par \\n) commande(s) automatique(s) à l'initialisation
 	KillTimer( hwnd, TIMER_INIT ) ;
 
@@ -2546,7 +2551,7 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	
 	if( strlen( cfg.autocommand ) > 0 ) {
 		SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
-		logevent(NULL, "Sent automatic command" );
+		logevent(NULL, "Send automatic command" );
 		}
 
 	RefreshBackground( hwnd ) ;
@@ -2559,8 +2564,8 @@ else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au démarrage
 	if( AutoCommand == NULL ) { 
 		ValidateRect( hwnd, NULL ) ; 
 		GetSessionField( cfg.sessionname, cfg.folder, "Autocommand", cfg.autocommand ) ;
-
 		AutoCommand = cfg.autocommand ; 
+//logevent(NULL, AutoCommand );
 		}
 	while( AutoCommand[i] != '\0' ) {
 		if( AutoCommand[i]=='\n' ) { i++ ; break ; }
@@ -2626,6 +2631,26 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 		//else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		if(strlen( cfg.antiidle ) > 0) SendAutoCommand( hwnd, cfg.antiidle ) ;
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
+		}
+	}
+else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL
+	static int BlinkingState = 0 ;
+	static hBlinkingIcon = NULL ; 
+
+	if( VisibleFlag!=VISIBLE_TRAY ) 
+		{ KillTimer( hwnd, TIMER_BLINKTRAYICON ) ; TrayIcone.hIcon = hBlinkingIcon ; BlinkingState = 0 ; break ; }
+	if( BlinkingState==0 ) {
+		hBlinkingIcon = TrayIcone.hIcon ;
+		TrayIcone.hIcon = LoadIcon(NULL, NULL) ;
+		Shell_NotifyIcon(NIM_MODIFY, &TrayIcone) ;
+		BlinkingState = 1 ;
+		}
+	else {
+		if( hBlinkingIcon ) {
+			TrayIcone.hIcon = hBlinkingIcon ;
+			Shell_NotifyIcon(NIM_MODIFY, &TrayIcone) ;
+			BlinkingState = 0 ;
+			}
 		}
 	}
 #endif
@@ -2787,7 +2812,7 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 		if( strcmp(cfg.folder, "")&&strcmp(cfg.folder,"Default") )
 			sprintf(c, "putty -folder \"%s\"", cfg.folder ) ;
 		else c[0]='\0' ;
-		cl = c ;			
+		cl = c ;
 #else
 		} else /* IDM_NEWSESS */ {
 		    cl = NULL;
@@ -2816,9 +2841,12 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 	    if (!back) {
 		logevent(NULL, "----- Session restarted -----");
 		term_pwron(term, FALSE);
-		start_backend();
 #ifdef PERSOPORT
-	SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
+		backend_connected = 0 ;
+		start_backend();
+		SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
+#else
+		start_backend();
 #endif
 	    }
 
@@ -3222,7 +3250,8 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 		switch (lParam)	{
 			case WM_LBUTTONDBLCLK : 
 				VisibleFlag = VISIBLE_YES ;
-				ShowWindow(hwnd, SW_SHOWNORMAL);
+				//ShowWindow(hwnd, SW_SHOWNORMAL);
+				ShowWindow(hwnd, SW_RESTORE);
 				SetForegroundWindow( hwnd ) ;
 				int ResShell;
 				ResShell = Shell_NotifyIcon(NIM_DELETE, &TrayIcone);
@@ -3258,7 +3287,7 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
         if(!PuttyFlag) {
 	if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
 		SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ; 
-		//break ;
+		break ;
 		}
 
 	else if (message == WM_LBUTTONUP && ((wParam & MK_CONTROL) ) ) {// ctrl+bouton gauche => nouvelle icone
@@ -3812,7 +3841,7 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 #if (defined IMAGEPORT) && (!defined FDJ)
 	case WM_DISPLAYCHANGE:
 		if( (!BackgroundImageFlag) || PuttyFlag ) return DefWindowProc(hwnd, message, wParam, lParam) ;
-      case WM_MOVE:
+	case WM_MOVE:
 	      if( (!BackgroundImageFlag) || PuttyFlag ) {
 		sys_cursor_update();
 		if( cfg.saveonexit ) GetWindowCoord( hwnd ) ;
@@ -4307,6 +4336,7 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 					last_reconnect = tnow;
 					logevent(NULL, "Woken up from suspend, reconnecting...");
 					term_pwron(term, FALSE);
+					backend_connected = 0 ;
 					start_backend();
 					SetTimer(hwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ;
 				}
@@ -4853,8 +4883,8 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
 	    dec = dec * 2 - font_height;
 
 	oldpen = SelectObject(hdc, CreatePen(PS_SOLID, 0, fg));
-	MoveToEx(hdc, x, y + dec, NULL);
-	LineTo(hdc, x + len * char_width, y + dec);
+	MoveToEx(hdc, line_box.left, line_box.top + dec, NULL);
+	LineTo(hdc, line_box.right, line_box.top + dec);
 	oldpen = SelectObject(hdc, oldpen);
 	DeleteObject(oldpen);
     }
@@ -6826,6 +6856,14 @@ void do_beep(void *frontend, int mode)
     }
     /* Otherwise, either visual bell or disabled; do nothing here */
     if (!term->has_focus) {
+#ifdef PERSOPORT
+	if( VisibleFlag==VISIBLE_TRAY ) {
+		SetTimer(hwnd, TIMER_BLINKTRAYICON, (int)500, NULL) ;
+		//SendMessage( MainHwnd, WM_COMMAND, IDM_FROMTRAY, 0 );
+		//flash_window(2);	       /* start */
+	    	//ShowWindow( MainHwnd, SW_MINIMIZE);
+	} else
+#endif
 	flash_window(2);	       /* start */
     }
 }
@@ -7077,7 +7115,7 @@ int from_backend(void *frontend, int is_stderr, const char *data, int len)
 {
 #ifdef PERSOPORT
 	int res = term_data(term, is_stderr, data, len) ;
-	if( (!PuttyFlag)&&(ScriptFileContent!=NULL) ) ManageInitScript( data, len ) ;
+	if( (!PuttyFlag) && (ScriptFileContent!=NULL) ) ManageInitScript( data, len ) ;
 	return res ;
 #else
     return term_data(term, is_stderr, data, len);

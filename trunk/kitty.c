@@ -20,6 +20,32 @@
 #define IDM_RESIZE 0x0370
 #define IDM_REPOS 0x0380
 
+
+#ifndef SAVEMODE_REG
+#define SAVEMODE_REG 0
+#endif
+#ifndef SAVEMODE_FILE
+#define SAVEMODE_FILE 1
+#endif
+#ifndef SAVEMODE_DIR
+#define SAVEMODE_DIR 2
+#endif
+
+// Flag pour le fonctionnement en mode "portable" (gestion par fichiers)
+#ifdef PORTABLE
+int IniFileFlag = SAVEMODE_DIR ;
+#else
+int IniFileFlag = SAVEMODE_REG ;
+#endif
+
+// Flag permettant la gestion de l'arborscence (dossier=folder) dans le cas d'un savemode=dir
+#ifdef PORTABLE
+int DirectoryBrowseFlag = 1 ;
+#else
+int DirectoryBrowseFlag = 0 ;
+#endif
+
+
 #ifdef ZMODEMPORT
 #define IDM_XYZSTART  0x0810
 #define IDM_XYZUPLOAD 0x0820
@@ -100,20 +126,6 @@ static int ProtectFlag = 0 ;
 #define DEFAULT_EXE_FILE "putty.exe"
 #endif
 
-// Flag pour le fonctionnement en mode "portable" (gestion par fichiers)
-#ifdef PORTABLE
-static int IniFileFlag = SAVEMODE_DIR ;
-#else
-static int IniFileFlag = SAVEMODE_REG ;
-#endif
-
-// Flag permettant la gestion de l'arborscence (dossier=folder) dans le cas d'un savemode=dir
-#ifdef PORTABLE
-static int DirectoryBrowseFlag = 1 ;
-#else
-static int DirectoryBrowseFlag = 0 ;
-#endif
-
 #ifndef VISIBLE_NO
 #define VISIBLE_NO 0
 #endif
@@ -178,7 +190,10 @@ static int PuttyFlag = 0 ;
 
 // Flag pour afficher l'image de fond
 #if (defined IMAGEPORT) && (!defined FDJ)
-static int BackgroundImageFlag = 1 ;
+// Suite àa PuTTY 0.61, le patch covidimus ne fonctionne plus très bien
+// Il impose de démarrer les sessions avec -load même depuis la config box (voir CONFIG.C)
+// Le patch est désactivé par défaut
+static int BackgroundImageFlag = 0 ;
 #else
 static int BackgroundImageFlag = 0 ;
 #endif
@@ -194,11 +209,6 @@ static int ImageViewerFlag = 0 ;
 
 // Durée (en secondes) pour switcher l'image de fond d'écran (<=0 pas de slide)
 static int ImageSlideDelay = - 1 ;
-
-// Parametres de l'impression
-static int PrintCharSize = 100 ;
-static int PrintMaxLinePerPage = 60 ;
-static int PrintMaxCharPerLine = 85 ;
 
 // Compteur pour l'envoi de anti-idle
 static int AntiIdleCount = 0 ;
@@ -217,20 +227,20 @@ static char * PSCPPath = NULL ;
 // Répertoire de lancement
 static char InitialDirectory[4096] ;
 
-// Répertoire de sauvegarde de la configuration (savemode=dir)
-static char * ConfigDirectory = NULL ;
-
 // Chemin complet des fichiers de configuration kitty.ini et kitty.sav
 static char * KittyIniFile = NULL ;
 static char * KittySavFile = NULL ;
 
-// Buffer contenant du texte a ecrire au besoin dans le fichier kitty.dmp
-static char * DebugText = NULL ;
 // Flag permettant d'activer l'acces a du code particulier permettant d'avoir plus d'info dans le kitty.dmp
 static int debug_flag = 0 ;
 
 // Nom de la classe de l'application
 static char KiTTYClassName[128] = "" ;
+
+// Parametres de l'impression
+extern int PrintCharSize ;
+extern int PrintMaxLinePerPage ;
+extern int PrintMaxCharPerLine ;
 
 extern char puttystr[1024] ;
 
@@ -248,6 +258,7 @@ void SetNewIcon( HWND hwnd, Config cfg, const int mode ) ;
 #endif
 #define TIMER_REDRAW 12344
 #define TIMER_AUTOPASTE 12345
+#define TIMER_BLINKTRAYICON 12346
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -337,6 +348,14 @@ static char * InputBoxResult = NULL ;
 int WINAPI Notepad_WinMain(HINSTANCE hinstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine, int nCmdShow) ;
 int InternalCommand( HWND hwnd, char * st ) ;
 
+#include "kitty_tools.h"
+#include "kitty_win.h"
+
+	
+#include "kitty_crypt.h"
+#include "kitty_commun.h"
+#include "kitty_registry.h"
+
 // Procedure de debug
 void debug_log( const char *fmt, ...) {
 	char filename[4096]="" ;
@@ -357,78 +376,6 @@ void debug_log( const char *fmt, ...) {
 	va_end( ap ) ;
 	}
 
-void set_debug_text( const char * txt ) {
-	if( DebugText!=NULL ) { free( DebugText ) ; DebugText = NULL ; }
-	if( txt != NULL ) {
-		DebugText = (char*) malloc( strlen(txt)+1 ) ;
-		strcpy( DebugText, txt ) ;
-		}
-	}
-	
-#include "kitty_crypt.h"
-#include "kitty_registry.h"
-
-
-char *stristr (const char *meule_de_foin, const char *aiguille) {
-	char *c1, *c2, *res = NULL ; int i ;
-	c1=(char*)malloc( strlen(meule_de_foin) + 1 ) ; strcpy( c1, meule_de_foin ) ;
-	c2=(char*)malloc( strlen(aiguille) + 1 ) ; strcpy( c2, aiguille ) ;
-	if( strlen(c1)>0 ) {for( i=0; i<strlen(c1); i++ ) c1[i]=toupper( c1[i] ) ;}
-	if( strlen(c2)>0 ) {for( i=0; i<strlen(c2); i++ ) c2[i]=toupper( c2[i] ) ;}
-	res=strstr(c1,c2);
-	if( res!=NULL ) res = (char*)(meule_de_foin+( res-c1 )) ;
-	free( c2 ) ;
-	free( c1 ) ;
-	return res ;
-	}
-
-/* Fonction permettant d'inserer une chaine dans une autre */
-int insert( char * ch, const char * c, const int ipos ) {
-	int i = ipos, len = strlen( c ), k ;
-	if( ( ch == NULL ) || ( c == NULL ) ) return -1 ;
-	if( len > 0 ) {
-		if( (size_t) i > ( strlen( ch ) + 1 ) ) i = strlen( ch ) + 1 ;
-		for( k = strlen( ch ) ; k >= ( i - 1 ) ; k-- ) ch[k + len] = ch[k] ;
-		for( k = 0 ; k < len ; k++ ) ch[k + i - 1] = c[k] ; 
-		}
-	return strlen( ch ) ; 
-	}
-
-/* Fonction permettant de supprimer une partie d'une chaine de caracteres */
-int del( char * ch, const int start, const int length ) {
-	int k, len = strlen( ch ) ;
-	if( ch == NULL ) return -1 ;
-	if( ( start == 1 ) && ( length >= len ) ) { ch[0] = '\0' ; len = 0 ; }
-	if( ( start > 0 ) && ( start <= len ) && ( length > 0 ) ) {
-		for( k = start - 1 ; k < ( len - length ) ; k++ ) {
-			if( k < ( len - length ) ) ch[k] = ch[ k + length ] ;
-			else ch = '\0' ; 
-			}
-		k = len - length ;
-		if( ( start + length ) > len ) k = start - 1 ;
-		ch[k] = '\0' ; 
-		}
-	return strlen( ch ) ; 
-	}
-
-/* Fonction permettant de retrouver la position d'une chaine dans une autre chaine */
-int poss( const char * c, const char * ch ) {
-	char * c1 , * ch1 , * cc ;
-	int res ;
-	if( ( ch == NULL ) || ( c == NULL ) ) return -1 ;
-	if( ( c1 = (char *) malloc( strlen( c ) + 1 ) ) == NULL ) return -2 ;
-	if( ( ch1 = (char *) malloc( strlen( ch ) + 1 ) ) == NULL ) { free( c1 ) ; return -3 ; }
-	strcpy( c1, c ) ; strcpy( ch1, ch ) ;
-	cc = (char *) strstr( ch1, c1 ) ;
-	if( cc == NULL ) res = 0 ;
-	else res = (int) ( cc - ch1 ) + 1 ;
-	if( (size_t) res > strlen( ch ) ) res = 0 ;
-	free( ch1 ) ;
-	free( c1 ) ;
-	return res ; 
-	}
-
-int stricmp(const char *s1, const char *s2) ;
 
 #ifdef CYGTERMPORT
 void cygterm_set_flag( int flag ) ;
@@ -474,47 +421,6 @@ char * get_param_str( const char * val ) {
 	return NULL ;
 	}
 	
-#include <sys/stat.h>
-// Teste l'existance d'un fichier
-int existfile( const char * filename ) {
-	struct _stat statBuf ;
-	
-	if( filename == NULL ) return 0 ;
-	if( strlen(filename)==0 ) return 0 ;
-	if( _stat( filename, &statBuf ) == -1 ) return 0 ;
-	
-	if( ( statBuf.st_mode & _S_IFMT ) == _S_IFREG ) { return 1 ; }
-	else { return 0 ; }
-	}
-	
-// Teste l'existance d'un repertoire
-int existdirectory( const char * filename ) {
-	struct _stat statBuf ;
-	
-	if( filename == NULL ) return 0 ;
-	if( strlen(filename)==0 ) return 0 ;
-	if( _stat( filename, &statBuf ) == -1 ) return 0 ;
-	
-	if( ( statBuf.st_mode & _S_IFMT ) == _S_IFDIR ) { return 1 ; }
-	else { return 0 ; }
-	}
-
-/* Donne la taille d'un fichier */
-long filesize( const char * filename ) {
-	FILE * fp ;
-	long length ;
-
-	if( filename == NULL ) return 0 ;
-	if( strlen( filename ) <= 0 ) return 0 ;
-	
-	if( ( fp = fopen( filename, "r" ) ) == 0 ) return 0 ;
-	
-	fseek( fp, 0L, SEEK_END ) ;
-	length = ftell( fp ) ;
-	
-	fclose( fp ) ;
-	return length ;
-	}
 
 #ifdef ZMODEMPORT
 void xyz_updateMenuItems(Terminal *term)
@@ -530,6 +436,8 @@ void xyz_updateMenuItems(Terminal *term)
 char * kitty_current_dir() { 
 	static char cdir[1024]; 
 
+return NULL ;  /* Ce code est très spécifique et ne marche pas partout */
+	
 	char * dir = strstr(term->osc_string, ":") ; 
 	if(dir) { 
 		if( strlen(dir) > 1 ) {
@@ -548,61 +456,9 @@ char * kitty_current_dir() {
 		}
 	return NULL; 
 	} 
-	
-// Centre un dialog au milieu de la fenetre parent
-void CenterDlgInParent(HWND hDlg)
-{
 
-  RECT rcDlg;
-  HWND hParent;
-  RECT rcParent;
-  MONITORINFO mi;
-  HMONITOR hMonitor;
-
-  int xMin, yMin, xMax, yMax, x, y;
-
-  GetWindowRect(hDlg,&rcDlg);
-
-  hParent = GetParent(hDlg);
-  GetWindowRect(hParent,&rcParent);
-
-  hMonitor = MonitorFromRect(&rcParent,MONITOR_DEFAULTTONEAREST);
-  mi.cbSize = sizeof(mi);
-  GetMonitorInfo(hMonitor,&mi);
-
-  xMin = mi.rcWork.left;
-  yMin = mi.rcWork.top;
-
-  xMax = (mi.rcWork.right) - (rcDlg.right - rcDlg.left);
-  yMax = (mi.rcWork.bottom) - (rcDlg.bottom - rcDlg.top);
-
-  if ((rcParent.right - rcParent.left) - (rcDlg.right - rcDlg.left) > 20)
-    x = rcParent.left + (((rcParent.right - rcParent.left) - (rcDlg.right - rcDlg.left)) / 2);
-  else
-    x = rcParent.left + 70;
-
-  if ((rcParent.bottom - rcParent.top) - (rcDlg.bottom - rcDlg.top) > 20)
-    y = rcParent.top  + (((rcParent.bottom - rcParent.top) - (rcDlg.bottom - rcDlg.top)) / 2);
-  else
-    y = rcParent.top + 60;
-
-  SetWindowPos(hDlg,NULL,max(xMin,min(xMax,x)),max(yMin,min(yMax,y)),0,0,SWP_NOZORDER|SWP_NOSIZE);
-}
-
+// Liste des folder	
 char **FolderList ;
-
-int AddStringList( char **list, char *str ) {
-	int i = 0 ;
-	if( str == NULL ) return 1 ;
-	while( list[i] != NULL ) {
-		if( !stricmp( str, list[i] ) ) return 1 ;
-		i++ ;
-		}
-	if( ( list[i] = (char*) malloc( strlen( str ) + 1 ) ) == NULL ) return 0 ;
-	strcpy( list[i], str ) ;
-	list[i+1] = NULL ;
-	return 1 ;
-	}
 
 int readINI( const char * filename, const char * section, const char * key, char * pStr) ;
 int writeINI( const char * filename, const char * section, const char * key, char * pStr) ;
@@ -614,7 +470,7 @@ void InitFolderList( void ) {
 	int i ;
 	FolderList=(char**)malloc( 1024*sizeof(char*) );
 	FolderList[0] = NULL ;
-	AddStringList( FolderList, "Default" ) ;
+	StringList_Add( FolderList, "Default" ) ;
 	//if( GetValueData(HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), "Folders", fList) == NULL ) return ;
 	//if( ReadParameter( "KiTTY", "Folders", fList ) == 0 ) return ;
 	ReadParameter( INIT_SECTION, "Folders", fList ) ;
@@ -627,7 +483,7 @@ void InitFolderList( void ) {
 				i++ ;
 				}
 			buffer[i] = '\0' ;
-			AddStringList( FolderList, buffer ) ;
+			StringList_Add( FolderList, buffer ) ;
 			if( pst[i] == '\0' ) pst = pst + i ;
 			else pst = pst + i + 1 ;
 			}
@@ -676,7 +532,7 @@ void InitFolderList( void ) {
 					sprintf( nValue, "%s\\%s", buffer, achKey ) ;
 					if( GetValueData(HKEY_CURRENT_USER, nValue, "Folder", fList ) != NULL ) {
 						if( strlen( fList ) > 0 ) 
-							AddStringList( FolderList, fList ) ;
+							StringList_Add( FolderList, fList ) ;
 						//free( fList ) ; fList = NULL ;
 						}
 			
@@ -694,7 +550,7 @@ void InitFolderList( void ) {
 			if( strcmp(de->d_name, ".")&&strcmp(de->d_name, "..") ) {
 				unmungestr( de->d_name, fList, 1024 ) ;
 				GetSessionFolderName( fList, buffer ) ;
-				if( strlen(buffer)>0 ) AddStringList( FolderList, buffer ) ;
+				if( strlen(buffer)>0 ) StringList_Add( FolderList, buffer ) ;
 				}
 			closedir( dir ) ;
 			}
@@ -703,7 +559,7 @@ void InitFolderList( void ) {
 	if( readINI( KittyIniFile, "Folder", "new", buffer ) ) {
 		if( strlen( buffer ) > 0 ) {
 			for( i=0; i<strlen(buffer); i++ ) if( buffer[i]==',' ) buffer[i]='\0' ;
-			AddStringList( FolderList, buffer ) ;
+			StringList_Add( FolderList, buffer ) ;
 			}
 		delINI( KittyIniFile, "Folder", "new" ) ;
 		}
@@ -894,54 +750,6 @@ void SaveFolderList( void ) {
 		WriteParameter( INIT_SECTION, "Folders", buffer ) ;
 	}
 
-// Supprime un folder de la liste
-void DelFolderFromList( char * name ) {
-	int i = 0 ;
-	while( FolderList[i] != NULL ) {
-		if( strlen( FolderList[i] ) > 0 )
-			if( !strcmp( FolderList[i], name ) ) {
-				strcpy( FolderList[i], "" ) ;
-				}
-		i++;
-		}
-	SaveFolderList() ;
-	}
-	
-// Test si un folder existe
-int IsFolderExist( const char * name ) {
-	int i = 0 ;
-	while( FolderList[i] != NULL ) {
-		if( strlen( FolderList[i] ) > 0 )
-			if( !strcmp( FolderList[i], name ) ) return 1 ;
-		i++ ;
-		}
-	return 0 ;
-	}
-	
-// Reorganise l'ordre des folders en montant le folder selectionné d'un cran
-void UpFolderInList( char * name ) {
-	char *buffer ;
-	int i = 0 ;
-	while( FolderList[i] != NULL ) {
-		if( !strcmp( FolderList[i], name ) ) {
-			if( i > 0 ) {
-				buffer=(char*)malloc( strlen(FolderList[i-1])+1 ) ;
-				strcpy( buffer, FolderList[i-1] ) ;
-				free( FolderList[i-1] ) ; FolderList[i-1] = NULL ;
-				FolderList[i-1]=(char*)malloc( strlen(FolderList[i])+1 ) ;
-				strcpy( FolderList[i-1], FolderList[i] ) ;
-				free( FolderList[i] ) ;
-				FolderList[i] = (char*) malloc( strlen( buffer ) +1 ) ;
-				strcpy( FolderList[i], buffer );
-				free( buffer );
-				}
-			return ;
-			}
-		i++ ;
-		}
-	}
-
-
 // Sauvegarde une clé de registre dans un fichier
 void QueryKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out ) { 
 	HKEY hKey ;
@@ -1073,7 +881,7 @@ void QueryKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out ) {
 	RegCloseKey( hKey ) ;
 }
 
-// Renome une Clé de registre
+// Renomme une Clé de registre
 void RegRenameTree( HWND hdlg, HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) { // hdlg boite d'information
 	if( RegTestKey( hMainKey, lpDestKey ) ) {
 		if( hdlg != NULL ) InfoBoxSetText( hdlg, "Cleaning backup registry" ) ;
@@ -1105,36 +913,12 @@ return ;
 		}
 	}
 
-// Modifie la transparence
-void SetTransparency( HWND hwnd, int value ) {
-#ifndef NO_TRANSPARENCY
-	SetLayeredWindowAttributes( hwnd, 0, value, LWA_ALPHA ) ;
-#endif
-	}
-
-// Numéro de version de l'OS
-void GetOSInfo( char * version ) {
-	OSVERSIONINFO osvi;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	GetVersionEx(&osvi);
-	sprintf( version, "%ld.%ld %ld %ld %s %dx%d", osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber, osvi.dwPlatformId, osvi.szCSDVersion, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) ) ;
-	}
-/*
-Operating system 	Version number
-Windows Server 2008 	6.0
-Windows Vista 	6.0
-Windows Server 2003 R2 	5.2
-Windows Server 2003 	5.2
-Windows XP 	5.1
-Windows 2000 	5.0
-*/
 
 int license_make_with_first( char * license, int length, int modulo, int result ) ;
 void license_form( char * license, char sep, int size ) ;
 int license_test( char * license, char sep, int modulo, int result ) ;
 
-// Augmente le compteur d'utilisation
+// Augmente le compteur d'utilisation dans la base de registre
 void CountUp( void ) {
 	char buffer[1024] = "0", *pst ;
 	long int n ;
@@ -1198,7 +982,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, "ConfigBox", "filter", "yes" ) ;
 
 #if (defined IMAGEPORT) && (!defined FDJ)
-			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "yes" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "no" ) ;
 #endif
 
 			writeINI( KittyIniFile, INIT_SECTION, "capslock", "no" ) ;
@@ -1285,8 +1069,8 @@ int ReadParameter( const char * key, const char * name, char * value ) {
 	char buffer[1024] ;
 	strcpy( buffer, "" ) ;
 
-	if( !readINI( KittyIniFile, key, name, buffer ) ) {
-		if( GetValueData( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), name, buffer ) == NULL ) {
+	if( GetValueData( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), name, buffer ) == NULL ) {
+		if( !readINI( KittyIniFile, key, name, buffer ) ) {
 			strcpy( buffer, "" ) ;
 			}
 		}
@@ -1353,16 +1137,6 @@ void SaveRegistryKey( void ) {
 	}
 
 void routine_SaveRegistryKey( void * st ) { SaveRegistryKey() ; }
-
-void DelDoubleBackSlash( char * st ) {
-	int i=0,j ;
-	while( st[i] != '\0' ) {
-		if( (st[i] == '\\' )&&(st[i+1]=='\\' ) ) {
-			for( j=i+1 ; j<strlen( st ) ; j++ ) st[j]=st[j+1] ;
-			}
-		else i++ ;
-		}
-	}
 
 // Charge la cle de registre
 void LoadRegistryKey( HWND hdlg ) { // hdlg est la boîte de dialogue d'information de l'avancement (si null pas d'info)
@@ -1755,76 +1529,6 @@ void SetNewIcon( HWND hwnd, Config cfg, const int mode ) {
 	}
 	}
 
-int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
-	char * szTitle = Title ;
-	char szFilter[256] ; strcpy( szFilter, Filter ) ;
-	// on remplace les caractères '|' par des caractères NULL.
-	int i = 0;
-	while(i < sizeof(szFilter) && szFilter[i] != '\0')
-	{
-		if(szFilter[i] == '|')
-			szFilter[i] = '\0';
-
-		i++;
-	}
-
-	// boîte de dialogue de demande d'ouverture de fichier
-	//char szFileName[_MAX_PATH + 1] = "";
-	char * szFileName = filename ;
-	szFileName[0] = '\0' ;
-	OPENFILENAME ofn	= {0};
-	ofn.lStructSize		= sizeof(OPENFILENAME);
-	ofn.hwndOwner		= hFrame;
-	ofn.lpstrFilter		= szFilter;
-	ofn.nFilterIndex	= 1;
-	ofn.lpstrFile		= szFileName;
-	//ofn.nMaxFile		= sizeof(szFileName);
-	ofn.nMaxFile		= 4096 ;
-	ofn.lpstrTitle		= szTitle;
-	ofn.Flags		= OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST 
-				| OFN_HIDEREADONLY | OFN_LONGNAMES
-				| OFN_ALLOWMULTISELECT
-				| OFN_EXPLORER
-				;
-
-	// si aucun nom de fichier n'a été sélectionné, on abandonne
-	if(!GetOpenFileName(&ofn)) { return 0 ; }
-	else { return 1 ; }
-	}
-
-#include <shlobj.h>
-int OpenDirName( HWND hFrame, char * dirname ) {
-	BROWSEINFO bi ;
-	ITEMIDLIST *il ;
-	LPITEMIDLIST ol = NULL ;
-	char Buffer[4096],Result[4096]="" ;
-	dirname[0]='\0' ;
-
-	strcpy( Buffer, getenv("ProgramFiles") ) ;
-	
-	//SHGetSpecialFolderLocation( hFrame, CSIDL_MYDOCUMENTS, &ol );
-	
-	memset(&bi,0,sizeof(BROWSEINFO));
-	bi.hwndOwner = hFrame ;
-	//bi.pidlRoot=NULL ; //
-	bi.pidlRoot=ol ;
-	bi.pszDisplayName=&Buffer[0];
-	bi.lpszTitle="Select a folder...";
-	bi.ulFlags=0;
-	bi.lpfn=NULL;
-	if ((il=SHBrowseForFolder(&bi))!=NULL) {
-		SHGetPathFromIDList(il,&Result[0]) ;
-		//ILFree( il ) ; ILFree( ol ) ;
-		GlobalFree(il);GlobalFree(ol);
-		if( strlen( Result ) == 0 ) return 0 ;
-		strcpy( dirname, Result ) ;
-		return 1 ;
-		}
-	//ILFree( ol ) ;
-	GlobalFree(ol);
-	return 0 ;
-	}
-
 // Envoi d'un fichier de script local
 void RunScriptFile( HWND hwnd, const char * filename ) {
 	long len = 0 ; size_t lread ;
@@ -1874,7 +1578,7 @@ void OpenAndSendScriptFile( HWND hwnd ) {
 		RunScriptFile( hwnd, filename ) ;
 		}
 	}
-
+	
 // Envoi d'un fichier par SCP vers la racine du compte
 int SearchPSCP( void ) ;
 static int nb_pscp_run = 0 ;
@@ -2185,19 +1889,6 @@ void GetFile( HWND hwnd ) {
 		}
 	}
 	
-#include "regex.h"
-int strgrep( const char * pattern, const char * str ) {
-	int return_code = 1 ;
-	regex_t preg ;
-
-	if( (return_code = regcomp (&preg, pattern, REG_NOSUB | REG_EXTENDED ) ) == 0 ) {
-		return_code = regexec( &preg, str, 0, NULL, 0 ) ;
-		regfree( &preg ) ;
-		}
-
-	return return_code ;
-	}
-
 // Grep
 #ifdef URLPORT
 const char* urlhack_default_regex = "(^|[ ]|((https?|ftp):\\/\\/))(([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)|localhost|([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\.(com|net|org|info|biz|gov|name|edu|[a-zA-Z][a-zA-Z]))(:[0-9]+)?((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?";
@@ -2870,7 +2561,12 @@ void routine_inputbox_password( void * phwnd ) {
 	GetAndSendLinePassword( MainHwnd ) ;
 	}
 
-	
+// Demarre le timer d'autocommand à la connexion
+void CreateTimerInit( void ) {
+	SetTimer(MainHwnd, TIMER_INIT, (int)(init_delay*1000), NULL) ; 
+	}
+
+// Positionne le repertoire ou se trouve la configuration 
 void SetConfigDirectory( const char * Directory ) {
 	char *buf ;
 	if( ConfigDirectory != NULL ) { free( ConfigDirectory ) ; ConfigDirectory = NULL ; }
@@ -2914,7 +2610,6 @@ void GetInitialDirectory( char * InitialDirectory ) {
 	
 void GotoInitialDirectory( void ) { chdir( InitialDirectory ) ; }
 void GotoConfigDirectory( void ) { if( ConfigDirectory!=NULL ) chdir( ConfigDirectory ) ; }
-char * GetConfigDirectory( void ) { return ConfigDirectory ; }
 
 #define NB_MENU_MAX 1024
 #include <stdio.h>
@@ -3141,132 +2836,6 @@ int WindowsCount( HWND hwnd ) {
 	return NbWindows ;
 	}
 
-// Envoi vers l'imprimante
-int PrintText( const char * Text ) {
-	int return_code = 0 ; 
-	PRINTDLG	pd;
-	DOCINFO		di;
-	int i, TextLen = 0, Index1 = 0, Index2 = 2, Exit = 0 ;
-	char*		LinePrint = NULL ;
-	char*		szMessage = NULL ;
-
-	if( Text == NULL ) return 1 ;
-	if( strlen( Text ) == 0 ) return 1 ;
-
-	memset (&pd, 0, sizeof(PRINTDLG));
-	memset (&di, 0, sizeof(DOCINFO));
-
-	di.cbSize = sizeof(DOCINFO);
-	di.lpszDocName = "Test";
-
-	pd.lStructSize = sizeof(PRINTDLG);
-	pd.Flags = PD_PAGENUMS | PD_RETURNDC;
-	pd.nFromPage = 1;
-	pd.nToPage = 1;
-	pd.nMinPage = 1;
-	pd.nMaxPage = 1;
-	szMessage = 0;
-
-	if( PrintDlg( &pd ) ) {
-		if( pd.hDC ) {
-			if (StartDoc (pd.hDC, &di) != SP_ERROR)	{
-				TextLen = strlen( Text ) ;
-				if( TextLen > 0 ) {
-					LinePrint = (char*) malloc( TextLen + 2 ) ;
-					Index1 = 0 ; Index2 = 2 ; Exit = 0 ;
-					for( i = 0 ; i < TextLen ; i++ ) {
-						if( Text[i]=='\r' ) i++;
-                    				LinePrint[Index1] = Text[i] ;
-                    				if( Text[i] == '\n' ) {
-                      					Index2++ ;
-							LinePrint[Index1] = '\0' ;
-                      					TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint) ) ;
-							Index1 = 0 ;
-                    					}
-						else if( Index1>=PrintMaxCharPerLine ) {
-							Index2++ ;
-							LinePrint[Index1+1] = '\0' ;
-                      					TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint) ) ;
-							Index1 = 0 ;
-							}
-                    				else { Index1++ ; }
-                    				if( Index2 >= PrintMaxLinePerPage ) {
-                  	   				EndPage( pd.hDC ) ;
-                       					//EndDoc(pd.hDC) ;
-                       					//StartDoc(pd.hDC, &di) ;
-							StartPage( pd.hDC ) ;
-                       					Index2 = 2 ;
-                       					}
-                  				}
-                  			Index2++ ; 
-                  			LinePrint[Index1] = '\0'; // Impression de la dernière page
-                  			TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint)) ;
-               	  			EndPage(pd.hDC) ;
-                  			EndDoc(pd.hDC) ;
-                  			szMessage = "Print successful";
-					free( LinePrint ) ;
-              				}
-              			else { return_code = 1 ;  /* Chaine vide */ }
-				}
-			else { // Problème StartDoc
-				szMessage = "ERROR Type 1" ;
-				return_code = 2 ;
-				}
-			}
-		else { // Probleme pd.hDC
-			szMessage = "ERROR Type 2." ;
-			return_code = 3 ;
-			}
-		}
-	else { // Problème PrintDlg
-		//szMessage = "Impression annulé par l'utilisateur" ;
-		return_code = 4 ;
-		}
-	if (szMessage) { MessageBox (NULL, szMessage, "Print report", MB_OK) ; }
-	
-	return return_code ;
-	}
-
-// Impression du texte dans le bloc-notes
-void ManagePrint( HWND hwnd ) {
-	char *pst = NULL ;
-	if( OpenClipboard(NULL) ) {
-		HGLOBAL hglb ;
-		
-		if( (hglb = GetClipboardData( CF_TEXT ) ) != NULL ) {
-			if( ( pst = GlobalLock( hglb ) ) != NULL ) {
-				PrintText( pst ) ;
-				GlobalUnlock( hglb ) ;
-				}
-			}
-
-		CloseClipboard();
-		}
-	}
-
-// Met un texte dans le press-papier
-int SetTextToClipboard( const char * buf ) {
-	HGLOBAL hglbCopy ;
-	LPTSTR lptstrCopy ;
-	
-	if( !IsClipboardFormatAvailable(CF_TEXT) ) return 0 ;
-	if( !OpenClipboard(NULL) ) return 0 ;
-	
-	EmptyClipboard() ; 
-	if( (hglbCopy= GlobalAlloc(GMEM_MOVEABLE, (strlen(buf)+1) * sizeof(TCHAR)) ) == NULL )
-		{ CloseClipboard() ; return 0 ;	}
-
-	lptstrCopy = GlobalLock( hglbCopy ) ; 
-	memcpy( lptstrCopy, buf, (strlen(buf)+1) * sizeof(TCHAR) ) ;
-	GlobalUnlock( hglbCopy ) ; 
-		
-	if( SetClipboardData(CF_TEXT, hglbCopy) == NULL ) 
-		{ CloseClipboard() ; return 0 ; }
-
-	CloseClipboard() ;
-	return 1 ;
-	}
-	
 // Mettre la liste des port forward dans le presse-papier et l'afficher à l'écran
 int ShowPortfwd( HWND hwnd ) {
 	char pf[2048], *p ;
@@ -3314,7 +2883,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 	else if( strstr( st, "/loadinitscript " ) == st ) { ReadInitScript( st+16 ) ; return 1 ; }
 	else if( !strcmp( st, "/loadreg" ) ) { chdir( InitialDirectory ) ; LoadRegistryKey(NULL) ; return 1 ; }
 	else if( !strcmp( st, "/delreg" ) ) { RegDelTree (HKEY_CURRENT_USER, TEXT(PUTTY_REG_PARENT)) ; return 1 ; }
-	else if( strstr( st, "/delfolder " ) == st ) { DelFolderFromList( st+11 ) ; return 1 ; }
+	else if( strstr( st, "/delfolder " ) == st ) { StringList_Del( FolderList, st+11 ) ; return 1 ; }
 	else if( !strcmp( st, "/noshortcuts" ) ) { ShortcutsFlag = 0 ; return 1 ; }
 	else if( !strcmp( st, "/icon" ) ) { 
 		//sprintf( buffer, "%d / %d = %d", IconeNum, NB_ICONES, NumberOfIcons );
@@ -3429,63 +2998,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 	return 0 ;
 	}
 
-// Execute une commande	
-void RunCommand( HWND hwnd, char * cmd ) {
-	PROCESS_INFORMATION ProcessInformation ;
-	ZeroMemory( &ProcessInformation, sizeof(ProcessInformation) );
-	
-	STARTUPINFO StartUpInfo ;
-	ZeroMemory( &StartUpInfo, sizeof(StartUpInfo) );
-	StartUpInfo.cb=sizeof(STARTUPINFO);
-	StartUpInfo.lpReserved=0;
-	StartUpInfo.lpDesktop=0;
-	StartUpInfo.lpTitle=0;
-	StartUpInfo.dwX=0;
-	StartUpInfo.dwY=0;
-	StartUpInfo.dwXSize=0;
-	StartUpInfo.dwYSize=0;
-	StartUpInfo.dwXCountChars=0;
-	StartUpInfo.dwYCountChars=0;
-	StartUpInfo.dwFillAttribute=0;
-	StartUpInfo.dwFlags=0;
-	StartUpInfo.wShowWindow=0;
-	StartUpInfo.cbReserved2=0;
-	StartUpInfo.lpReserved2=0;
-	StartUpInfo.hStdInput=0;
-	StartUpInfo.hStdOutput=0;
-	StartUpInfo.hStdError=0;
-//MessageBox(hwnd,cmd,"Info",MB_OK);
 
-	if( !CreateProcess(NULL,(CHAR*)cmd,NULL,NULL,FALSE,NORMAL_PRIORITY_CLASS,NULL,NULL,&StartUpInfo,&ProcessInformation) ) {
-		ShellExecute(hwnd, "open", cmd,0, 0, SW_SHOWDEFAULT);
-		}
-	else { WaitForInputIdle(ProcessInformation.hProcess, INFINITE ); }
-	}
-
-// Positionne l'environnement
-int putenv (const char *string);
-int set_env( char * name, char * value ) {
-	int res = 0 ;
-	char * buffer = NULL ;
-	if( (buffer = (char*) malloc( strlen(name)+strlen(value)+2 ) ) == NULL ) return -1 ;
-	sprintf( buffer,"%s=%s", name, value ) ; 
-	res = putenv( (const char *) buffer ) ;
-	free( buffer ) ;
-	return res ;
-	}
-int add_env( char * name, char * value ) {
-	int res = 0 ;
-	char * npst = getenv( name ), * vpst = NULL ;
-	if( npst==NULL ) { res = set_env( name, value ) ; }
-	else {
-		vpst = (char*) malloc( strlen(npst)+strlen(value)+20 ) ; 
-		sprintf( vpst, "%s=%s;%s", name, npst, value ) ;
-		res = set_env( name, vpst ) ;
-		free( vpst ) ;
-		}
-	return res ;
-	}
-	
 // Recherche le chemin vers le programme cthelper.exe
 int SearchCtHelper( void ) {
 	char buffer[1024] ;
@@ -3675,7 +3188,7 @@ int SearchPSCP( void ) {
 	}
 	
 // Gestion du drap and drop
-void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop,   char* listeResult){
+void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop, char* listeResult){
         HDROP hDropInfo=*leDrop;
         int nb,taille,i;
         taille=0;
@@ -3716,16 +3229,8 @@ void OnDropFiles(HWND hwnd, HDROP hDropInfo) {
 	//MessageBox(NULL,listeFicSrces,"Liste :",MB_OK|MB_ICONINFORMATION);
 	}
 
-void RunPuttyEd( HWND hwnd ) {
-	char buffer[1024]="", shortname[1024]="" ;
-	if( GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) 
-		if( GetShortPathName( buffer, shortname, 1023 ) ) {
-			strcat( shortname, " -ed" );
-			RunCommand( hwnd, shortname ) ; 
-			}
-	}
-
 // Appel d'une DLL
+/*
 typedef int (CALLBACK* LPFNDLLFUNC1)(int,char**); 
 int calldll( HWND hwnd, char * filename, char * functionname ) {
 	int return_code = 0 ;
@@ -3769,6 +3274,7 @@ int calldll( HWND hwnd, char * filename, char * functionname ) {
 	
 	return return_code ;
 	}
+*/
 
 // Gestion du script au lancement
 void ManageInitScript( const char * input_str, const int len ) {
@@ -4281,7 +3787,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		return 1 ;
 		}
 
-	if( shift_flag && control_flag ) {		
+	if( ( IniFileFlag != SAVEMODE_DIR ) && shift_flag && control_flag ) {		
 		if( ( key_num >= 'A' ) && ( key_num <= 'Z' ) ) // Raccourci commandes spéciales (SpecialMenu)
 			{ SendMessage( hwnd, WM_COMMAND, IDM_USERCMD+key_num-'A', 0 ) ; return 1 ; }
 		}
@@ -4294,7 +3800,8 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		{ RenewPassword( &cfg ) ; 
 			//SendAutoCommand( hwnd, cfg.autocommand ) ; 
 			SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
-		logevent(NULL,"Sent automatic command");
+			logevent(NULL,"Send automatic command");
+			
 			return 1 ; }
 	if( key == shortcuts_tab.print ) 	// Impression presse papier
 		{ SendMessage( hwnd, WM_COMMAND, IDM_PRINT, 0 ) ; return 1 ; }
@@ -4370,6 +3877,7 @@ void SetPasteCommand( void ) {
 #if (defined IMAGEPORT) && (!defined FDJ)
 void SetShrinkBitmapEnable(int) ;
 #endif
+
 void LoadParameters( void ) {
 	char buffer[256] ;
 	if( ReadParameter( INIT_SECTION, "configdir", buffer ) ) { 
@@ -4474,7 +3982,7 @@ void LoadParameters( void ) {
 		PrintMaxCharPerLine = atoi( buffer ) ;
 		}
 	if( readINI( KittyIniFile, "Folder", "del", buffer ) ) {
-		DelFolderFromList( buffer ) ;
+		StringList_Del( FolderList, buffer ) ;
 		delINI( KittyIniFile, "Folder", "del" ) ;
 		}
 
@@ -4595,7 +4103,6 @@ void InitWinMain( void ) {
 	appname = KiTTYClassName ;
 #endif
 
-
 	// Initialiste le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;
 	
@@ -4689,3 +4196,12 @@ void bzero (void *s, size_t n){ memset (s, 0, n); }
 void bcopy (const void *src, void *dest, size_t n){ memcpy (dest, src, n); }
 int bcmp (const void *s1, const void *s2, size_t n){ return memcmp (s1, s2, n); }
 */
+
+
+	
+//`colours'
+int return_offset_height(void) { return offset_height ; }
+int return_offset_width(void) { return offset_width ; }
+int return_font_height(void) { return font_height ; }
+int return_font_width(void) { return font_width ; }
+COLORREF return_colours258(void) { return colours[258]; }

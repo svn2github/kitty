@@ -10,194 +10,28 @@
 #include "int64.h"
 
 #ifdef PERSOPORT
-#ifndef SAVEMODE_REG
-#define SAVEMODE_REG 0
-#endif
-#ifndef SAVEMODE_FILE
-#define SAVEMODE_FILE 1
-#endif
-#ifndef SAVEMODE_DIR
-#define SAVEMODE_DIR 2
-#endif
 
 // Flag pour le fonctionnement en mode "portable" (gestion par fichiers)
-#ifdef PORTABLE
-static int IniFileFlag = SAVEMODE_DIR ;
-#else
-static int IniFileFlag = SAVEMODE_REG ;
-#endif
+int IniFileFlag = 0 ;
+
 // Flag permettant la gestion de l'arborscence (dossier=folder) dans le cas d'un savemode=dir
-#ifdef PORTABLE
-static int DirectoryBrowseFlag = 1 ;
-#else
-static int DirectoryBrowseFlag = 0 ;
-#endif
+int DirectoryBrowseFlag = 0 ;
 
 #include "../../kitty_crypt.c"
-
-char * ConfigDirectory = NULL ;
-char * GetConfigDirectory( void ) { return ConfigDirectory ; }
-
-int stricmp(const char *s1, const char *s2) ;
-int readINI( const char * filename, const char * section, const char * key, char * pStr) ;
+#include "../../kitty_commun.h"
 
 int get_param( const char * val ) {
 	if( !stricmp( val, "INIFILE" ) ) return IniFileFlag ;
 	else if( !stricmp( val, "DIRECTORYBROWSE" ) ) return DirectoryBrowseFlag ;
 	return 0 ;
 	}
-	
+
 void SetPasswordInConfig( char * password ) {
 	int len ;
 	if( password!=NULL ) {
 		len = strlen( password ) ;
 		if( len > 126 ) len = 126 ;
-		//memcpy( cfg.password, password, len+1 ) ;
-		//cfg.password[len] = '\0' ;
 		}
-	}
-
-// Nettoie les noms de folder en remplaçant les "/" par des "\" et les " \ " par des " \"
-void CleanFolderName( char * folder ) {
-	int i, j ;
-	if( folder == NULL ) return ;
-	if( strlen( folder ) == 0 ) return ;
-	for( i=0 ; i<strlen(folder) ; i++ ) if( folder[i]=='/' ) folder[i]='\\' ;
-	for( i=0 ; i<(strlen(folder)-1) ; i++ ) 
-		if( folder[i]=='\\' ) 
-			while( folder[i+1]==' ' ) for( j=i+1 ; j<strlen(folder) ; j++ ) folder[j]=folder[j+1] ;
-	for( i=(strlen(folder)-1) ; i>0 ; i-- )
-		if( folder[i]=='\\' )
-			while( folder[i-1]==' ' ) {
-				for( j=i-1 ; j<strlen(folder) ; j++ ) folder[j]=folder[j+1] ;
-				i-- ;
-				}
-	}
-
-#include <sys/types.h>
-#include <dirent.h>
-#define MAX_VALUE_NAME 16383
-// Supprime une arborescence
-void DelDir( const char * directory ) {
-	DIR * dir ;
-	struct dirent * de ;
-	char fullpath[MAX_VALUE_NAME] ;
-
-	if( (dir=opendir(directory)) != NULL ) {
-		while( (de=readdir( dir ) ) != NULL ) 
-		if( strcmp(de->d_name,".") && strcmp(de->d_name,"..") ) {
-			sprintf( fullpath, "%s\\%s", directory, de->d_name ) ;
-			if( GetFileAttributes( fullpath ) & FILE_ATTRIBUTE_DIRECTORY ) { DelDir( fullpath ) ; }
-			else if( !(GetFileAttributes( fullpath ) & FILE_ATTRIBUTE_DIRECTORY) ) { unlink( fullpath ) ; }
-			}
-		closedir( dir ) ;
-		_rmdir( directory ) ;
-		}
-	}
-
-// Detruit une clé de registre et ses sous-clé
-BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) {
-    TCHAR lpEnd[MAX_PATH];
-    LONG lResult;
-    DWORD dwSize;
-    TCHAR szName[MAX_PATH];
-    HKEY hKey;
-    FILETIME ftWrite;
-
-    // First, see if we can delete the key without having
-    // to recurse.
-    lResult = RegDeleteKey(hKeyRoot, lpSubKey);
-    if (lResult == ERROR_SUCCESS) return TRUE;
-
-    lResult = RegOpenKeyEx (hKeyRoot, lpSubKey, 0, KEY_READ, &hKey) ;
-
-    if (lResult != ERROR_SUCCESS) {
-        if (lResult == ERROR_FILE_NOT_FOUND) { printf("Key not found.\n"); return TRUE; } 
-        else {printf("Error opening key.\n");return FALSE;}
-    	}
-
-    // Enumerate the keys
-    dwSize = MAX_PATH;
-    lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL, NULL, NULL, &ftWrite) ;
-
-    if (lResult == ERROR_SUCCESS) 
-    {
-        do {
-            //StringCchCopy (lpEnd, MAX_PATH*2, szName);
-            sprintf(lpEnd, "%s\\%s", lpSubKey, szName);
-
-            //if( !RegDelTree( hKeyRoot, lpSubKey ) ) { break ; }
-            if( !RegDelTree( hKeyRoot, lpEnd ) ) { break ; }
-            dwSize = MAX_PATH;
-            lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL, NULL, NULL, &ftWrite) ;
-        } while ( lResult == ERROR_SUCCESS ) ;
-    }
-
-	RegCloseKey(hKey) ;
-
-	// Try again to delete the key.
-	lResult = RegDeleteKey(hKeyRoot, lpSubKey);
-
-	if (lResult == ERROR_SUCCESS) return TRUE;
-	return FALSE;
-	}
-
-/* test if we are in portable mode by looking for putty.ini or kitty.ini in running directory */
-int IsPortableMode( void ) {
-	FILE * fp = NULL ;
-	int ret = 0 ;
-	char buffer[256] ;
-		
-	if( (fp = fopen( "putty.ini", "r" )) != NULL ) {
-		fclose(fp ) ;
-		if( readINI( "putty.ini", "PuTTY", "savemode", buffer ) ) {
-			while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')
-				||(buffer[strlen(buffer)-1]==' ')
-				||(buffer[strlen(buffer)-1]=='\t') ) buffer[strlen(buffer)-1]='\0';
-			if( !stricmp( buffer, "registry" ) ) IniFileFlag = SAVEMODE_REG ;
-			else if( !stricmp( buffer, "file" ) ) IniFileFlag = SAVEMODE_FILE ;
-			else if( !stricmp( buffer, "dir" ) ) { IniFileFlag = SAVEMODE_DIR ; DirectoryBrowseFlag = 1 ; ret = 1 ; }
-			}
-		if(  IniFileFlag == SAVEMODE_DIR ) {
-			if( readINI( "putty.ini", "PuTTY", "browsedirectory", buffer ) ) {
-				if( !stricmp( buffer, "NO" )&&(IniFileFlag==SAVEMODE_DIR) ) DirectoryBrowseFlag = 0 ; 
-				else DirectoryBrowseFlag = 1 ;
-				}
-			if( readINI( "putty.ini", "PuTTY", "configdir", buffer ) ) { 
-				if( strlen( buffer ) > 0 ) { 
-					ConfigDirectory = (char*)malloc( strlen(buffer) + 1 ) ;
-					strcpy( ConfigDirectory, buffer ) ;
-					}
-				}
-			}
-		else  DirectoryBrowseFlag = 0 ;
-		}
-	else if( (fp = fopen( "kitty.ini", "r" )) != NULL ) {
-		fclose(fp ) ;
-		if( readINI( "kitty.ini", "KiTTY", "savemode", buffer ) ) {
-			while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')
-				||(buffer[strlen(buffer)-1]==' ')
-				||(buffer[strlen(buffer)-1]=='\t') ) buffer[strlen(buffer)-1]='\0';
-			if( !stricmp( buffer, "registry" ) ) IniFileFlag = SAVEMODE_REG ;
-			else if( !stricmp( buffer, "file" ) ) IniFileFlag = SAVEMODE_FILE ;
-			else if( !stricmp( buffer, "dir" ) ) { IniFileFlag = SAVEMODE_DIR ; ret = 1 ; }
-			}
-		if(  IniFileFlag == SAVEMODE_DIR ) {
-			if( readINI( "kitty.ini", "KiTTY", "browsedirectory", buffer ) ) { 
-				if( !stricmp( buffer, "NO" )&&(IniFileFlag==SAVEMODE_DIR) ) DirectoryBrowseFlag = 0 ; 
-				else DirectoryBrowseFlag = 1 ;
-				}
-			if( readINI( "kitty.ini", "KiTTY", "configdir", buffer ) ) { 
-				if( strlen( buffer ) > 0 ) { 
-					ConfigDirectory = (char*)malloc( strlen(buffer) + 1 ) ;
-					strcpy( ConfigDirectory, buffer ) ;
-					}
-				}
-			}
-		else  DirectoryBrowseFlag = 0 ;
-		}
-	else { printf( "No ini file\n" ) ; }
-	return ret ;
 	}
 #endif
 

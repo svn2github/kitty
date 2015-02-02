@@ -31,6 +31,11 @@ char sshver[] = "PuTTY-KiTTY\0                        " ;
 
 void set_sshver( const char * vers ) { strcpy( sshver, vers ) ; }
 
+#elif defined PRERELEASE
+
+char ver[] = "Pre-release " STR(PRERELEASE) ":r" STR(SVN_REV);
+char sshver[] = "PuTTY-Prerelease-" STR(PRERELEASE) ":r" STR(SVN_REV);
+
 #elif defined SVN_REV
 
 char ver[] = "Custom build r" STR(SVN_REV) ", " __DATE__ " " __TIME__;

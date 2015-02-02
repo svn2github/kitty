@@ -161,12 +161,12 @@ static void unmungestr(const char *in, char *out, int outlen)
 	    j = in[2] - '0';
 	    j -= (j > 9 ? 7 : 0);
 
-	    *out++ = (i << 4) + j;
+	    *out++ = (i << 4) + j; *out = '\0';
 	    if (!--outlen)
 		return;
 	    in += 3;
 	} else {
-	    *out++ = *in++;
+	    *out++ = *in++; *out = '\0';
 	    if (!--outlen)
 		return;
 	}

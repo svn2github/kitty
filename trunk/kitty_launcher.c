@@ -196,6 +196,8 @@ void RefreshMenuLauncher( void ) {
 	}
 	
 // Nettoie les noms de folder en remplaçant les "/" par des "\" et les " \ " par des " \"
+// Deplace dans kitty_commun.c
+/*
 void CleanFolderName( char * folder ) {
 	int i, j ;
 	if( folder == NULL ) return ;
@@ -211,8 +213,10 @@ void CleanFolderName( char * folder ) {
 				i-- ;
 				}
 	}
+*/
 
-// Supprime une arborescence
+// Supprime une arborescence   ==> deplace dans kitty_commun.c
+/*
 void DelDir( const char * directory ) {
 	DIR * dir ;
 	struct dirent * de ;
@@ -229,6 +233,7 @@ void DelDir( const char * directory ) {
 		_rmdir( directory ) ;
 		}
 	}
+*/
 
 // Creer un repertoire recurssif (rep1 / rep2 / ...)
 void MakeDir( const char * directory ) {

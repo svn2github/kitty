@@ -1,6 +1,18 @@
 static char SaveKeyPressed[4096] = "" ;
 void WriteCountUpAndPath(void) ;
 
+
+// Buffer contenant du texte a ecrire au besoin dans le fichier kitty.dmp
+static char * DebugText = NULL ;
+
+void set_debug_text( const char * txt ) {
+	if( DebugText!=NULL ) { free( DebugText ) ; DebugText = NULL ; }
+	if( txt != NULL ) {
+		DebugText = (char*) malloc( strlen(txt)+1 ) ;
+		strcpy( DebugText, txt ) ;
+		}
+	}
+
 void addkeypressed( UINT message, WPARAM wParam, LPARAM lParam, int shift_flag, int control_flag, int alt_flag, int altgr_flag, int win_flag ) {
 	char buffer[256], c=' ' ;
 	int p ;

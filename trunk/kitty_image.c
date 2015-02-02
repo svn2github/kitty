@@ -3,37 +3,55 @@
 #ifdef NO
 #include <windows.h>
 #include "putty.h"
+#include "terminal.h"
 
 extern Config cfg;
-extern int offset_width, offset_height ;
-extern int font_width, font_height ;
-extern COLORREF colours[NALLCOLOURS] ;
+//extern int offset_width, offset_height ;
+//extern int font_width, font_height ;
+
+#ifndef NCFGCOLOURS
+#define NCFGCOLOURS 22
+#endif
+#ifndef NEXTCOLOURS
+#define NEXTCOLOURS 240
+#endif
+#ifndef NALLCOLOURS
+#define NALLCOLOURS (NCFGCOLOURS + NEXTCOLOURS)
+#endif
+
+//extern COLORREF colours[NALLCOLOURS] ;
 extern HWND MainHwnd ;
-extern int BackgroundImageFlag ;
-extern int PuttyFlag ;
 
 int stricmp(const char *s1, const char *s2) ;
 int GetSessionField( const char * session_in, const char * folder_in, const char * field, char * result ) ;
+int get_param( const char * val ) ;
+
+int return_offset_height(void) ;
+int return_offset_width(void) ;
+int return_font_height(void) ;
+int return_font_width(void) ;
+COLORREF return_colours258(void) ;
+
 #endif
 
-static void init_dc_blend(void);
 static BOOL (WINAPI * pAlphaBlend)(HDC,int,int,int,int,HDC,int,int,int,int,BLENDFUNCTION) = 0 ;
 
 //static HWND hwnd;
+#include "kitty_image.h"
 
-static HDC textdc;
-static HBITMAP textbm;
-static COLORREF colorinpixel;
-static HDC colorinpixeldc;
-static HBITMAP colorinpixelbm;
-static HDC backgrounddc;
-static HBITMAP backgroundbm;
-static HDC backgroundblenddc;
-static HBITMAP backgroundblendbm;
-static BOOL bBgRelToTerm;
+ HDC textdc;
+ HBITMAP textbm;
+ COLORREF colorinpixel;
+ HDC colorinpixeldc;
+ HBITMAP colorinpixelbm;
+ HDC backgrounddc;
+ HBITMAP backgroundbm;
+ HDC backgroundblenddc;
+ HBITMAP backgroundblendbm;
+ BOOL bBgRelToTerm;
 
-static int resizing;
-static RECT size_before;
+ int resizing;
+ RECT size_before;
 
 
 #define Alloc(p,t) (t *)malloc((p)*sizeof(t))
@@ -568,7 +586,7 @@ static HBITMAP CreateDIBSectionWithFileMapping(HDC dc, int width, int height, HA
     return(CreateDIBSection(dc, (BITMAPINFO *)&BMI, DIB_RGB_COLORS, 0, fmap, 0));
 }
 
-static void init_dc_blend(void) 
+void init_dc_blend(void) 
 {
     //HMODULE * msimg32_dll = LoadLibrary("msimg32.dll");
     HMODULE msimg32_dll = LoadLibrary("msimg32.dll");
@@ -591,7 +609,7 @@ static void init_dc_blend(void)
     }
 }
 
-static void color_blend(
+void color_blend(
     HDC destDc, int x, int y, int width, int height, 
     COLORREF alphacolor, int opacity)
 {
@@ -840,7 +858,9 @@ BOOL load_bg_bmp()
     // background color instead of this.  Probably just pass this as a parameter
     // to load_wallpaper_bmp so it can override this default while it's
     // accessing the registry anyway.
-    COLORREF backgroundcolor = colours[258]; // Default Background
+	
+    //COLORREF backgroundcolor = colours[258]; // Default Background
+    COLORREF backgroundcolor = return_colours258() ;
     COLORREF alphacolor = backgroundcolor;
 
     // Start off assuming this is true.
@@ -1046,7 +1066,109 @@ BOOL load_bg_bmp()
     return TRUE;
 }
 
-static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG paint_right, LONG paint_bottom) 
+void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG paint_right, LONG paint_bottom) 
+{
+    if(backgrounddc == 0)
+        load_bg_bmp();
+
+    if(backgrounddc)
+    {
+        LONG topLeftX = paint_left;
+        LONG topLeftY = paint_top;
+        LONG width = (paint_right - paint_left);
+        LONG height = (paint_bottom - paint_top);
+        HDC srcdc = backgroundblenddc;
+        POINT srcTopLeft;
+        RECT size_now;
+        srcTopLeft.x = topLeftX;
+        srcTopLeft.y = topLeftY;
+		
+        if(!bBgRelToTerm)
+            ClientToScreen(hwnd, &srcTopLeft);
+
+        if(!srcdc)
+            srcdc = backgrounddc;
+
+	if(resizing)
+	{
+	    GetClientRect(hwnd, &size_now);
+	    if(size_now.bottom > size_before.bottom || size_now.right > size_before.right)
+	    {
+	    	// Draw on full area on resize.
+	        BitBlt(hdc, topLeftX, topLeftY, width, height, srcdc, srcTopLeft.x, srcTopLeft.y, SRCCOPY);
+	        
+	        return;
+            }
+	}
+//debug_log("1: %d %d %d %d\n",size_before.top,size_before.bottom,size_before.left,size_before.right) ;
+//debug_log("2: %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %d\n",topLeftX,topLeftY,width,height,srcTopLeft.x,srcTopLeft.y,size_now.top,size_now.bottom,size_now.left,size_now.right,resizing) ;
+	
+        // Draw top edge
+        BitBlt(
+            hdc, topLeftX, topLeftY, width, return_offset_height(),
+            srcdc, srcTopLeft.x, srcTopLeft.y, SRCCOPY
+        );
+        // Draw left edge
+        BitBlt(
+            hdc, topLeftX, topLeftY+1, return_offset_width(), height-2,
+            srcdc, srcTopLeft.x, srcTopLeft.y+1, SRCCOPY
+        );
+        // Draw right edge (extra width for clean resizing)
+        BitBlt(
+            hdc, topLeftX+width-1, topLeftY+1, return_offset_width(), height-2,
+            srcdc, srcTopLeft.x+width-1, srcTopLeft.y+1, SRCCOPY
+        );
+        // Draw bottom edge (extra height for clean resizing)
+        BitBlt(
+            hdc, topLeftX, topLeftY+height-1, width, return_offset_height(),
+            srcdc, srcTopLeft.x, srcTopLeft.y+height-1, SRCCOPY
+        );
+    }
+    else
+    {
+        HBRUSH bgbrush, oldbrush;
+        HPEN edge, oldpen;
+        //COLORREF backgroundcolor = colours[258];
+	COLORREF backgroundcolor = return_colours258() ;
+        
+        bgbrush = CreateSolidBrush(backgroundcolor);
+        edge = CreatePen(PS_SOLID, 0, backgroundcolor);
+        
+        oldbrush = SelectObject(hdc, bgbrush);
+        oldpen = SelectObject(hdc, edge);
+
+        /*
+         * Jordan Russell reports that this apparently
+         * ineffectual IntersectClipRect() call masks a
+         * Windows NT/2K bug causing strange display
+         * problems when the PuTTY window is taller than
+         * the primary monitor. It seems harmless enough...
+         */
+        IntersectClipRect(hdc,
+        	paint_left, paint_top,
+        	paint_right, paint_bottom);
+	
+        ExcludeClipRect(hdc, 
+        	return_offset_width(), return_offset_height(),
+        	return_offset_width()+return_font_width()*(term->cols),
+        	return_offset_height()+return_font_height()*(term->rows));
+
+//debug_log("3: %d %d %d %d %d %d %d\n",resizing,paint_left, paint_top, paint_right, paint_bottom,offset_width,offset_height ) ;
+//debug_log("4: %d %d %d %d\n",size_before.top,size_before.bottom,size_before.left,size_before.right) ;
+//debug_log("5: %d %d %d %d %d %d\n",paint_top,paint_bottom,paint_left,paint_right,term->cols,term->rows);
+
+        Rectangle(hdc, paint_left, paint_top,
+            paint_right, paint_bottom);
+
+        SelectObject(hdc, oldpen);
+        DeleteObject(edge);
+        SelectObject(hdc, oldbrush);
+        DeleteObject(bgbrush);
+    }
+}
+
+/*
+void original_paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG paint_right, LONG paint_bottom) 
 {
     if(backgrounddc == 0)
         load_bg_bmp();
@@ -1116,21 +1238,21 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
         oldbrush = SelectObject(hdc, bgbrush);
         oldpen = SelectObject(hdc, edge);
 
-        /*
-         * Jordan Russell reports that this apparently
-         * ineffectual IntersectClipRect() call masks a
-         * Windows NT/2K bug causing strange display
-         * problems when the PuTTY window is taller than
-         * the primary monitor. It seems harmless enough...
-         */
+        //
+        // * Jordan Russell reports that this apparently
+        // * ineffectual IntersectClipRect() call masks a
+        // * Windows NT/2K bug causing strange display
+        // * problems when the PuTTY window is taller than
+        // * the primary monitor. It seems harmless enough...
+	
         IntersectClipRect(hdc,
         	paint_left, paint_top,
         	paint_right, paint_bottom);
 	
         ExcludeClipRect(hdc, 
         	offset_width, offset_height,
-        	offset_width+font_width*term->cols,
-        	offset_height+font_height*term->rows);
+        	offset_width+font_width*(term->cols),
+        	offset_height+font_height*(term->rows));
 
 //debug_log("3: %d %d %d %d %d %d %d\n",resizing,paint_left, paint_top, paint_right, paint_bottom,offset_width,offset_height ) ;
 //debug_log("4: %d %d %d %d\n",size_before.top,size_before.bottom,size_before.left,size_before.right) ;
@@ -1145,8 +1267,7 @@ static void paint_term_edges(HDC hdc, LONG paint_left, LONG paint_top, LONG pain
         DeleteObject(bgbrush);
     }
 }
-
-
+*/
 
 void clean_bg(void) {
 	DeleteDC(textdc);textdc=NULL;
@@ -1161,9 +1282,36 @@ void clean_bg(void) {
 	}
 
 void RedrawBackground( HWND hwnd ) {
-	if( (BackgroundImageFlag)&&(!PuttyFlag)&&(cfg.bg_type != 0) ) {
+	if( (get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(cfg.bg_type != 0) ) {
 		clean_bg() ;
 		load_bg_bmp() ;
 		}
 	InvalidateRect(hwnd, NULL, TRUE) ;
 	}
+
+
+#ifdef STARTBUTTON
+/*
+ * Patch permettant de gérer le probleme de chargement de l'image de fond arrive avec putty 0.61
+ */
+void BackgroundImagePatch( int num ) {
+	int key=0x47 ;  
+
+	if( num == 1 ) { // Double-clic sur une session, on fait ALT-G + Down + ALT-O
+		key = 0x47 ; /* VK_G 71 */
+		keybd_event(VK_LMENU , 0, 0, 0) ;
+		keybd_event( key, 0, 0, 0); 
+		keybd_event( key, 0, KEYEVENTF_KEYUP, 0) ;
+		keybd_event(VK_LMENU, 0, KEYEVENTF_KEYUP, 0) ;
+	
+		keybd_event(VK_DOWN, 0, 0, 0) ;
+		keybd_event(VK_DOWN, 0, KEYEVENTF_KEYUP, 0) ;
+
+		key=0x4F ;  /* VK_O */
+		keybd_event(VK_LMENU , 0, 0, 0) ;
+		keybd_event( key, 0, 0, 0); 
+		keybd_event( key, 0, KEYEVENTF_KEYUP, 0) ;
+		keybd_event(VK_LMENU, 0, KEYEVENTF_KEYUP, 0) ;
+		}
+	}
+#endif
