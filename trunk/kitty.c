@@ -86,7 +86,7 @@ static int PasteCommandFlag = 0 ;
 
 // Flag de gestion de la fonction hyperlink
 #ifdef HYPERLINKPORT
-static int HyperlinkFlag = 0 ;
+static int HyperlinkFlag = 1 ;
 #else
 static int HyperlinkFlag = 0 ;
 #endif
@@ -205,6 +205,15 @@ static int PuttyFlag = 0 ;
 static int BackgroundImageFlag = 0 ;
 #else
 static int BackgroundImageFlag = 0 ;
+#endif
+
+// Flag pour afficher l'image de fond vi la patch IV
+#ifdef IVPORT
+#ifndef FDJ
+static int BackgroundImageIVFlag = 1 ;
+#else
+static int BackgroundImageIVFlag = 0 ;
+#endif
 #endif
 
 // Flag pour inhiber les fonctions ZMODEM
@@ -384,7 +393,7 @@ int InternalCommand( HWND hwnd, char * st ) ;
 #include "kitty_registry.h"
 
 // Procedure de debug
-void debug_log( const char *fmt, ...) {
+void debug_log( const char *fmt, ... ) {
 	char filename[4096]="" ;
 	va_list ap;
 	FILE *fp ;
@@ -404,24 +413,110 @@ void debug_log( const char *fmt, ...) {
 	}
 
 // Procedure d'affichage d'un message
-void debug_msg( const char * msg ) {
-	MessageBox( NULL, msg, "Info", MB_OK ) ;
+void debug_msg( const char *fmt, ... ) {
+	char buffer[4096]="" ;
+	va_list ap;
+	va_start( ap, fmt ) ;
+	vsprintf( buffer, fmt, ap ) ;
+	MessageBox( NULL, buffer, "Debug", MB_OK ) ;
+	va_end( ap ) ;
+	}
+	
+// Affiche un message avec l'usage memoire
+#include <psapi.h>
+void debug_mem( const char *fmt, ... ) {
+	char buffer[4096]="" ;
+	va_list ap;
+	va_start( ap, fmt ) ;
+	vsprintf( buffer, fmt, ap ) ; strcat(buffer," ");
+	
+/*	HANDLE hProcess;
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+
+	hProcess = OpenProcess(  PROCESS_QUERY_INFORMATION |
+                                    PROCESS_VM_READ,
+                                    FALSE, GetCurrentProcessId() );
+	if (NULL == hProcess)
+		return;
+
+	if ( GetProcessMemoryInfo( hProcess, &pmc, sizeof(pmc)) ) {
+		sprintf( buffer+strlen(buffer), "%ld %ld", pmc.WorkingSetSize, pmc.PrivateUsage );
+		}
+	CloseHandle( hProcess );
+*/
+	
+/*
+	
+http://stackoverflow.com/questions/548819/how-to-determine-a-process-virtual-size-winxp	
+According to MSDN: Memory Performance Information PROCESS_MEMORY_COUNTERS_EX.PrivateUsage is the same as VM Size in Task Manager in Windows XP. GetProcessMemoryInfo should work:
+PROCESS_MEMORY_COUNTERS_EX pmcx = {};
+pmcx.cb = sizeof(pmcx);
+GetProcessMemoryInfo(GetCurrentProcess(),
+    reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmcx), pmcx.cb);
+Now pmcx.PrivateUsage holds the VM Size of the process.
+
+http://msdn.microsoft.com/en-us/library/ms683219%28VS.85%29.aspx
+http://msdn.microsoft.com/en-us/library/ms682050%28v=vs.85%29.aspx
+
+void PrintMemoryInfo( DWORD processID )
+{
+    HANDLE hProcess;
+    PROCESS_MEMORY_COUNTERS pmc;
+
+    // Print the process identifier.
+
+    printf( "\nProcess ID: %u\n", processID );
+
+    // Print information about the memory usage of the process.
+
+    hProcess = OpenProcess(  PROCESS_QUERY_INFORMATION |
+                                    PROCESS_VM_READ,
+                                    FALSE, processID );
+    if (NULL == hProcess)
+        return;
+
+    if ( GetProcessMemoryInfo( hProcess, &pmc, sizeof(pmc)) )
+    {
+        printf( "\tPageFaultCount: 0x%08X\n", pmc.PageFaultCount );
+        printf( "\tPeakWorkingSetSize: 0x%08X\n", 
+                  pmc.PeakWorkingSetSize );
+        printf( "\tWorkingSetSize: 0x%08X\n", pmc.WorkingSetSize );
+        printf( "\tQuotaPeakPagedPoolUsage: 0x%08X\n", 
+                  pmc.QuotaPeakPagedPoolUsage );
+        printf( "\tQuotaPagedPoolUsage: 0x%08X\n", 
+                  pmc.QuotaPagedPoolUsage );
+        printf( "\tQuotaPeakNonPagedPoolUsage: 0x%08X\n", 
+                  pmc.QuotaPeakNonPagedPoolUsage );
+        printf( "\tQuotaNonPagedPoolUsage: 0x%08X\n", 
+                  pmc.QuotaNonPagedPoolUsage );
+        printf( "\tPagefileUsage: 0x%08X\n", pmc.PagefileUsage ); 
+        printf( "\tPeakPagefileUsage: 0x%08X\n", 
+                  pmc.PeakPagefileUsage );
+    }
+
+    CloseHandle( hProcess );
+}	
+*/
+
+	MessageBox( NULL, buffer, "Debug", MB_OK ) ;
+	va_end( ap ) ;
 	}
 	
 // Procedure de debug socket
 static int debug_sock_fd = 0 ;
+static va_list ap;
+static char bief[1024];
 void debug_sock( const char *fmt, ...) {
+
+return ;
 	
-	return;
+	if( debug_sock_fd == -1 ) {return; }
 	
-	
-	va_list ap;
-	char buf[1024];
 	if( debug_sock_fd == 0 ) {
 		struct sockaddr_in sin ;
 		struct hostent * remote_host ;
-		if( debug_sock_fd = socket( AF_INET, SOCK_STREAM, 0 ) ) {
-			if( remote_host = gethostbyname( "localhost" ) ) {
+		if( (debug_sock_fd = socket( AF_INET, SOCK_STREAM, 0 ))>0 ) {
+			if( (remote_host = gethostbyname( "localhost" ))!=0 ) {
 				memset( &sin, 0, sizeof( sin ) ) ;
 				sin.sin_family = AF_INET ;
 				sin.sin_addr.s_addr = INADDR_ANY ;
@@ -430,16 +525,15 @@ void debug_sock( const char *fmt, ...) {
 				memset( sin.sin_zero, 0, 8 ) ;
 				if( connect( debug_sock_fd, (struct sockaddr *)&sin, sizeof( sin )) < 0 ) { debug_sock_fd=0 ; }
 				}
-			else { debug_sock_fd=0 ; }
 			}
-		
+			else { debug_sock_fd=-1 ; }
 		}
-	if( debug_sock_fd!=0 ) {
+	if( debug_sock_fd > 0 ) {
 		va_start( ap, fmt ) ;
-		memset(buf,0,1024);
-		vsprintf( buf, fmt, ap ) ;
-		buf[1024]='\0';
-		send( debug_sock_fd, (char*)buf, strlen(buf), 0 ) ;
+		bief[0]='\0';
+		vsprintf( bief, fmt, ap ) ;
+		bief[1024]='\0';
+		send( debug_sock_fd, (char*)bief, strlen(bief), 0 ) ;
 		va_end( ap ) ;
 		}
 	}
@@ -465,8 +559,11 @@ int get_param( const char * val ) {
 #ifdef ZMODEMPORT
 	else if( !stricmp( val, "ZMODEM" ) ) return ZModemFlag ;
 #endif
-#if (defined IMAGEPORT) && (!defined FDJ)
+#ifdef IMAGEPORT
 	else if( !stricmp( val, "BACKGROUNDIMAGE" ) ) return BackgroundImageFlag ;
+#endif
+#ifdef IVPORT
+	else if( !stricmp( val, "BACKGROUNDIMAGEIV" ) ) return BackgroundImageIVFlag ;
 #endif
 #ifdef CYGTERMPORT
 	else if( !stricmp( val, "CYGTERM" ) ) return cygterm_get_flag() ;
@@ -1071,7 +1168,9 @@ void CreateDefaultIniFile( void ) {
 #if (defined IMAGEPORT) && (!defined FDJ)
 			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "no" ) ;
 #endif
-
+#ifdef IVPORT
+			writeINI( KittyIniFile, INIT_SECTION, "backgroundimageiv", "no" ) ;
+#endif
 			writeINI( KittyIniFile, INIT_SECTION, "capslock", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "conf", "yes" ) ;
 #ifndef FDJ
@@ -2170,7 +2269,7 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		}
 	else if( (cmd[0]=='i')&&(cmd[1]=='e')&&(cmd[2]==':') ) { // __ie: Lance un navigateur sur le lien
 		if( strlen(cmd+3)>0 ) {
-			urlhack_launch_url(!conf_get_int(conf,CONF_url_defbrowser)?conf_get_filename(conf,CONF_url_browser)->path:NULL, cmd+3, 1);
+			urlhack_launch_url(!conf_get_int(conf,CONF_url_defbrowser)?conf_get_filename(conf,CONF_url_browser)->path:NULL, (const wchar_t *)(cmd+3));
 			return 1;
 			}
 		}
@@ -3083,6 +3182,9 @@ int InternalCommand( HWND hwnd, char * st ) {
 	else if( !strcmp( st, "/copytokitty" ) ) 
 		{ RegCopyTree( HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY", PUTTY_REG_POS ) ; return 1 ; }
 	else if( !strcmp( st, "/backgroundimage" ) ) { BackgroundImageFlag = abs( BackgroundImageFlag - 1 ) ; return 1 ; }
+#ifdef IVPORT
+	else if( !strcmp( st, "/backgroundimageiv" ) ) { BackgroundImageIVFlag = abs( BackgroundImageIVFlag - 1 ) ; return 1 ; }
+#endif
 	else if( !strcmp( st, "/debug" ) ) { debug_flag = abs( debug_flag - 1 ) ; return 1 ; }
 #ifdef HYPERLINKPORT
 	else if( !strcmp( st, "/hyperlink" ) ) { HyperlinkFlag = abs( HyperlinkFlag - 1 ) ; return 1 ; }
@@ -3674,7 +3776,7 @@ void ReadInitScript( const char * filename ) {
 		if( buffer!=NULL ) { free(buffer); buffer=NULL; }
 		}
 	else {
-		if( buffer=(char*)malloc(strlen(name)+1) ){
+		if( (buffer=(char*)malloc(strlen(name)+1))!=NULL ){
 			strcpy( buffer, name ) ;
 			l = decryptstring( buffer, MASTER_PASSWORD ) ;
 			if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
@@ -3979,6 +4081,8 @@ int DefineShortcuts( char * buf ) {
 	else if( strstr( pst, "{NUMPAD9}" )==pst ) { key = key + VK_NUMPAD9 ; pst += 9 ; }
 	else if( strstr( pst, "{DECIMAL}" )==pst ) { key = key + VK_DECIMAL ; pst += 9 ; }
 	else if( strstr( pst, "{BREAK}" )==pst ) { key = key + VK_CANCEL ; pst += 7 ; }
+	else if( strstr( pst, "{NUMLOCK}" )==pst ) { key = key + VK_NUMLOCK ; pst += 9 ; }
+	else if( strstr( pst, "{SCROLL}" )==pst ) { key = key + VK_SCROLL ; pst += 8 ; }
 	
 	else if( pst[0] == '{' ) {key = 0 ; }
 	else { key = key + toupper(pst[0]) ; }
@@ -4233,9 +4337,17 @@ void LoadParameters( void ) {
 		autocommand_delay = (int)(1000*atof( buffer )) ;
 		if(autocommand_delay<5) autocommand_delay = 5 ; 
 		}
+#if (defined IVPORT) && (!defined FDJ)
+	if( ReadParameter( INIT_SECTION, "backgroundimageiv", buffer ) ) { 
+		if( !stricmp( buffer, "NO" ) ) BackgroundImageIVFlag = 0 ; 
+		if( !stricmp( buffer, "YES" ) ) BackgroundImageIVFlag = 1 ;
+		}
+#endif
 #if (defined IMAGEPORT) && (!defined FDJ)
-	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { if( !stricmp( buffer, "NO" ) ) BackgroundImageFlag = 0 ; }
-	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { if( !stricmp( buffer, "YES" ) ) BackgroundImageFlag = 1 ; }
+	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { 
+		if( !stricmp( buffer, "NO" ) ) BackgroundImageFlag = 0 ; 
+		if( !stricmp( buffer, "YES" ) ) BackgroundImageFlag = 1 ;
+		}
 #endif
 	if( ReadParameter( INIT_SECTION, "autostoresshkey", buffer ) ) { if( !stricmp( buffer, "YES" ) ) AutoStoreSSHKeyFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "bcdelay", buffer ) ) { between_char_delay = atoi( buffer ) ; }
@@ -4292,8 +4404,10 @@ void LoadParameters( void ) {
 			}
 		}
 #ifdef HYPERLINKPORT
-	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  if( !stricmp( buffer, "NO" ) ) HyperlinkFlag = 0 ; }
-	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  if( !stricmp( buffer, "YES" ) ) HyperlinkFlag = 1 ; }
+	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  
+		if( !stricmp( buffer, "NO" ) ) HyperlinkFlag = 0 ; 
+		if( !stricmp( buffer, "YES" ) ) HyperlinkFlag = 1 ;
+		}
 #endif
 #ifndef NO_TRANSPARENCY
 	if( ReadParameter( INIT_SECTION, "transparency", buffer ) ) {
@@ -4349,6 +4463,7 @@ void LoadParameters( void ) {
 //		C:\Users\Cyril\AppData\Roaming sur Vista
 //
 // En mode base de registre on cherche le fichier de configuration
+// - dans la variable d'environnement KITTY_INI_FILE
 // - kitty.ini dans le repertoire de lancement de kitty.exe s'il existe
 // - sinon putty.ini dans le repertoire de lancement de kitty.exe s'il existe
 // - sinon kitty.ini dans le repertoire %APPDATA%/KiTTY s'il existe
@@ -4361,23 +4476,26 @@ void InitNameConfigFile( void ) {
 	char buffer[4096] ;
 	if( KittyIniFile != NULL ) free( KittyIniFile ) ; KittyIniFile=NULL ;
 
-	sprintf( buffer, "%s\\%s", InitialDirectory, DEFAULT_INIT_FILE ) ;
+	if( getenv("KITTY_INI_FILE") != NULL ) { strcpy( buffer, getenv("KITTY_INI_FILE") ) ; }
+	if( !existfile( buffer ) ) {
+		sprintf( buffer, "%s\\%s", InitialDirectory, DEFAULT_INIT_FILE ) ;
 #ifdef PORTABLE
-	if( !existfile( buffer ) ) {
-		sprintf( buffer, "%s\\putty.ini", InitialDirectory ) ;
 		if( !existfile( buffer ) ) {
-			sprintf( buffer, "%s\\%s", InitialDirectory, DEFAULT_INIT_FILE ) ;
-#else
-	if( !existfile( buffer ) ) {
-		sprintf( buffer, "%s\\putty.ini", InitialDirectory ) ;
-		if( !existfile( buffer ) ) {
-			sprintf( buffer, "%s\\%s\\%s", getenv("APPDATA"), INIT_SECTION, DEFAULT_INIT_FILE ) ;
+			sprintf( buffer, "%s\\putty.ini", InitialDirectory ) ;
 			if( !existfile( buffer ) ) {
-				sprintf( buffer, "%s\\%s", getenv("APPDATA"), INIT_SECTION ) ;
-				CreateDirectory( buffer, NULL ) ;
+				sprintf( buffer, "%s\\%s", InitialDirectory, DEFAULT_INIT_FILE ) ;
+#else
+		if( !existfile( buffer ) ) {
+			sprintf( buffer, "%s\\putty.ini", InitialDirectory ) ;
+			if( !existfile( buffer ) ) {
 				sprintf( buffer, "%s\\%s\\%s", getenv("APPDATA"), INIT_SECTION, DEFAULT_INIT_FILE ) ;
-				}
+				if( !existfile( buffer ) ) {
+					sprintf( buffer, "%s\\%s", getenv("APPDATA"), INIT_SECTION ) ;
+					CreateDirectory( buffer, NULL ) ;
+					sprintf( buffer, "%s\\%s\\%s", getenv("APPDATA"), INIT_SECTION, DEFAULT_INIT_FILE ) ;
+					}
 #endif
+				}
 			}
 		}
 
@@ -4491,6 +4609,15 @@ void InitWinMain( void ) {
 	// Initialisation des parametres a partir du fichier kitty.ini
 	LoadParameters() ;
 
+	// Ajoute les répertoires InitialDirectory et ConfigDirectory au PATH
+#ifdef CYGTERMPORT
+	appendPath(InitialDirectory);    // Initialise dans la fonction GetInitialDirectory
+	if( strcmp(InitialDirectory,ConfigDirectory) ) {
+	appendPath(ConfigDirectory);	 // Initialise dans LoadParameters
+	}
+	if( getenv("KITTY_PATH")!=NULL ) { appendPath(getenv("KITTY_PATH")); }
+#endif
+	
 	// Initialisation des shortcuts
 	InitShortcuts() ;
 
@@ -4574,7 +4701,7 @@ void InitWinMain( void ) {
 	GetUserName( username, (void*)&i ) ;
 	i = 4095 ;
 	GetComputerName( hostname, (void*)&i ) ;
-	sprintf( buffer, "Starting from %s@%s", username, hostname ) ;
+	sprintf( buffer, "Starting %ld from %s@%s", GetCurrentProcessId(), username, hostname ) ;
 	logevent(NULL,buffer);
 	}
 

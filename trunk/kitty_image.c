@@ -1,5 +1,5 @@
 
-// Essai de compilation sÃƒÂ©parÃƒÂ©e
+// Essai de compilation s�par�
 #ifdef FDJ
 #undef IMAGEPORT
 #endif
@@ -15,7 +15,7 @@ extern Conf *conf ;// extern Config cfg;
 //extern int font_width, font_height ;
 
 #ifndef NCFGCOLOURS
-#define NCFGCOLOURS 22
+#define NCFGCOLOURS 24
 #endif
 #ifndef NEXTCOLOURS
 #define NEXTCOLOURS 240
@@ -566,7 +566,8 @@ static BOOL load_file_jpeg(HBITMAP* rawImage, int* style, int* x, int* y) {
 
 	
     if(  ( fp=fopen( conf_get_filename( conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path, "rb" ) ) == NULL ) return FALSE ;
-   
+    
+    if( *rawImage!=NULL ) { DeleteObject( *rawImage ) ; *rawImage=NULL ; }
 *rawImage = loadJPEGimage(fp, &LimageBitmap,&LsizeX, &LsizeY) ;
 if( rawImage == NULL ) res =FALSE ;    
      fclose( fp ) ;
@@ -824,6 +825,8 @@ void CreateBlankBitmap( HBITMAP * rawImage, const int width, const int height ) 
 	bi.bmiHeader.biClrUsed= 0;
 	bi.bmiHeader.biClrImportant= 0;
 	VOID *pvBits;
+	
+	if( *rawImage!=NULL ) { DeleteObject( *rawImage ) ; *rawImage=NULL ; }
 	*rawImage = CreateDIBSection( dc,&bi,DIB_RGB_COLORS,&pvBits,NULL,0 );
 	ReleaseDC(NULL, dc) ;
 
@@ -994,7 +997,7 @@ BOOL load_bg_bmp()
             x = (deskWidth - rawImageInfo.bmWidth) / 2;
             y = (deskHeight - rawImageInfo.bmHeight) / 2;
 
-        case 3: {  // Place at given (X,Y)
+        case 3: {  // Absolute Place at given (X,Y)
             // Start out with a background color fill.
             fill_dc(backgrounddc, deskWidth, deskHeight, backgroundcolor);
 
@@ -1292,12 +1295,13 @@ void clean_bg(void) {
 
 void RedrawBackground( HWND hwnd ) {
 	if(
-	     0 && // On inhibe cette fonction a cause du probleme de fuite memoire due a l'image de fond !!!  , mais probleme de rafraichissement ?
+		0 && // On inhibe cette fonction a cause du probleme de fuite memoire due a l'image de fond !!!  , mais probleme de rafraichissement ?
 		(get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(conf_get_int(conf,CONF_bg_type)/*cfg.bg_type*/ != 0) ) 
 			{
 			clean_bg() ;
-			load_bg_bmp() ;
+			load_bg_bmp();
 			}
+	RedrawWindow(hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
 	InvalidateRect(hwnd, NULL, TRUE) ;
 	}
 

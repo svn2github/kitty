@@ -2386,10 +2386,10 @@ void setup_config_box(struct controlbox *b, int midsession,
      * stuff on one page otherwise).
      */
     str = dupprintf("Configure the background of %s's window", appname);
-    ctrl_settitle(b, "Window/Background", str);
+    ctrl_settitle(b, "Window/Back.&Image", str);
     sfree(str);
 
-    s = ctrl_getset(b, "Window/Background", "bg_style",
+    s = ctrl_getset(b, "Window/Back.&Image", "bg_style",
             "Background settings");
     ctrl_radiobuttons(s, "Background Style:", NO_SHORTCUT, 3,
               HELPCTX(no_help),
@@ -2400,7 +2400,7 @@ void setup_config_box(struct controlbox *b, int midsession,
               "Image", NO_SHORTCUT, I(2),
               NULL);
 
-    s = ctrl_getset(b, "Window/Background", "bg_wp_img_settings",
+    s = ctrl_getset(b, "Window/Back.&Image", "bg_wp_img_settings",
             "Desktop and image settings");
     ctrl_editbox(s, "Opacity:", NO_SHORTCUT, 20,
 		 HELPCTX(no_help),
@@ -2411,7 +2411,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 		 conf_editbox_handler, // dlg_stdeditbox_handler,
 		 I(CONF_bg_slideshow), I(-1) ) ; //I(offsetof(Config,bg_slideshow)), I(-1));
 
-    s = ctrl_getset(b, "Window/Background", "bg_img_settings",
+    s = ctrl_getset(b, "Window/Back.&Image", "bg_img_settings",
             "Image settings");
     ctrl_filesel(s, "Image file:", NO_SHORTCUT,
 		     FILTER_IMAGE_FILES, FALSE, "Select background image file",
@@ -2448,8 +2448,25 @@ void setup_config_box(struct controlbox *b, int midsession,
       }
 #endif 
 #ifdef PERSOPORT
+        static char transTitle[256]="Window/Tranparency" ;
+        if( !get_param("PUTTY") ) {
+#ifdef IVPORT
+		if( get_param("TRANSPARENCY") && get_param("BACKGROUNDIMAGEIV") ) {
+			strcpy( transTitle, "Window/Back.&Trans" );
+			ctrl_settitle(b, transTitle, "Options controlling transparency and background");
+		}
+		else if( get_param("BACKGROUNDIMAGEIV") ) {
+			strcpy( transTitle, "Window/Background" );
+			ctrl_settitle(b, transTitle, "Options controlling background");
+			}
+		else 
+#endif
+			if( get_param("TRANSPARENCY") ) ctrl_settitle(b, transTitle, "Options controlling transparency");
+
+	}
+
 	if( !get_param("PUTTY") && get_param("TRANSPARENCY") ) {
-    s = ctrl_getset(b, "Window/Background", "bg_transparency",
+    s = ctrl_getset(b, transTitle, "bg_transparency",
             "Transparency setting");
     ctrl_editbox(s, "Transparency:", NO_SHORTCUT, 20,
 		 HELPCTX(no_help),

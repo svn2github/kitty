@@ -65,6 +65,12 @@ extern int DirectoryBrowseFlag ;
 #define IDM_HELP     0x0040
 #define IDM_ABOUT    0x0050
 
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+#define IDM_ADDCERT  0x0070
+#endif /* USE_CAPI */
+#endif
+
 #define APPNAME "Pageant"
 
 extern char ver[];
@@ -512,8 +518,27 @@ static void add_keyfile(Filename *filename)
 	    keylist = get_keylist1(&keylistlen);
 	} else {
 	    unsigned char *blob2;
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+		if(0 == strncmp("cert://", filename->path, 7)) {
+			blob = ssh2_userkey_loadpub(filename, NULL, &bloblen,
+						&comment, &error);
+			if(blob) {
+				filename->path=dupstr(comment);
+				//memset(filename->path, 0, FILENAME_MAX);
+				//strncpy(filename->path, comment, FILENAME_MAX - 1);
+				free(comment);
+			}
+		} else {
+#endif /* USE_CAPI */
+#endif
 	    blob = ssh2_userkey_loadpub(filename, NULL, &bloblen,
 					NULL, &error);
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+		}
+#endif /* USE_CAPI */
+#endif
 	    if (!blob) {
 		char *msg = dupprintf("Couldn't load private key (%s)", error);
 		message_box(msg, APPNAME, MB_OK | MB_ICONERROR,
@@ -1535,6 +1560,76 @@ static int cmpkeys_ssh2_asymm(void *av, void *bv)
     return c;
 }
 
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+/*
+ * Add a key from a Windows certificate
+ */
+static void prompt_add_capikey(void)
+{
+	char buf[MAX_PATH];
+	memcpy(buf, "cert://*", 9);
+	Filename * filename= filename_from_str(buf);
+	add_keyfile(filename);
+	keylist_update();
+	filename_free(filename);
+}
+
+/*
+ * Copy key to clipboard in ssh authorized_keys format
+ */
+static void key_to_clipboard2(struct ssh2_userkey *key)
+{
+    unsigned char *pub_blob;
+    char *buffer, *p, *psz;
+    int pub_len, i;
+	HGLOBAL hClipBuffer;
+
+	pub_blob = key->alg->public_blob(key->data, &pub_len);
+    buffer = snewn(strlen(key->alg->name) + 4 * ((pub_len + 2) / 3) + strlen(key->comment) + 3, char);
+    strcpy(buffer, key->alg->name);
+    p = buffer + strlen(buffer);
+    *p++ = ' ';
+    i = 0;
+    while (i < pub_len) {
+		int n = (pub_len - i < 3 ? pub_len - i : 3);
+		base64_encode_atom(pub_blob + i, n, p);
+		i += n;
+		p += 4;
+    }
+    *p++ = ' ';
+    strcpy(p, key->comment);
+	if(OpenClipboard(NULL)) {
+		hClipBuffer = GlobalAlloc(GMEM_MOVEABLE, strlen(buffer) + 1);
+		if(hClipBuffer) {
+			psz = (char *)GlobalLock(hClipBuffer);
+			strcpy(psz, buffer);
+			GlobalUnlock(hClipBuffer);
+			EmptyClipboard();
+			SetClipboardData(CF_TEXT, hClipBuffer);
+		}
+		CloseClipboard();
+	}
+    sfree(pub_blob);
+    sfree(buffer);
+}
+
+/*
+ * Copy 1'st selected key to clipboard in ssh authorized_keys format
+ */
+static void key_to_clipboard(HWND hwnd)
+{
+	int numSelected, *selectedArray;
+	if((numSelected = SendDlgItemMessage(hwnd, 100, LB_GETSELCOUNT, 0, 0)) > 0) {
+		selectedArray = snewn(numSelected, int);
+		SendDlgItemMessage(hwnd, 100, LB_GETSELITEMS, numSelected, (WPARAM)selectedArray);
+		key_to_clipboard2((struct ssh2_userkey*)index234(ssh2keys, selectedArray[0]));
+		sfree(selectedArray);
+	}
+}
+#endif /* USE_CAPI */
+#endif
+
 /*
  * Prompt for a key file to add, and add it.
  */
@@ -1637,6 +1732,15 @@ static int CALLBACK KeyListProc(HWND hwnd, UINT msg,
 	    keylist = NULL;
 	    DestroyWindow(hwnd);
 	    return 0;
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+	  case 100:		       /* key list */
+		if (HIWORD(wParam) == LBN_DBLCLK) {
+			key_to_clipboard(hwnd);
+		}
+		return 0;
+#endif /* USE_CAPI */
+#endif
 	  case 101:		       /* add key */
 	    if (HIWORD(wParam) == BN_CLICKED ||
 		HIWORD(wParam) == BN_DOUBLECLICKED) {
@@ -1953,6 +2057,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 	    prompt_add_keyfile();
 	    break;
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+	  case IDM_ADDCERT:
+	    prompt_add_capikey();
+	    break;
+#endif /* USE_CAPI */
+#endif
 	  case IDM_ABOUT:
 	    if (!aboutbox) {
 		aboutbox = CreateDialog(hinst, MAKEINTRESOURCE(213),
@@ -2158,6 +2269,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     hwnd = NULL;
 
 #ifdef PERSOPORT
+	debug_flag=0;
 	IniFileFlag = 0 ;
 	DirectoryBrowseFlag = 0 ;
 	IsPortableMode() ;
@@ -2401,6 +2513,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     AppendMenu(systray_menu, MF_ENABLED, IDM_VIEWKEYS,
 	   "&View Keys");
     AppendMenu(systray_menu, MF_ENABLED, IDM_ADDKEY, "Add &Key");
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+	AppendMenu(systray_menu, MF_ENABLED, IDM_ADDCERT, "Add &Certificate");
+#endif /* USE_CAPI */
+#endif
     AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
     if (has_help())
 	AppendMenu(systray_menu, MF_ENABLED, IDM_HELP, "&Help");

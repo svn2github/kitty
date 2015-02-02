@@ -149,6 +149,15 @@ void SaveDumpClipBoard( FILE *fp ) {
 		CloseClipboard();
 		}
 	}
+
+//#include <unistd.h>
+void SaveDumpEnvironment( FILE *fp ) {
+	int i = 0 ;
+	while( environ[i] ) {
+		fprintf( fp, "%s\n", environ[i] ) ;
+		i++;
+		}
+	}
 	
 void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	CountUp();
@@ -248,6 +257,17 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "serstopbits=%d\n",		conf_get_int(conf,CONF_serstopbits) ) ;
 	fprintf( fp, "serparity=%d\n",			conf_get_int(conf,CONF_serparity) ) ;
 	fprintf( fp, "serflow=%d\n",			conf_get_int(conf,CONF_serflow) ) ;
+#ifdef IVPORT
+	fprintf( fp, "ctrl_tab_switch=%d\n", 		conf_get_int(conf, CONF_ctrl_tab_switch));
+	/* Background */
+	fprintf( fp, "bg_wallpaper=%d\n", 		conf_get_int(conf, CONF_bg_wallpaper));
+	fprintf( fp, "bg_effect=%d\n", 			conf_get_int(conf, CONF_bg_effect));
+	fprintf( fp, "wp_file=%s\n", 			conf_get_filename(conf,CONF_wp_file)->path ) ;
+	fprintf( fp, "wp_position=%d\n", 		conf_get_int(conf, CONF_wp_position));
+	fprintf( fp, "wp_align=%d\n", 			conf_get_int(conf, CONF_wp_align));
+	fprintf( fp, "wp_valign=%d\n", 			conf_get_int(conf, CONF_wp_valign));
+	fprintf( fp, "wp_moving=%d\n", 			conf_get_int(conf, CONF_wp_moving));
+#endif
 #ifdef CYGTERMPORT
 	/* Cygterm options */
 	fprintf( fp, "cygcmd=%s\n", 			conf_get_str(conf,CONF_cygcmd) ) ;
@@ -428,8 +448,9 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	,AutoStoreSSHKeyFlag,DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
-#if (defined IMAGEPORT) && (!defined FDJ)
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
+#ifdef IVPORT
+	fprintf( fp,"BackgroundImageIVFlag=%d\n",BackgroundImageIVFlag );
 #endif
 #ifdef CYGTERMPORT
 	fprintf( fp,"CygTermFlag=%d\n",cygterm_get_flag() );
@@ -496,6 +517,9 @@ void SaveDump( void ) {
 		
 		fputs( "\n@ InitialDirectoryListing @\n\n", fpout ) ;
 		SaveDumpListFile( fpout, InitialDirectory ) ; fflush( fpout ) ;
+
+		fputs( "\n@ Environment variables @\n\n", fpout ) ;
+		SaveDumpEnvironment( fpout ) ; fflush( fpout ) ;
 		
 		fputs( "\n@ KiTTYIniFile @\n\n", fpout ) ;
 		if( ( fp = fopen( KittyIniFile, "r" ) ) != NULL ) {

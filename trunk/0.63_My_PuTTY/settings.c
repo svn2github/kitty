@@ -8,6 +8,10 @@
 #include "putty.h"
 #include "storage.h"
 
+#ifdef HYPERLINKPORT
+#include "urlhack.h"
+#endif
+
 #ifdef PERSOPORT
 extern char PassKey[1024] ;
 extern int cryptstring( char * st, const char * key ) ;
@@ -675,20 +679,48 @@ void save_open_settings(void *sesskey, Conf *conf)
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: Save hyperlink settings
 	 */
-	write_setting_i(sesskey, "HyperlinkUnderline", conf_get_int(conf, CONF_url_underline) /*cfg->url_underline*/);
-	write_setting_i(sesskey, "HyperlinkUseCtrlClick", conf_get_int(conf, CONF_url_ctrl_click) /*cfg->url_ctrl_click*/);
-	write_setting_i(sesskey, "HyperlinkBrowserUseDefault", conf_get_int(conf, CONF_url_defbrowser) /*cfg->url_defbrowser*/);
+	write_setting_i(sesskey, "HyperlinkUnderline", conf_get_int(conf, CONF_url_underline));
+	write_setting_i(sesskey, "HyperlinkUseCtrlClick", conf_get_int(conf, CONF_url_ctrl_click));
+	write_setting_i(sesskey, "HyperlinkBrowserUseDefault", conf_get_int(conf, CONF_url_defbrowser));
 	write_setting_filename(sesskey, "HyperlinkBrowser", conf_get_filename(conf, CONF_url_browser));
-	//write_setting_s(sesskey, "HyperlinkBrowser", conf_get_str(conf, CONF_url_browser) /*cfg->url_browser*/);
-	write_setting_i(sesskey, "HyperlinkRegularExpressionUseDefault", conf_get_int(conf, CONF_url_defregex) /*cfg->url_defregex*/);
+	write_setting_i(sesskey, "HyperlinkRegularExpressionUseDefault", conf_get_int(conf, CONF_url_defregex));
+	write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
+
 #ifndef NO_HYPERLINK
 	if( !strcmp(conf_get_str(conf, CONF_url_regex),"@°@°@NO REGEX--") ) 
 		write_setting_s(sesskey, "HyperlinkRegularExpression", urlhack_default_regex ) ;
 	else
-		write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex) /*cfg->url_regex*/);
+		write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
 #else
-	write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex) /*cfg->url_regex*/);
 #endif
+#endif
+#ifdef IVPORT
+    /* Background */
+    for (i = 0; i < 4; i++) {
+	static const int CONF_alphas_pc[4][2] = {
+	    CONF_alphas_pc_cursor_active,
+	    CONF_alphas_pc_cursor_inactive,
+	    CONF_alphas_pc_defauly_fg_active,
+	    CONF_alphas_pc_defauly_fg_inactive,
+	    CONF_alphas_pc_degault_bg_active,
+	    CONF_alphas_pc_degault_bg_inactive,
+	    CONF_alphas_pc_bg_active,
+	    CONF_alphas_pc_bg_inactive
+	};
+	char buf[16], buf2[16];
+	sprintf(buf, "Alpha%d", i);
+	sprintf(buf2, "%d,%d",
+		conf_get_int(conf, CONF_alphas_pc[i][0]),
+		conf_get_int(conf, CONF_alphas_pc[i][1]));
+	write_setting_s(sesskey, buf, buf2);
+    }
+    write_setting_i(sesskey, "BackgroundWallpaper", conf_get_int(conf, CONF_bg_wallpaper));
+    write_setting_i(sesskey, "BackgroundEffect", conf_get_int(conf, CONF_bg_effect));
+    write_setting_filename(sesskey, "WallpaperFile", conf_get_filename(conf, CONF_wp_file));
+    write_setting_i(sesskey, "WallpaperPosition", conf_get_int(conf, CONF_wp_position));
+    write_setting_i(sesskey, "WallpaperAlign", conf_get_int(conf, CONF_wp_align));
+    write_setting_i(sesskey, "WallpaperVerticalAlign", conf_get_int(conf, CONF_wp_valign));
+    write_setting_i(sesskey, "WallpaperMoving", conf_get_int(conf, CONF_wp_moving));
 #endif
 #ifdef CYGTERMPORT
     //if (do_host)
@@ -736,6 +768,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     memset(pst,0,strlen(pst));
     //decryptstring( pst /*cfg->password*/, PassKey ) ;
     //conf_set_str( conf, CONF_password, pst) ;
+    write_setting_i(sesskey, "CtrlTabSwitch", conf_get_int(conf, CONF_ctrl_tab_switch));
 #endif
 }
 
@@ -758,6 +791,16 @@ void load_open_settings(void *sesskey, Conf *conf)
 {
     int i;
     char *prot;
+
+#ifdef PERSOPORT
+    /*
+     * HACK: PuTTY-url
+     * Set font quality to cleartype on Windows Vista and above
+     */
+    OSVERSIONINFO versioninfo;
+    versioninfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+    GetVersionEx(&versioninfo);
+#endif
 
     conf_set_int(conf, CONF_ssh_subsys, 0);   /* FIXME: load this properly */
     conf_set_str(conf, CONF_remote_cmd, "");
@@ -956,7 +999,11 @@ void load_open_settings(void *sesskey, Conf *conf)
 		 / 1000
 #endif
 		 );
+#ifdef HYPERLINKPORT
+    gppi(sesskey, "ScrollbackLines", 10000, conf, CONF_savelines);
+#else
     gppi(sesskey, "ScrollbackLines", 2000, conf, CONF_savelines);
+#endif
     gppi(sesskey, "DECOriginMode", 0, conf, CONF_dec_om);
     gppi(sesskey, "AutoWrapMode", 1, conf, CONF_wrap_mode);
     gppi(sesskey, "LFImpliesCR", 0, conf, CONF_lfhascr);
@@ -968,7 +1015,19 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "TermWidth", 80, conf, CONF_width);
     gppi(sesskey, "TermHeight", 24, conf, CONF_height);
     gppfont(sesskey, "Font", conf, CONF_font);
+#ifdef PERSOPORT
+    /*
+     * HACK: PuTTY-url
+     * Set font quality to cleartype on Windows Vista and higher
+     */
+    if (versioninfo.dwMajorVersion >= 6) {
+        gppi(sesskey, "FontQuality", FQ_CLEARTYPE, conf, CONF_font_quality);
+    } else {
+        gppi(sesskey, "FontQuality", FQ_DEFAULT, conf, CONF_font_quality);
+    }
+#else
     gppi(sesskey, "FontQuality", FQ_DEFAULT, conf, CONF_font_quality);
+#endif
     gppi(sesskey, "FontVTMode", VT_UNICODE, conf, CONF_vtmode);
     gppi(sesskey, "UseSystemColours", 0, conf, CONF_system_colour);
     gppi(sesskey, "TryPalette", 0, conf, CONF_try_palette);
@@ -1117,19 +1176,57 @@ void load_open_settings(void *sesskey, Conf *conf)
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: Load hyperlink settings
 	 */
-	gppi(sesskey, "HyperlinkUnderline", 1, conf, CONF_url_underline /*&cfg->url_underline*/);
-	gppi(sesskey, "HyperlinkUseCtrlClick", 0, conf, CONF_url_ctrl_click /*&cfg->url_ctrl_click*/);
-	gppi(sesskey, "HyperlinkBrowserUseDefault", 1, conf, CONF_url_defbrowser /*&cfg->url_defbrowser*/);
+	gppi(sesskey, "HyperlinkUnderline", 1, conf, CONF_url_underline);
+	gppi(sesskey, "HyperlinkUseCtrlClick", 0, conf, CONF_url_ctrl_click);
+	gppi(sesskey, "HyperlinkBrowserUseDefault", 1, conf, CONF_url_defbrowser);
 	gppfile(sesskey, "HyperlinkBrowser", conf, CONF_url_browser);
-	//gpps(sesskey, "HyperlinkBrowser", "", conf, CONF_url_browser /*cfg->url_browser, sizeof(cfg->url_browser)*/);
-	gppi(sesskey, "HyperlinkRegularExpressionUseDefault", 1, conf, CONF_url_defregex /*&cfg->url_defregex*/);
+	gppi(sesskey, "HyperlinkRegularExpressionUseDefault", 1, conf, CONF_url_defregex);
+
 #ifndef NO_HYPERLINK
-	gpps(sesskey, "HyperlinkRegularExpression", urlhack_default_regex, conf, CONF_url_regex /*cfg->url_regex, sizeof(cfg->url_regex)*/);
+	gpps(sesskey, "HyperlinkRegularExpression", urlhack_default_regex, conf, CONF_url_regex);
 #endif
-
-//	if( conf_get_str(conf,CONF_url_regex)== NULL ) { conf_set_int( conf, CONF_url_defregex, 1 ) ; }
-//	else if( strlen( conf_get_str(conf,CONF_url_regex))==0 ) { conf_set_int( conf, CONF_url_defregex, 1 ) ; }
-
+#endif
+#ifdef IVPORT
+    /* Background */
+    for (i = 0; i < 4; i++) {
+	static const char *const defaults[] = {
+	    "100,100", "100,100", "100,100", "100,100"
+	};
+	static const int CONF_alphas_pc[4][2] = {
+	    CONF_alphas_pc_cursor_active,
+	    CONF_alphas_pc_cursor_inactive,
+	    CONF_alphas_pc_defauly_fg_active,
+	    CONF_alphas_pc_defauly_fg_inactive,
+	    CONF_alphas_pc_degault_bg_active,
+	    CONF_alphas_pc_degault_bg_inactive,
+	    CONF_alphas_pc_bg_active,
+	    CONF_alphas_pc_bg_inactive
+	};
+	char buf[16];
+	char *buf2;
+	int c0 = 100;
+	int c1 = 100;
+	sprintf(buf, "Alpha%d", i);
+	buf2 = gpps_raw(sesskey, buf, defaults[i]);
+	if (sscanf(buf2, "%d,%d", &c0, &c1)) {
+	    if (c0 > 100) {
+		c0 = 100;
+	    }
+	    if (c1 > 100) {
+		c1 = 100;
+	    }
+	    conf_set_int(conf, CONF_alphas_pc[i][0], c0);
+	    conf_set_int(conf, CONF_alphas_pc[i][1], c1);
+	}
+	sfree(buf2);
+    }
+    gppi(sesskey, "BackgroundWallpaper", 0, conf, CONF_bg_wallpaper);
+    gppi(sesskey, "BackgroundEffect", 0, conf, CONF_bg_effect);
+    gppfile(sesskey, "WallpaperFile", conf, CONF_wp_file);
+    gppi(sesskey, "WallpaperPosition", 0, conf, CONF_wp_position);
+    gppi(sesskey, "WallpaperAlign", 0, conf, CONF_wp_align);
+    gppi(sesskey, "WallpaperVerticalAlign", 0, conf, CONF_wp_valign);
+    gppi(sesskey, "WallpaperMoving", 0, conf, CONF_wp_moving);
 #endif
 #ifdef CYGTERMPORT
     gppi(sesskey, "CygtermAltMetabit", 0, conf, CONF_alt_metabit);
@@ -1188,7 +1285,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     //MASKPASS(pst);
     conf_set_str( conf, CONF_password, pst ) ; // decryptstring( cfg->password, PassKey ) ;
     memset(pst,0,strlen(pst));
-
+    gppi(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
 #endif
 }
 

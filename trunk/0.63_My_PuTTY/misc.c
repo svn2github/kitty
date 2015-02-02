@@ -386,8 +386,11 @@ void base64_encode_atom(unsigned char *data, int n, char *out)
  *  - retrieve a larger amount of initial data from the list
  *  - return the current size of the buffer chain in bytes
  */
-
+#ifdef PERFPORT
+#define BUFFER_MIN_GRANULE  512*2*32
+#else
 #define BUFFER_MIN_GRANULE  512
+#endif
 
 struct bufchain_granule {
     struct bufchain_granule *next;

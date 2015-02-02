@@ -182,7 +182,14 @@ static enum {
 } und_mode;
 static int descent;
 
+#ifndef NCFGCOLOURS
+#ifdef IVPORT
+#define NCFGCOLOURS 24
+#else
 #define NCFGCOLOURS 22
+#endif
+#endif
+
 #define NEXTCOLOURS 240
 #define NALLCOLOURS (NCFGCOLOURS + NEXTCOLOURS)
 static COLORREF colours[NALLCOLOURS];
@@ -192,20 +199,18 @@ static RGBTRIPLE defpal[NALLCOLOURS];
 
 static HBITMAP caretbm;
 
-
+#ifdef HYPERLINKPORT
+#include "urlhack.h"
+static int urlhack_cursor_is_hand = 0;
+#endif
 #ifdef PERSOPORT
 #include "../../kitty.c"
 #endif
-
 #if (defined IMAGEPORT) && (!defined FDJ)
 #include "../../kitty_image.h"
 #endif
 #ifdef RECONNECTPORT
 static time_t last_reconnect = 0;
-#endif
-#ifdef HYPERLINKPORT
-#include "../../urlhack.h"
-static int urlhack_cursor_is_hand = 0;
 #endif
 
 static int dbltime, lasttime, lastact;
@@ -412,6 +417,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
     conf = conf_new();
 
+#ifdef HYPERLINKPORT
+    urlhack_init();
+#endif
 #ifdef PERSOPORT
 
 // Initialisation specifique a KiTTY
@@ -587,8 +595,18 @@ InitWinMain();
 		} else if( !strcmp(p, "-notrans") ) {
 			TransparencyFlag = 0;
 			conf_set_int(conf,CONF_transparencynumber, -1) ;
+#ifdef ZMODEMPORT
+		} else if( !strcmp(p, "-zmodem") ) {
+			ZModemFlag = 1 ;
 		} else if( !strcmp(p, "-nozmodem") ) {
 			ZModemFlag = 0 ;
+#endif
+#ifdef HYPERLINKPORT
+		} else if( !strcmp(p, "-hyperlink") ) {
+			HyperlinkFlag = 1 ;
+		} else if( !strcmp(p, "-nohyperlink") ) {
+			HyperlinkFlag = 0 ;
+#endif
 		} else if( !strcmp(p, "-xpos") ) {
 			i++ ;
 			if( atoi(argv[i])>=0 ) { 
@@ -606,6 +624,8 @@ InitWinMain();
 #if (defined IMAGEPORT) && (!defined FDJ)
 		} else if( !strcmp(p, "-nobgimage") ) {
 			BackgroundImageFlag = 0 ;
+		} else if( !strcmp(p, "-bgimage") ) {
+			BackgroundImageFlag = 1 ;
 #endif
 		} else if( !strcmp(p, "-putty") ) {
 			AutoStoreSSHKeyFlag = 0 ;
@@ -860,7 +880,7 @@ InitWinMain();
 	// Creation du fichier kitty.ini par defaut si besoin
 	CreateDefaultIniFile() ;
 #endif
-
+	
 	cmdline_run_saved(conf);
 
 	if (loaded_session || got_host)
@@ -964,6 +984,8 @@ else	{
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = inst;
 #ifdef PERSOPORT
+	if (conf_get_int(conf, CONF_ctrl_tab_switch))
+	    wndclass.cbWndExtra += 8;
 	wndclass.hIcon = LoadIcon( hInstIcons, MAKEINTRESOURCE(IDI_MAINICON_0 + IconeNum ) );
 #else
 	wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_MAINICON));
@@ -1022,7 +1044,6 @@ TrayIcone.hWnd = hwnd ;
 #if (defined IMAGEPORT) && (!defined FDJ)
     	const char* winname = appname;
 #endif
-
     {
 	int winmode = WS_OVERLAPPEDWINDOW | WS_VSCROLL;
 	int exwinmode = 0;
@@ -1057,7 +1078,6 @@ TrayIcone.hWnd = hwnd ;
 		// other location is necessary for our custom window text display for
 		// when we're handling our own border here.
 	}
-
 	hwnd = CreateWindowEx(exwinmode|WS_EX_ACCEPTFILES, appname, winname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
@@ -1318,9 +1338,9 @@ else {
 	if( !PuttyFlag && HyperlinkFlag ) {
 		if( strlen( conf_get_str(conf,CONF_url_regex))==0 ) { conf_set_str(conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( conf, CONF_url_defregex, 1 ) ;*/ }
 		if( strlen( conf_get_str(term->conf,CONF_url_regex))==0 ) { conf_set_str(term->conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( term->conf, CONF_url_defregex, 1 ) ;*/ }
-	
+		
 		if( conf_get_int(term->conf,CONF_url_defregex)/*term->cfg.url_defregex*/ == 0) {
-			urlhack_set_regular_expression(conf_get_str(term->conf,CONF_url_regex)/*term->cfg.url_regex*/);
+			urlhack_set_regular_expression(URLHACK_REGEX_CLASSIC,conf_get_str(term->conf,CONF_url_regex)/*term->cfg.url_regex*/);
 			}
 		}
 #endif
@@ -1464,6 +1484,9 @@ void cleanup_exit(int code)
 				if( !CreateProcess(NULL, shortname, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi) ) ;
 				}
 		}
+#endif
+#ifdef HYPERLINKPORT
+	urlhack_cleanup();
 #endif
 
     deinit_fonts();
@@ -2590,6 +2613,50 @@ static int is_alt_pressed(void)
 #if (!defined IMAGEPORT) || (defined FDJ)
 static int resizing ;
 #endif
+#ifdef PERSOPORT
+struct ctrl_tab_info {
+    int direction;
+    HWND  self;
+    DWORD self_hi_date_time;
+    DWORD self_lo_date_time;
+    HWND  next;
+    DWORD next_hi_date_time;
+    DWORD next_lo_date_time;
+    int   next_self;
+};
+
+static BOOL CALLBACK CtrlTabWindowProc(HWND hwnd, LPARAM lParam) {
+    struct ctrl_tab_info* info = (struct ctrl_tab_info*) lParam;
+    char lpszClassName[256];
+#if (defined PERSOPORT) && (!defined FDJ)
+	strcpy(lpszClassName,KiTTYClassName) ;
+#else
+	strcpy(lpszClassName,appname) ;
+#endif
+    char class_name[16];
+    int wndExtra;
+    if (info->self != hwnd && (wndExtra = GetClassLong(hwnd, GCL_CBWNDEXTRA)) >= 8 && GetClassName(hwnd, class_name, sizeof class_name) >= 5 && memcmp(class_name, lpszClassName, 5) == 0) {
+	DWORD hwnd_hi_date_time = GetWindowLong(hwnd, wndExtra - 8);
+	DWORD hwnd_lo_date_time = GetWindowLong(hwnd, wndExtra - 4);
+	int hwnd_self, hwnd_next;
+	hwnd_self = hwnd_hi_date_time - info->self_hi_date_time;
+	if (hwnd_self == 0) 
+	    hwnd_self = hwnd_lo_date_time - info->self_lo_date_time;
+	hwnd_self *= info->direction;
+	hwnd_next = hwnd_hi_date_time - info->next_hi_date_time;
+	if (hwnd_next == 0) 
+	    hwnd_next = hwnd_lo_date_time - info->next_lo_date_time;
+	hwnd_next *= info->direction;
+	if (hwnd_self > 0 && hwnd_next < 0 || (hwnd_self > 0 || hwnd_next < 0) && info->next_self <= 0) {
+	    info->next = hwnd;
+	    info->next_hi_date_time = hwnd_hi_date_time;
+	    info->next_lo_date_time = hwnd_lo_date_time;
+	    info->next_self = hwnd_self;
+	}
+    }
+    return TRUE;
+}
+#endif
 
 void notify_remote_exit(void *fe)
 {
@@ -2852,6 +2919,13 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		if( !PuttyFlag )
 		if( conf_get_int( conf,CONF_saveonexit) /*cfg.saveonexit*/ && conf_get_int( conf,CONF_windowstate)/*cfg.windowstate*/ ) 
 			PostMessage( hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)NULL );
+		if (conf_get_int(conf, CONF_ctrl_tab_switch)) {
+			int wndExtra = GetClassLong(hwnd, GCL_CBWNDEXTRA);
+			FILETIME filetime;
+			GetSystemTimeAsFileTime(&filetime);
+			SetWindowLong(hwnd, wndExtra - 8, filetime.dwHighDateTime);
+			SetWindowLong(hwnd, wndExtra - 4, filetime.dwLowDateTime);
+			}
 		}
 #endif
 	break;
@@ -3136,7 +3210,17 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		/* Pass new config data to the back end */
 		if (back)
 		    back->reconfig(backhandle, conf);
-
+#ifdef HYPERLINKPORT
+		/*
+		 * HACK: PuttyTray / Nutty
+		 * Reconfigure
+		 */
+		if (conf_get_int(conf, CONF_url_defregex) == 0) {
+			urlhack_set_regular_expression(URLHACK_REGEX_CUSTOM,conf_get_str(conf, CONF_url_regex));
+			}
+		term->url_update = TRUE;
+		term_update(term);
+#endif
 		/* Screen size changed ? */
 		if (conf_get_int(conf, CONF_height) !=
 		    conf_get_int(prev_conf, CONF_height) ||
@@ -3666,25 +3750,25 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	 */
 	noise_ultralight(lParam);
 #ifdef HYPERLINKPORT
+	if( !PuttyFlag && HyperlinkFlag ) {
 	/*
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: Change cursor type if hovering over link
 	 */ 
-	if( !PuttyFlag && HyperlinkFlag )
 	if (urlhack_mouse_old_x != TO_CHR_X(X_POS(lParam)) || urlhack_mouse_old_y != TO_CHR_Y(Y_POS(lParam))) {
 		urlhack_mouse_old_x = TO_CHR_X(X_POS(lParam));
 		urlhack_mouse_old_y = TO_CHR_Y(Y_POS(lParam));
 
-		if ((!conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/ || urlhack_is_ctrl_pressed()) &&
+		if ((!conf_get_int(term->conf, CONF_url_ctrl_click) || urlhack_is_ctrl_pressed()) &&
 			urlhack_is_in_link_region(urlhack_mouse_old_x, urlhack_mouse_old_y)) {
 				if (urlhack_cursor_is_hand == 0) {
-					SetClassLong(hwnd, GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_HAND));
+					SetClassLong(hwnd, GCL_HCURSOR, LoadCursor(NULL, IDC_HAND));
 					urlhack_cursor_is_hand = 1;
 					term_update(term); // Force the terminal to update, otherwise the underline will not show (bug somewhere, this is an ugly fix)
 				}
 		}
 		else if (urlhack_cursor_is_hand == 1) {
-			SetClassLong(hwnd, GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_IBEAM));
+			SetClassLong(hwnd, GCL_HCURSOR, LoadCursor(NULL, IDC_IBEAM));
 			urlhack_cursor_is_hand = 0;
 			term_update(term); // Force the terminal to update, see above
 		}
@@ -3697,6 +3781,8 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 
 	}
 	/* HACK: PuttyTray / Nutty : END */
+	/* HACK: PuttyTray / Nutty : END */
+	}
 #endif
 
 	if (wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON) &&
@@ -4272,7 +4358,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    }
 	}
 #ifdef PERSOPORT
-	if( TitleBarFlag ) set_title( NULL, conf_get_str(conf,CONF_wintitle)/*cfg.wintitle*/ ) ;
+	//if( TitleBarFlag ) set_title( NULL, conf_get_str(conf,CONF_wintitle)/*cfg.wintitle*/ ) ;		// Pourquoi j'avais mis ca ??? je ne sais plus !!!
 	if( conf_get_int(conf,CONF_saveonexit)/*cfg.saveonexit*/ ) GetWindowCoord( hwnd ) ;
 #endif
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -4356,7 +4442,6 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 				SetCursor(LoadCursor(NULL, IDC_HAND));
 				term_update(term);
 			}
-		
 			goto KEY_END;
 		}	
 
@@ -4365,12 +4450,25 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		if (wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/) {
 			SetCursor(LoadCursor(NULL, IDC_IBEAM));
 			term_update(term);
-		
 			goto KEY_END;
 		}
 	KEY_END:
 
 	case WM_SYSKEYDOWN:
+#ifdef PERSOPORT
+          if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
+             struct ctrl_tab_info info = {
+                  GetKeyState(VK_SHIFT) < 0 ? 1 : -1,
+                  hwnd,
+             };
+             info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
+             info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
+             EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
+             if (info.next != NULL)
+                 SetForegroundWindow(info.next);
+             return 0;
+         }
+#endif
 	case WM_SYSKEYUP:
 	/* HACK: PuttyTray / Nutty : END */
 #else
@@ -6341,12 +6439,13 @@ void set_title_internal(void *frontend, char *title) {
 
 
 /* Creer un titre de fenetre a partir d'un schema donne
-	%%s: nom de la session (vide sinon)
-	%%h: le hostname
-	%%u: le user
 	%%f: le folder auquel apprtient le session
+	%%h: le hostname
+	%%i: le pid du process
 	%%p: le port
 	%%P: le protocole
+	%%s: nom de la session (vide sinon)
+	%%u: le user
 Ex: %%P://%%u@%%h:%%p
 Ex: %%f / %%s
 */
@@ -6377,6 +6476,9 @@ void make_title( char * res, char * fmt, char * title ) {
 	
 	sprintf(b,"%d", port ) ; 
 	while( (p=poss( "%%p", res)) > 0 ) { del(res,p,3); insert(res,b,p); }
+	
+	sprintf(b,"%ld", GetCurrentProcessId() ) ; 
+	while( (p=poss( "%%i", res)) > 0 ) { del(res,p,3); insert(res,b,p); }
 	}
 
 void set_title(void *frontend, char *title) {

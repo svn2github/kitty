@@ -149,6 +149,11 @@ int switch_private_key_flag( void ) ;
  */
 #define CHAR_MASK    0x000000FFUL
 extern const char* urlhack_default_regex ;
+enum {
+	URLHACK_UNDERLINE_ALWAYS,
+	URLHACK_UNDERLINE_HOVER,
+	URLHACK_UNDERLINE_NEVER
+};
 #endif
 
 struct sesslist {
@@ -254,17 +259,6 @@ typedef enum {
 #define PK_ISKEYPAD(k)	((k) >= PK_PF1 && (k) <= PK_KPENTER)
 #define PK_ISFKEY(k)	((k) >= PK_F1 && (k) <= PK_F20)
 
-#ifdef HYPERLINKPORT
-/*
- * HACK: PuttyTray / Nutty
- * Hyperlink stuff: Underline settings
- */
-enum {
-	URLHACK_UNDERLINE_ALWAYS,
-	URLHACK_UNDERLINE_HOVER,
-	URLHACK_UNDERLINE_NEVER
-};
-#endif
 
 enum {
     VT_XWINDOWS, VT_OEMANSI, VT_OEMONLY, VT_POORMAN, VT_UNICODE
@@ -441,6 +435,37 @@ enum {
      */
     ADDRTYPE_UNSPEC, ADDRTYPE_IPV4, ADDRTYPE_IPV6, ADDRTYPE_NAME
 };
+
+#ifdef IVPORT
+/* Background */
+typedef enum {
+    ALPHA_CURSOR, ALPHA_DEFAULT_FG, ALPHA_DEFAULT_BG, ALPHA_BG
+};
+
+typedef enum {
+    BG_NONE, BG_FILE, BG_FILE_DESKTOP, BG_DESKTOP
+};
+
+typedef enum {
+    BG_PLANE, BG_GLASS, BG_DOUBLE_GLASS
+};
+
+typedef enum {
+    BG_ACTIVE, BG_INACTIVE
+};
+
+enum {
+    WP_FILL, WP_FIT, WP_STRETCH, WP_TILE, WP_FIX
+};
+
+enum {
+    WP_LEFT, WP_CENTER, WP_RIGHT
+};
+
+enum {
+    WP_TOP, WP_MIDDLE, WP_BOTTOM
+};
+#endif
 
 struct backend_tag {
     const char *(*init) (void *frontend_handle, void **backend_handle,
@@ -920,6 +945,25 @@ void cleanup_exit(int);
 	X(INT, NONE, ypos) \
 	X(INT, NONE, windowstate) \
 	X(INT, NONE, foreground_on_bell) \
+        X(INT, NONE, ctrl_tab_switch) /* switch PuTTY windows with CtrlTab */ \
+/* #endif */ \
+/* #ifdef IVPORT */ \
+    /* Background */ \
+    X(INT, NONE, alphas_pc_cursor_active) \
+    X(INT, NONE, alphas_pc_cursor_inactive) \
+    X(INT, NONE, alphas_pc_defauly_fg_active) \
+    X(INT, NONE, alphas_pc_defauly_fg_inactive) \
+    X(INT, NONE, alphas_pc_degault_bg_active) \
+    X(INT, NONE, alphas_pc_degault_bg_inactive) \
+    X(INT, NONE, alphas_pc_bg_active) \
+    X(INT, NONE, alphas_pc_bg_inactive) \
+    X(INT, NONE, bg_wallpaper) \
+    X(INT, NONE, bg_effect) \
+    X(FILENAME, NONE, wp_file) \
+    X(INT, NONE, wp_position) \
+    X(INT, NONE, wp_align) \
+    X(INT, NONE, wp_valign) \
+    X(INT, NONE, wp_moving) \
 /* #endif */ \
 /* #ifdef CYGTERMPORT */ \
     /* Cygterm options */ \

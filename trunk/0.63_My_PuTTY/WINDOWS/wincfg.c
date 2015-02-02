@@ -371,59 +371,125 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, int has_help,
 		ctrl_checkbox(s, "Save position and size on exit", NO_SHORTCUT,
 		  HELPCTX(no_help),
 		  conf_checkbox_handler, I(CONF_saveonexit)); // dlg_stdcheckbox_handler, I(offsetof(Config,saveonexit)));
+		if (!midsession)
+		ctrl_checkbox(s, "Switch PuTTY windows with Ctrl + TAB", 's',
+			HELPCTX(no_help),
+			conf_checkbox_handler,
+			I(CONF_ctrl_tab_switch));
 		}
 #endif
     ctrl_checkbox(s, "Full screen on Alt-Enter", 'f',
 		  HELPCTX(behaviour_altenter),
 		  conf_checkbox_handler,
 		  I(CONF_fullscreenonaltenter));
-		  
+
+#if (defined IVPORT) && (!defined FDJ)
+    /* Background */    
+    if( !get_param("PUTTY") && get_param("BACKGROUNDIMAGEIV") ) {
+    static char transTitle[256]="Window/Back.&Trans" ;
+    if( !get_param("TRANSPARENCY") ) strcpy(transTitle,"Window/Background");
+    s = ctrl_getset(b, transTitle, "background", "Background");
+    ctrl_radiobuttons(s, "Effect:", 'e', 4,
+		      HELPCTX(no_help),
+		      conf_radiobutton_handler,
+		      I(CONF_bg_effect),
+		      "Plane", I(0),
+		      "Glass", I(1),
+		      "Double Glass", I(2),
+		      NULL);
+    ctrl_radiobuttons(s, "Wallpaper:", 'r', 2,
+		      HELPCTX(no_help),
+		      conf_radiobutton_handler,
+		      I(CONF_bg_wallpaper),
+		      "None", I(0),
+		      "Bitmap file", I(1),
+		      "Bitmap file on Desktop", I(2),
+		      "Desktop", I(3),
+		      NULL);
+    s = ctrl_getset(b, transTitle, "wallpaper", "Wallpaper");
+    ctrl_filesel(s, "Bitmap file:", NO_SHORTCUT,
+		 FILTER_IMAGE_FILES,
+		 FALSE, "Select bitmap file for background",
+		 HELPCTX(no_help),
+		 conf_filesel_handler, I(CONF_wp_file));
+    ctrl_checkbox(s, "Draw while moving/resizing", 'n',
+		  HELPCTX(no_help),
+		  conf_checkbox_handler,
+		  I(CONF_wp_moving));
+    ctrl_radiobuttons(s, "Position:", 'p', 3,
+		      HELPCTX(no_help),
+		      conf_radiobutton_handler,
+		      I(CONF_wp_position),
+		      "Fill", I(0),
+		      "Fit", I(1),
+		      "Stretch", I(2),
+		      "Tile", I(3),
+		      "Center", I(4),
+		      NULL);
+    ctrl_radiobuttons(s, "Horizontal Align:", 'l', 3,
+		      HELPCTX(no_help),
+		      conf_radiobutton_handler,
+		      I(CONF_wp_align),
+		      "Left", I(0),
+		      "Center", I(1),
+		      "Right", I(2),
+		      NULL);
+    ctrl_radiobuttons(s, "Vertical Align:", 'v', 3,
+		      HELPCTX(no_help),
+		      conf_radiobutton_handler,
+		      I(CONF_wp_valign),
+		      "Top", I(0),
+		      "Middle", I(1),
+		      "Bottom", I(2),
+		      NULL);
+	}
+#endif
 #ifdef HYPERLINKPORT
+	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
 	/*
 	 * HACK: PuttyTray / Nutty
 	 * Hyperlink stuff: The Window/Hyperlinks panel.
 	 */
-	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
 	ctrl_settitle(b, "Window/Hyperlinks", "Options controlling behaviour of hyperlinks");
 	s = ctrl_getset(b, "Window/Hyperlinks", "general", "General options for hyperlinks");
 
-	ctrl_radiobuttons(s, "Underline hyperlinks:", NO_SHORTCUT, 1,
-			  HELPCTX(no_help),
-			  conf_radiobutton_handler, //dlg_stdradiobutton_handler,
- 			  I(CONF_url_underline), //I(offsetof(Config, url_underline)),
-			  "Always", NO_SHORTCUT, I(URLHACK_UNDERLINE_ALWAYS),
-			  "When hovered upon", NO_SHORTCUT, I(URLHACK_UNDERLINE_HOVER),
-			  "Never", NO_SHORTCUT, I(URLHACK_UNDERLINE_NEVER),
+	ctrl_radiobuttons(s, "Underline hyperlinks:", 'u', 1,
+			HELPCTX(no_help),
+			  conf_radiobutton_handler,
+			  I(CONF_url_underline),
+			  "Always", I(URLHACK_UNDERLINE_ALWAYS),
+			  "When hovered upon", I(URLHACK_UNDERLINE_HOVER),
+			  "Never", I(URLHACK_UNDERLINE_NEVER),
 			  NULL);
 
-	ctrl_checkbox(s, "Use ctrl+click to launch hyperlinks", NO_SHORTCUT,
+	ctrl_checkbox(s, "Use ctrl+click to launch hyperlinks", 'l',
 		  HELPCTX(no_help),
-		  conf_checkbox_handler, I(CONF_url_ctrl_click)); //dlg_stdcheckbox_handler, I(offsetof(Config,url_ctrl_click)));
+		  conf_checkbox_handler, I(CONF_url_ctrl_click));
 
 	s = ctrl_getset(b, "Window/Hyperlinks", "browser", "Browser application");
 
 	ctrl_checkbox(s, "Use the default browser", 'b',
 		  HELPCTX(no_help),
-		  conf_checkbox_handler, I(CONF_url_defbrowser)); //dlg_stdcheckbox_handler, I(offsetof(Config,url_defbrowser)));
+		  conf_checkbox_handler, I(CONF_url_defbrowser));
 
-	ctrl_filesel(s, "or specify an application to open hyperlinks with:", NO_SHORTCUT,
+	ctrl_filesel(s, "or specify an application to open hyperlinks with:", 's',
 		"Application (*.exe)\0*.exe\0All files (*.*)\0*.*\0\0", TRUE,
 		"Select executable to open hyperlinks with", HELPCTX(no_help),
-		 conf_filesel_handler, I(CONF_url_browser)); // dlg_stdfilesel_handler, I(offsetof(Config, url_browser)));
+		 conf_filesel_handler, I(CONF_url_browser));
 
 	s = ctrl_getset(b, "Window/Hyperlinks", "regexp", "Regular expression");
 
-	ctrl_checkbox(s, "Use the default regular expression", NO_SHORTCUT,
+	ctrl_checkbox(s, "Use the default regular expression", 'r',
 		  HELPCTX(no_help),
-		  conf_checkbox_handler, I(CONF_url_defregex)); //dlg_stdcheckbox_handler, I(offsetof(Config,url_defregex)));
+		  conf_checkbox_handler, I(CONF_url_defregex));
 
 	ctrl_editbox(s, "or specify your own:", NO_SHORTCUT, 100,
 		 HELPCTX(no_help),
-		 conf_editbox_handler, I(CONF_url_regex), I(1)); //dlg_stdeditbox_handler, I(offsetof(Config,url_regex)),I(sizeof(((Config *)0)->url_regex)));
+		 conf_editbox_handler, I(CONF_url_regex),
+		 I(1));
 
 	ctrl_text(s, "The single white space will be cropped in front of the link, if exists.",
 		  HELPCTX(no_help));
-
 	}
 #endif
 

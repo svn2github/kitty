@@ -140,7 +140,7 @@ cygterm_accepting(Plug plug, OSSocket sock)
 
 //static char *getCygwinBin(void);
 static char *getCygwinBin(int use64);
-static void appendPath(const char *append);
+void appendPath(const char *append);
 static size_t makeAttributes(char *buf, Conf *conf/*Config *cfg*/);
 static const char *spawnChild(char *cmd, Conf *conf, LPPROCESS_INFORMATION ppi, PHANDLE pin);
 
@@ -549,7 +549,7 @@ getCygwinBin(int use64)
 	return dir;
 }
 
-static void
+void
 appendPath(const char *append)
 {
 	char *path;
