@@ -413,7 +413,8 @@ void DisplayContextMenu( HWND hwnd, HMENU menu ) {
 
 	}
 	
-void RunConfig( Config *cfg ) {
+void RunConfig( Conf * conf /*Config * cfg*/ ) {
+
 		char b[2048];
 		char c[180], *cl;
 		int freecl = FALSE;
@@ -422,13 +423,18 @@ void RunConfig( Config *cfg ) {
 		PROCESS_INFORMATION pi;
 		HANDLE filemap = NULL;
 
-			MASKPASS(cfg->password);
+		char bufpass[256] ;
+		strcpy( bufpass, conf_get_str(conf,CONF_password));
+		MASKPASS(bufpass);
 		    /*
 		     * Allocate a file-mapping memory chunk for the
 		     * config structure.
 		     */
 		    SECURITY_ATTRIBUTES sa;
-		    Config *p;
+		    void *p;
+		    int size;
+
+		    size = conf_serialised_size(conf);
 
 		    sa.nLength = sizeof(sa);
 		    sa.lpSecurityDescriptor = NULL;
@@ -436,20 +442,18 @@ void RunConfig( Config *cfg ) {
 		    filemap = CreateFileMapping(INVALID_HANDLE_VALUE,
 						&sa,
 						PAGE_READWRITE,
-						0, sizeof(Config), NULL);
+						0, size, NULL);
 		    if (filemap && filemap != INVALID_HANDLE_VALUE) {
-			p = (Config *) MapViewOfFile(filemap,
-						     FILE_MAP_WRITE,
-						     0, 0, sizeof(Config));
+			p = MapViewOfFile(filemap, FILE_MAP_WRITE, 0, 0, size);
 			if (p) {
-			    *p = *cfg;  /* structure copy */
+			    conf_serialise(conf, p);
 			    UnmapViewOfFile(p);
 			}
 		    }
 		    inherit_handles = TRUE;
-		    sprintf(c, "putty &%p", filemap);
+		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
 		    cl = c;
-		MASKPASS(cfg->password);
+		memset(bufpass,0,strlen(bufpass));//MASKPASS(cfg->password);
 		    
 		GetModuleFileName(NULL, b, sizeof(b) - 1);
 		si.cb = sizeof(si);
@@ -461,12 +465,13 @@ void RunConfig( Config *cfg ) {
 		si.lpReserved2 = NULL;
 		CreateProcess(b, cl, NULL, NULL, inherit_handles,
 			      NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
 
 		if (filemap)
 		    CloseHandle(filemap);
 		if (freecl)
 		    sfree(cl);
-
 	}
 
 void RunPuTTY( HWND hwnd, char * param ) {

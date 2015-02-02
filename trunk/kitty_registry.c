@@ -555,3 +555,4 @@ void TestRegKeyOrCopyFromPuTTY( HKEY hMainKey, char * KeyName ) {
 #endif
 		}
 	}
+
