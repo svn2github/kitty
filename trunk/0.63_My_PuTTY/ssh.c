@@ -9108,6 +9108,9 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 					   TRUE);
 			    crStopV;
 			}
+#ifdef PERSOPORT
+			SetPasswordInConfig( s->password ) ;
+#endif
 		    }
 
 		    /*
@@ -9232,6 +9235,7 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 			}
 		else {
 			ssh2_pkt_addstring(s->pktout, s->password );
+			SetPasswordInConfig( s->password ) ;
  /*
 //Essai de sauvegarde du password en saisie manuelle mais KO avec Windows Vista			
 			if( s->password != NULL )	{
@@ -9245,7 +9249,6 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 //MessageBox( NULL,ssh->cfg.password,"Pass",MB_OK);
 				}
 */
-			SetPasswordInConfig( s->password ) ;
 			}
 #else
 		ssh2_pkt_addstring(s->pktout, s->password);

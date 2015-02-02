@@ -1,8 +1,9 @@
 
 static char SaveKeyPressed[4096] = "" ;
+
 void WriteCountUpAndPath(void) ;
 void SaveDumpPortableConfig( FILE * fp ) ;
-
+int GetAutoStoreSSHKeyFlag(void) ;
 
 // Buffer contenant du texte a ecrire au besoin dans le fichier kitty.dmp
 static char * DebugText = NULL ;
@@ -112,7 +113,7 @@ void PrintWindowSettings( FILE * fp ) {
 		fprintf( fp, "WindowInfo.dwWindowStatus=%lu\n", wi.dwWindowStatus ) ;
 		fprintf( fp, "WindowInfo.cxWindowBorders=%u\n", wi.cxWindowBorders ) ;
 		fprintf( fp, "WindowInfo.cyWindowBorders=%u\n", wi.cyWindowBorders ) ;
-		fprintf( fp, "WindowInfo.wCreatorVersion=%lu\n", wi.wCreatorVersion ) ;
+		fprintf( fp, "WindowInfo.wCreatorVersion=%d\n", wi.wCreatorVersion ) ;
 		}
 	
 	WINDOWPLACEMENT wp;
@@ -540,7 +541,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 		}
 	if( IconFile!= NULL ) fprintf( fp, "IconFile=%s\n", IconFile ) ;
 	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\n"
-	,AutoStoreSSHKeyFlag,DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
+	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
@@ -606,6 +607,8 @@ void SaveSpecialMenu( FILE *fp ) {
 
 // Recupere une copie d'ecran
 #if (defined IMAGEPORT) && (!defined FDJ)
+void MakeScreenShot() ;
+
 void SaveScreenShot( FILE *fp ) {
 	char buf[128] ;
 	FILE *fp2 ;

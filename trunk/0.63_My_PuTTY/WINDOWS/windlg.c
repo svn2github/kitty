@@ -49,16 +49,14 @@ extern Conf *conf;		       /* defined in window.c */
 #ifdef PERSOPORT
 #include <math.h>
 #include <process.h>
+#include "kitty.h"
+#include "kitty_commun.h"
+#include "kitty_registry.h"
 
 extern char BuildVersionTime[256] ;
-extern int ConfigBoxHeight ;
-void SaveRegistryKey( void ) ;
-void routine_SaveRegistryKey( void * st ) ;
-void GotoInitialDirectory( void ) ;
-void GotoConfigDirectory( void ) ;
+
 void CenterDlgInParent(HWND hDlg) ;
 int get_param( const char * val ) ;
-void CreateSSHHandler() ;
 void CheckVersionFromWebSite( HWND hwnd ) ;
 
 #ifndef TIMER_SLIDEBG
@@ -267,9 +265,9 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 		hFontNormal = CreateFontIndirect(&lf);
 	
 		//  Cursor setup
-		hCursorNormal = LoadCursor(NULL,MAKEINTRESOURCE(IDC_ARROW));
-		if (!(hCursorHover = LoadCursor(NULL,MAKEINTRESOURCE(IDC_HAND))))
-			hCursorHover  = LoadCursor(GetModuleHandle(NULL),MAKEINTRESOURCE(IDC_HOVER));
+		hCursorNormal = LoadCursor( NULL, (LPCTSTR)MAKEINTRESOURCE(IDC_ARROW) ) ;
+		if (!(hCursorHover = LoadCursor( NULL, MAKEINTRESOURCE(IDC_HAND) )))
+			hCursorHover  = LoadCursor( GetModuleHandle(NULL), MAKEINTRESOURCE(IDC_HOVER) ) ;
 
 		hover_email = FALSE;
 		capture_email = FALSE;
@@ -647,13 +645,13 @@ static int CALLBACK GenericMainDlgProc(HWND hwnd, UINT msg,
 	int h ;
 	GetWindowRect(hwnd, &rcClient) ;
 	
-	if( get_param("CONFIGBOXWINDOWHEIGHT") > 0 ) { h = get_param("CONFIGBOXWINDOWHEIGHT") ; }
-	else if( ConfigBoxHeight >= 100 ) { h = ConfigBoxHeight ; }
+	if( GetConfigBoxWindowHeight() > 0 ) { h = GetConfigBoxWindowHeight() ; }
+	else if( GetConfigBoxHeight() >= 100 ) { h = GetConfigBoxHeight() ; }
 	else {
-		if( ConfigBoxHeight <= 7 ) { h = ceil(12*7+354) ; }
-		else if( ConfigBoxHeight <= 15 ) { h = 515 ; }
+		if( GetConfigBoxHeight() <= 7 ) { h = ceil(12*7+354) ; }
+		else if( GetConfigBoxHeight() <= 15 ) { h = 515 ; }
 		else {
-			h = ceil( (584-530)*ConfigBoxHeight/(20-16)+310 ) ;
+			h = ceil( (584-530)*GetConfigBoxHeight()/(20-16)+310 ) ;
 			if( h < 515 ) h = 515 ; 
 			}
 		}
@@ -1055,8 +1053,8 @@ void showabout(HWND hwnd)
 	if( get_param("PUTTY") ) DialogBox(hinst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, AboutProcOrig);
 	else {
 		DialogBox(hinst, MAKEINTRESOURCE(IDD_KITTYABOUT), hwnd, AboutProc);
-		if( get_param("ICON") > 0 ) {
-			time_t ttime = time( NULL ) % get_param("NUMBEROFICONS") ;
+		if( GetIconeFlag() > 0 ) {
+			time_t ttime = time( NULL ) % GetNumberOfIcons() ;
 			SendMessage( hwnd, WM_SETICON, ICON_BIG, (LPARAM)LoadIcon( hinst, MAKEINTRESOURCE(IDI_MAINICON_0 + ttime ) ) );
 			}
 		}
@@ -1119,7 +1117,7 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 			       appname);
 	char *caption = dupprintf(mbtitle, appname);
 #ifdef PERSOPORT
-	if( get_param("AUTOSTORESSHKEY") ) { mbret=IDYES ; }
+	if( GetAutoStoreSSHKeyFlag() ) { mbret=IDYES ; }
 	else 
 #endif
 	mbret = message_box(text, caption,
@@ -1141,7 +1139,7 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 	char *text = dupprintf(absentmsg, keytype, fingerprint, appname);
 	char *caption = dupprintf(mbtitle, appname);
 #ifdef PERSOPORT
-	if( get_param("AUTOSTORESSHKEY") ) { mbret=IDYES ; }
+	if( GetAutoStoreSSHKeyFlag() ) { mbret=IDYES ; }
 	else 
 #endif
 	mbret = message_box(text, caption,

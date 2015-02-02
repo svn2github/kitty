@@ -33,6 +33,7 @@ static const char *const puttystr = PUTTY_REG_POS "\\Sessions";
 static const char hex[16] = "0123456789ABCDEF";
 
 #ifdef PERSOPORT
+#include "kitty_commun.h"
 #ifndef SAVEMODE_REG
 #define SAVEMODE_REG 0
 #endif
@@ -1382,10 +1383,10 @@ int verify_host_key(const char *hostname, int port,
     regname = snewn(3 * (strlen(hostname) + strlen(keytype)) + 15, char);
 
     hostkey_regname(regname, hostname, port, keytype);
+    GetCurrentDirectory( (MAX_PATH*2), oldpath);
 
 	/* JK: settings on disk - every hostkey as file in dir */
 	if( get_param("INIFILE") == SAVEMODE_DIR ) {
-	GetCurrentDirectory( (MAX_PATH*2), oldpath);
 	if (SetCurrentDirectory(sshkpath)) {
 		
 		p = snewn(3 * strlen(regname) + 1 + 16, char);
@@ -1508,7 +1509,7 @@ int verify_host_key(const char *hostname, int port,
 	else if( get_param("INIFILE")==SAVEMODE_DIR ) { /* key matched OK in registry */
 		/* JK: matching key found in registry -> warn user, ask what to do */
 		p = snewn(256, char);
-		if( get_param("AUTOSTORESSHKEY") ) { userMB=IDYES ; }
+		if( GetAutoStoreSSHKeyFlag() ) { userMB=IDYES ; }
 		else
 		userMB = MessageBox(NULL, "Host key is cached but in registry. "
 			"Do you want to move it to file? \n\n"
@@ -1671,8 +1672,8 @@ void store_host_key(const char *hostname, int port,
     regname = snewn(3 * (strlen(hostname) + strlen(keytype)) + 15, char);
 
     hostkey_regname(regname, hostname, port, keytype);
-
 #ifdef PERSOPORT
+	GetCurrentDirectory( (MAX_PATH*2), oldpath);
 if( (get_param("INIFILE")==SAVEMODE_REG)||(get_param("INIFILE")==SAVEMODE_FILE) ) {
     if (RegCreateKey(HKEY_CURRENT_USER, PUTTY_REG_POS "\\SshHostKeys",
 		     &rkey) == ERROR_SUCCESS) {
@@ -1691,7 +1692,6 @@ else {
 		createPath(sshkpath);
 	}
 	FindClose(hFile);
-	GetCurrentDirectory( (MAX_PATH*2), oldpath);
 	SetCurrentDirectory(sshkpath);
 
 	p = snewn(3*strlen(regname) + 1, char);

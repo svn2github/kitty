@@ -1283,7 +1283,6 @@ static void power_on(Terminal *term, int clear)
 void term_update(Terminal *term)
 {
     Context ctx;
-
     term->window_update_pending = FALSE;
 
     ctx = get_ctx(term->frontend);
@@ -4834,7 +4833,6 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 	if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
 		if (term->url_update) {
 			urlhack_reset();
-
 			for (i = 0; i < term->rows; i++) {
 				termline *lp = lineptr(term->disptop + i);
 			
@@ -4843,7 +4841,6 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 					}
 				unlineptr(lp);
 				}
-
 			urlhack_go_find_me_some_hyperlinks(term->cols);
 			}
 		urlhack_region = urlhack_get_link_region(urlhack_region_index);
@@ -5968,7 +5965,6 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 #else
     unlineptr(ldata);
 #endif
-
     /*
      * If we're in the middle of a selection operation, we ignore raw
      * mouse mode until it's done (we must have been not in raw mouse
@@ -6072,7 +6068,6 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 #endif
 	return;
     }
-
     /*
      * Set the selection type (rectangular or normal) at the start
      * of a selection attempt, from the state of Alt.
@@ -6085,7 +6080,6 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
     if (term->selstate == NO_SELECTION) {
 	term->seltype = default_seltype;
     }
-
     if (bcooked == MBT_SELECT && a == MA_CLICK) {
 	deselect(term);
 	term->selstate = ABOUT_TO;
@@ -6640,3 +6634,20 @@ int term_get_userpass_input(Terminal *term, prompts_t *p,
 	return +1; /* all done */
     }
 }
+
+
+
+
+/*
+WINDOW.C  3848
+
+term_mouse(term, b, translate_button(b), MA_DRAG,
+		       TO_CHR_X(X_POS(lParam)),
+		       TO_CHR_Y(Y_POS(lParam)), wParam & MK_SHIFT,
+		       wParam & MK_CONTROL, is_alt_pressed());
+
+
+Fonction term_mouse dans TERMINAL.C
+
+Ligne 6263:     A priori le problème est dans term_update(term);  A verifier ??? 
+*/

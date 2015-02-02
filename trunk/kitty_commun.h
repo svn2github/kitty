@@ -8,6 +8,11 @@
 // Flag permettant d'activer l'acces a du code particulier permettant d'avoir plus d'info dans le kitty.dmp
 extern int debug_flag ;
 
+// Flag permettant de sauvegarder automatique les cles SSH des serveurs
+// extern int AutoStoreSSHKeyFlag  ;
+int GetAutoStoreSSHKeyFlag(void) ;
+void SetAutoStoreSSHKeyFlag( const int flag ) ;
+
 // Répertoire de sauvegarde de la configuration (savemode=dir)
 extern char * ConfigDirectory ;
 

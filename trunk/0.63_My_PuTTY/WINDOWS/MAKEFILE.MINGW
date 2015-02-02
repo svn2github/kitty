@@ -160,6 +160,8 @@ CFLAGS += -DWINVER=0x0500 -D_WIN32_WINDOWS=0x0410 -D_WIN32_WINNT=0x0501
 	if [ -f kitty.dll ] ; then cp -f kitty.dll ../../bin/ ; fi
 	if [ -f putty_portable.exe ] ; then cp -f putty_portable.exe ../../bin/ ; fi
 	if [ -f putty_notrans.exe ] ; then cp -f putty_notrans.exe ../../bin/ ; fi
+	if [ -f putty_nohyperlink.exe ] ; then cp -f putty_nohyperlink.exe ../../bin/ ; fi
+	if [ -f putty_zmodem.exe ] ; then cp -f putty_zmodem.exe ../../bin/ ; fi
 	$(UPX) ../../bin/*.exe
 	cp -f ../../cthelper/cthelper.exe ../../bin/
 	cp -f ../../cthelper/cygwin1.dll ../../bin/
@@ -273,7 +275,7 @@ putty.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o \
 		winprint.o winproxy.o winser.o winstore.o wintime.o winucs.o \
 		winutils.o winx11.o x11fwd.o \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
-		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o ldiscucs.o \
@@ -289,7 +291,7 @@ putty.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o \
 		winproxy.o winser.o winstore.o wintime.o winucs.o winutils.o \
 		winx11.o x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
-		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
 		../../bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
@@ -300,6 +302,11 @@ putty.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o \
 urlhack.o: ../../url/urlhack.c ../../url/urlhack.h \
 		../puttymem.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../../url/urlhack.c
+
+urlhack_nohyperlink.o: ../../url/urlhack.c ../../url/urlhack.h \
+		../puttymem.h
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o urlhack_nohyperlink.o -c ../../url/urlhack.c \
+	-DNO_HYPERLINK
 
 urlhack_win.o: ../../urlhack/urlhack_win.c ../../urlhack/urlhack.h \
 		../misc.h
@@ -1123,6 +1130,29 @@ settings_nohyperlink.o: ../settings.c ../putty.h ../storage.h ../puttyps.h ../ne
 		../windows/winhelp.h ../charset/charset.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o settings_nohyperlink.o -c ../settings.c -DNO_HYPERLINK
 
+kitty.o: ../../kitty.c ../../kitty.h ../../kitty_savedump.c ../../kitty_launcher.c ../../kitty_launcher.h
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty.c \
+	-DBUILD_TIME=`date +'"%d/%m/%Y-%H:%M:%S(%Z)"'` \
+	-DBUILD_VERSION=`cat ../../version.txt` \
+	-DBUILD_SUBVERSION=`cat ../../subversion.txt` \
+	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
+
+kitty_portable.o: ../../kitty.c ../../kitty.h ../../kitty_savedump.c ../../kitty_launcher.c ../../kitty_launcher.h
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -o kitty_portable.o -c ../../kitty.c \
+	-DPORTABLE \
+	-DBUILD_TIME=`date +'"%d/%m/%Y-%H:%M:%S(%Z)"'` \
+	-DBUILD_VERSION=`cat ../../version.txt` \
+	-DBUILD_SUBVERSION=`cat ../../subversion.txt` \
+	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
+
+kitty_nohyperlink.o: ../../kitty.c ../../kitty.h ../../kitty_savedump.c ../../kitty_launcher.c ../../kitty_launcher.h
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -o kitty_nohyperlink.o -c ../../kitty.c \
+	-DNO_HYPERLINK \
+	-DBUILD_TIME=`date +'"%d/%m/%Y-%H:%M:%S(%Z)"'` \
+	-DBUILD_VERSION=`cat ../../version.txt` \
+	-DBUILD_SUBVERSION=`cat ../../subversion.txt` \
+	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
+
 kitty_commun.o: ../../kitty_commun.c ../../kitty_commun.h
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_commun.c
 
@@ -1184,6 +1214,19 @@ window_notrans.o: ../windows/window.c ../putty.h ../terminal.h ../storage.h \
 	-DBUILD_SUBVERSION=`cat ../../subversion.txt` \
 	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
 
+window_nohyperlink.o: ../windows/window.c ../putty.h ../terminal.h ../storage.h \
+		../windows/win_res.h ../puttyps.h ../network.h ../misc.h \
+		../tree234.h ../windows/winstuff.h ../macosx/osx.h \
+		../macosx/osx.h ../unix/unix.h ../puttymem.h \
+		../windows/winhelp.h ../charset/charset.h \
+		../../kitty.c ../../kitty_launcher.c ../../kitty_image.c ../../kitty_crypt.c ../../kitty_savedump.c
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o window_nohyperlink.o -c ../windows/window.c \
+	-DNO_HYPERLINK \
+	-DBUILD_TIME=`date +'"%d/%m/%Y-%H:%M:%S(%Z)"'` \
+	-DBUILD_VERSION=`cat ../../version.txt` \
+	-DBUILD_SUBVERSION=`cat ../../subversion.txt` \
+	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
+
 window_portable.o: ../windows/window.c ../putty.h ../terminal.h ../storage.h \
 		../windows/win_res.h ../puttyps.h ../network.h ../misc.h \
 		../tree234.h ../windows/winstuff.h ../macosx/osx.h \
@@ -1205,14 +1248,53 @@ kitty.dll: kitty_dll.res.o
 	$(CC) -shared -o kitty.dll kitty_dll.res.o
 	upx --best --compress-icons=2 kitty.dll
 
-portable: putty_portable.exe
+
+nohyperlink: putty_nohyperlink.exe
 
 notrans: putty_notrans.exe
+
+portable: putty_portable.exe
 
 zmodem: putty_zmodem.exe
 
 kitty: putty.exe
 	mv putty.exe kitty.exe
+
+putty_nohyperlink.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.o \
+		ldiscucs.o logging.o minibidi.o misc.o pgssapi.o pinger.o \
+		portfwd.o proxy.o putty.res.o raw.o rlogin.o sercfg.o \
+		settings_nohyperlink.o sizetip.o ssh.o sshaes.o ssharcf.o sshblowf.o \
+		sshbn.o sshcrc.o sshcrcda.o sshdes.o sshdh.o sshdss.o \
+		sshgssc.o sshmd5.o sshpubk.o sshrand.o sshrsa.o sshsh256.o \
+		sshsh512.o sshsha.o sshzlib.o telnet.o terminal.o timing.o \
+		tree234.o version.o wcwidth.o wildcard.o wincfg.o winctrls.o \
+		windefs.o windlg.o window_nohyperlink.o wingss.o winhandl.o winhelp.o \
+		winjump.o winmisc.o winnet.o winnoise.o winpgntc.o winprint.o \
+		winproxy.o winser.o winstore.o wintime.o winucs.o winutils.o \
+		winx11.o x11fwd.o \
+		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
+		kitty_nohyperlink.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		urlhack_nohyperlink.o
+	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
+		cmdline.o config.o conf.o cproxy.o dialog.o ldisc.o ldiscucs.o \
+		logging.o minibidi.o misc.o pgssapi.o pinger.o portfwd.o \
+		proxy.o putty.res.o raw.o rlogin.o sercfg.o settings_nohyperlink.o \
+		sizetip.o ssh.o sshaes.o ssharcf.o sshblowf.o sshbn.o \
+		sshcrc.o sshcrcda.o sshdes.o sshdh.o sshdss.o sshgssc.o \
+		sshmd5.o sshpubk.o sshrand.o sshrsa.o sshsh256.o sshsh512.o \
+		sshsha.o sshzlib.o telnet.o terminal.o timing.o tree234.o \
+		version.o wcwidth.o wildcard.o wincfg.o winctrls.o windefs.o \
+		windlg.o window_nohyperlink.o wingss.o winhandl.o winhelp.o winjump.o winmisc.o \
+		winnet.o winnoise.o winpgntc.o winprint.o winproxy.o \
+		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
+		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
+		kitty_nohyperlink.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		urlhack_nohyperlink.o \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat.a \
+		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
+		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
+		-lshell32 -luser32 -lwinmm -lwinspool \
+		-lwsock32 -lpsapi -lole32 -lcrypt32 -lwsock32
 
 putty_notrans.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.o \
 		ldiscucs.o logging.o minibidi.o misc.o pgssapi.o pinger.o \
@@ -1227,7 +1309,7 @@ putty_notrans.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.
 		winproxy.o winser.o winstore.o wintime.o winucs.o winutils.o \
 		winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
-		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o config.o conf.o cproxy.o dialog.o ldisc.o ldiscucs.o \
@@ -1242,9 +1324,9 @@ putty_notrans.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.
 		winnet.o winnoise.o winpgntc.o winprint.o winproxy.o \
 		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
-		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../jpeg/libjpeg.a ../../libregex.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
@@ -1263,7 +1345,7 @@ putty_portable.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc
 		winproxy.o winser.o winstore.o wintime.o winucs.o winutils.o \
 		winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
-		kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty_portable.o kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o ldiscucs.o \
@@ -1278,9 +1360,9 @@ putty_portable.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc
 		winnet.o winnoise.o winpgntc.o winprint.o winproxy.o \
 		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
-		kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty_portable.o kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../jpeg/libjpeg.a ../../libregex.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
@@ -1299,7 +1381,7 @@ putty_zmodem.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o
 		winproxy.o winser.o winstore.o wintime.o winucs.o winutils.o \
 		winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
-		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o ldiscucs.o \
@@ -1314,9 +1396,9 @@ putty_zmodem.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o
 		winnet_zmodem.o winnoise.o winpgntc.o winprint.o winproxy.o \
 		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
-		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
+		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../jpeg/libjpeg.a ../../libregex.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \

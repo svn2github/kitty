@@ -1210,3 +1210,12 @@ strcspn( char* s1, char* s2)
 	return(count);
 }
 #endif
+
+void regfree( regexp* r) {
+	int i ;
+	if( r==NULL ) return ;
+	if( r->regmust != NULL ) free( r->regmust ) ;
+	for( i=0 ; i<NSUBEXP ; i++ ) { if( r->startp[i] != NULL) free( r->startp[i] ) ; }
+	for( i=0 ; i<NSUBEXP ; i++ ) { if( r->endp[i] != NULL) free( r->endp[i] ) ; }
+	free(r) ;
+}

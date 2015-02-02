@@ -18,6 +18,7 @@ void sc_conf_filesel_handler11(union control *ctrl, void *dlg, void *data, int e
 int cygterm_get_flag( void ) ;
 #endif
 #ifdef PERSOPORT
+#include "kitty.h"
 union control * ctrlHostnameEdit = NULL ;
 void MASKPASS( char * password ) ;
 #endif
@@ -620,6 +621,7 @@ static void sshbug_handler(union control *ctrl, void *dlg,
 }
 
 #ifdef PERSOPORT
+#include "kitty.h"
 int dlg_listbox_get(union control *ctrl, void *dlg, int index, char * pstr, int maxcount) ;
 int dlg_listbox_gettext(union control *ctrl, void *dlg, int index, char * pstr, int maxcount) ;
 
@@ -630,23 +632,14 @@ void StringList_Up( char **list, const char * name ) ;
 
 void UpFolderInList( char * name ) ;
 
-char * SetSessPath( const char * dec ) ;
 void CreateFolderInPath( const char * d ) ;
-
 static void sessionsaver_handler(union control *ctrl, void *dlg, void *data, int event) ;
-void GetSessionFolderName( const char * session, char * folder ) ;
-void CleanFolderName( char * folder ) ;
-int GetSessionField( const char * session_in, const char * folder, const char * field, char * result ) ;
 char *stristr (const char *meule_de_foin, const char *aiguille) ;
 void RunPuTTY( HWND hwnd, char * param ) ;
 void RunConfig( Conf * conf /*Config *cfg*/ ) ;
 int RunSession( HWND hwnd, const char * folder_in, char * session_in ) ;
 
-extern int ConfigBoxHeight ;
 extern char ** FolderList ;
-
-void InitFolderList( void ) ;
-void SaveFolderList( void ) ;
 
 static char CurrentFolder[1024]="Default" ;
 union control * ctrlSessionList = NULL ;
@@ -1008,7 +1001,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 					}
 				else {
 					if( (!strcmp(CurrentFolder,folder))||(!strcmp("",folder)) ) {
-						if( !get_param("SESSIONFILTER") ) // filtre desactive
+						if( !GetSessionFilterFlag() ) // filtre desactive
 							dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
 						else if( (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) 
 							|| ( strstr(ssd->sesslist.sessions[i]," [")==ssd->sesslist.sessions[i] ) )
@@ -1016,7 +1009,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 						}
 					}
 				}
-			else if( !get_param("SESSIONFILTER") ) // filtre desactive
+			else if( !GetSessionFilterFlag() ) // filtre desactive
 				dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
 			else 
 			if( (!strcmp( CurrentFolder, "Default" )) || (!strcmp(CurrentFolder,folder)) ) {
@@ -1057,7 +1050,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 					}
 				else {
 					if( (!strcmp(CurrentFolder,folder))||(!strcmp("",folder)) ) {
-						if( !get_param("SESSIONFILTER") ) // filtre desactive
+						if( !GetSessionFilterFlag() ) // filtre desactive
 							dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
 						else if( (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) 
 							|| ( strstr(ssd->sesslist.sessions[i]," [")==ssd->sesslist.sessions[i] ) )
@@ -1065,7 +1058,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 						}
 					}
 				}
-			else if( !get_param("SESSIONFILTER") ) // filtre desactive
+			else if( !GetSessionFilterFlag() ) // filtre desactive
 				dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
 			else {
 				if( (!strcmp( CurrentFolder, "Default" )) || (!strcmp(CurrentFolder,folder)) ) {
@@ -2024,20 +2017,20 @@ void setup_config_box(struct controlbox *b, int midsession,
 				    sessionsaver_handler, P(ssd));
     ssd->okbutton->button.isdefault = TRUE;
 #ifdef PERSOPORT
-    if( ConfigBoxHeight>7 ) ssd->okbutton->generic.column = 0 ; else 
+    if( GetConfigBoxHeight() > 7 ) ssd->okbutton->generic.column = 0 ; else 
 #endif
     ssd->okbutton->generic.column = 3;
 #if (defined IMAGEPORT) && (!defined FDJ) && (defined STARTBUTTON)
 	if( (!midsession)&&(!get_param("PUTTY")) ) {
 		ssd->startbutton = ctrl_pushbutton(s, "Start", NO_SHORTCUT, HELPCTX(no_help), sessionsaver_handler, P(ssd));
-		if( ConfigBoxHeight>7 ) ssd->startbutton->generic.column = 0 ; else ssd->startbutton->generic.column = 3;
+		if( GetConfigBoxHeight() > 7 ) ssd->startbutton->generic.column = 0 ; else ssd->startbutton->generic.column = 3;
 	}
 #endif
     ssd->cancelbutton = ctrl_pushbutton(s, "Cancel", 'c', HELPCTX(no_help),
 					sessionsaver_handler, P(ssd));
     ssd->cancelbutton->button.iscancel = TRUE;
 #ifdef PERSOPORT
-    if( ConfigBoxHeight>7 ) ssd->cancelbutton->generic.column = 0 ; else
+    if( GetConfigBoxHeight() > 7 ) ssd->cancelbutton->generic.column = 0 ; else
 #endif
     ssd->cancelbutton->generic.column = 4;
     /* We carefully don't close the 5-column part, so that platform-
@@ -2126,7 +2119,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 				sessionsaver_handler, P(ssd));
     ssd->listbox->generic.column = 0;
 #ifdef PERSOPORT
-	ssd->listbox->listbox.height = ConfigBoxHeight ;
+	ssd->listbox->listbox.height = GetConfigBoxHeight() ;
 #else
     ssd->listbox->listbox.height = 7;
 #endif
@@ -2167,7 +2160,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 	ssd->delbutton = NULL;
     }
 #ifdef PERSOPORT
-	if( ConfigBoxHeight>7 ) { // On n'affiche les boutons KiTTY que si la taille de la config box le permet
+	if( GetConfigBoxHeight() > 7 ) { // On n'affiche les boutons KiTTY que si la taille de la config box le permet
 	if (!midsession) { // Bouton de creation d'un folder
 	ssd->createbutton = ctrl_pushbutton(s, "New folder", NO_SHORTCUT,
 					  HELPCTX(session_saved),
@@ -2560,7 +2553,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 		 conf_editbox_handler, I(CONF_xpos), I(-1) ) ; // dlg_stdeditbox_handler, I(offsetof(Config,xpos)), I(-1));
 	}
 
-    if( !get_param("PUTTY") && (get_param("ICON")>0) ) {
+    if( !get_param("PUTTY") && (GetIconeFlag()>0) ) {
     s = ctrl_getset(b, "Window/Appearance", "icon",
 		    "Define the window icon");
     c = ctrl_editbox(s, "Icon (from internal resources)", NO_SHORTCUT, 40,

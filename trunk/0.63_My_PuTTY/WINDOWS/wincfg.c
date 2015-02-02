@@ -11,6 +11,7 @@
 #include "storage.h"
 
 #ifdef PERSOPORT
+#include "kitty.h"
 int get_param( const char * val ) ;
 char * get_param_str( const char * val ) ;
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -158,14 +159,14 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, int has_help,
 	if (has_help) {
 	    c = ctrl_pushbutton(s, "Help", 'h', HELPCTX(no_help),
 				help_handler, P(hwndp));
-		if( get_param("CONFIGBOXHEIGHT")>7 ) c->generic.column = 0 ; else 
+		if( GetConfigBoxHeight() > 7 ) c->generic.column = 0 ; else 
 	    c->generic.column = 1;
 	}
 #ifndef FDJ
 	if( !get_param("PUTTY") ) {
 		c = ctrl_pushbutton(s, "Check Update", NO_SHORTCUT, HELPCTX(no_help),
 			    checkupdate_handler, P(hwndp));
-		if( get_param("CONFIGBOXHEIGHT")>7 ) c->generic.column = 0 ; else
+		if( GetConfigBoxHeight() > 7 ) c->generic.column = 0 ; else
 		c->generic.column = 2;
 	}
 #endif

@@ -152,6 +152,7 @@ int switch_private_key_flag( void ) ;
  */
 #define CHAR_MASK    0x000000FFUL
 extern const char* urlhack_default_regex ;
+extern const char* urlhack_liberal_regex ;
 enum {
 	URLHACK_UNDERLINE_ALWAYS,
 	URLHACK_UNDERLINE_HOVER,

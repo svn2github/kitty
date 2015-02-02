@@ -35,7 +35,9 @@ int DirectoryBrowseFlag = 0 ;
 #endif
 
 // Flag permettant de sauvegarder automatique les cles SSH des serveurs
-int AutoStoreSSHKeyFlag = 0 ;
+static int AutoStoreSSHKeyFlag = 0 ;
+int GetAutoStoreSSHKeyFlag(void) { return AutoStoreSSHKeyFlag ; }
+void SetAutoStoreSSHKeyFlag( const int flag ) { AutoStoreSSHKeyFlag = flag ; }
 
 // Répertoire de sauvegarde de la configuration (savemode=dir)
 char * ConfigDirectory = NULL ;
@@ -139,7 +141,7 @@ int IsPortableMode( void ) {
 			}
 		else  DirectoryBrowseFlag = 0 ;
 		}
-	else { printf( "No ini file\n" ) ; }
+	//else { printf( "No ini file\n" ) ; }
 	return ret ;
 	}
 
