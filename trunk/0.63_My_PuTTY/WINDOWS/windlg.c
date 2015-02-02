@@ -59,6 +59,7 @@ void GotoConfigDirectory( void ) ;
 void CenterDlgInParent(HWND hDlg) ;
 int get_param( const char * val ) ;
 void CreateSSHHandler() ;
+void CheckVersionFromWebSite( HWND hwnd ) ;
 
 #ifndef TIMER_SLIDEBG
 //#define TIMER_SLIDEBG 12343
@@ -413,8 +414,8 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 
 	  case IDA_WEB:
 	    /* Load web browser */
-		//ShellExecute(hwnd, "open", "http://www.9bis.net/kitty/", 0, 0, SW_SHOWDEFAULT);
-	  {
+	    CheckVersionFromWebSite( hwnd ) ;
+/*	  {
 		char buffer[1024]="", vers[1024]="" ;
 		int i ;
 		strcpy( vers, BuildVersionTime ) ;
@@ -422,9 +423,8 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 			if( !(((vers[i]>='0')&&(vers[i]<='9'))||(vers[i]=='.')) ) { vers[i] = '\0' ; break ; }
 			}
 		sprintf( buffer, "http://www.9bis.net/kitty/check_update.php?version=%s", vers ) ;
-		//sprintf( buffer, "http://localhost:8081/kitty/check_update.php?version=%s", vers ) ;
 		ShellExecute(hwnd, "open", buffer, 0, 0, SW_SHOWDEFAULT);
-	  }
+	  }*/
 	    return 0;
 	  case IDA_DON:
 	    /* Load web browser */

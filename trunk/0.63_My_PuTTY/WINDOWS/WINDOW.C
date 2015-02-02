@@ -563,6 +563,8 @@ InitWinMain();
 			i++ ;
 			conf_set_str( conf, CONF_autocommand, argv[i] ) ; //strcpy( cfg.autocommand, argv[i] ) ;
 			//cfg.remote_cmd_ptr=argv[i] ;
+		} else if( !strcmp(p, "-debug") ) {
+			debug_flag = 1 ;
 		} else if( !strcmp(p, "-fullscreen") ) {
 			conf_set_int( conf, CONF_fullscreen, 1 ) ; //cfg.fullscreen = 1 ;
 		} else if( !strcmp(p, "-initdelay") ) {
@@ -655,6 +657,8 @@ InitWinMain();
 			AutoSendToTray = 1 ;
 		} else if( !strcmp(p, "-sshhandler") ) {
 			CreateSSHHandler() ; return 0 ;
+		} else if( !strcmp(p, "-fileassoc") ) {
+			CreateFileAssoc() ; return 0 ;
 #ifndef FDJ
 		} else if( !strcmp(p, "-key") ) {
 			GenerePrivateKey( "private.key.ppk" ) ; return  0 ;
@@ -685,6 +689,12 @@ InitWinMain();
 			if( strlen(argv[i])>0 )
 				SendCommandAllWindows( hwnd, argv[i] ) ;
 			exit(0);
+		} else if( !strcmp(p, "-kload") ) {
+			i++ ;
+			if( strlen(argv[i])>0 ) {
+				load_open_settings_forced( argv[i], conf ) ;
+				got_host=1;
+			}
 #endif
 		} else if (!strcmp(p, "-cleanup") ||
 			   !strcmp(p, "-cleanup-during-uninstall")) {
@@ -968,12 +978,11 @@ else	{
 	}
 	
 	{
-	char buf[256] ;
-	strcpy( buf, conf_get_str(conf,CONF_password) );
-	MASKPASS(buf);
-	conf_set_str(conf,CONF_password,buf);
-	//MASKPASS(cfg.password) ;
-	memset(buf,0,strlen(buf));
+	//char buf[256] ;
+	//strcpy( buf, conf_get_str(conf,CONF_password) );
+	//MASKPASS(buf);
+	//conf_set_str(conf,CONF_password,buf);
+	//memset(buf,0,strlen(buf));
 	}
 #endif
 
@@ -1245,6 +1254,8 @@ TrayIcone.hWnd = hwnd ;
         else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_PSCP, "Send wit&h pscp");
         if( WinSCPPath!=NULL ) AppendMenu(m, MF_ENABLED, IDM_WINSCP, "&Start WinSCP");
         else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_WINSCP, "&Start WinSCP");
+	AppendMenu(m, MF_SEPARATOR, 0, 0);
+	AppendMenu(m, MF_ENABLED, IDM_EXPORTSETTINGS, "Export &current settings" ) ;
         }
 #endif
 #ifdef ZMODEMPORT
@@ -2767,13 +2778,11 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	// Lancement d'une (ou plusieurs separees par \\n) commande(s) automatique(s) a l'initialisation
 	KillTimer( hwnd, TIMER_INIT ) ;
 
-	if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ == PROT_TELNET ) {
-		if( strlen( conf_get_str(conf,CONF_username)/*cfg.username*/ ) > 0 ) {
-			//strcpy( buffer, conf_get_str(conf,CONF_username)/*cfg.username*/ ) ; strcat( buffer, "\\n\\p" ) ; 
-			if( strlen( conf_get_str(conf,CONF_password)/*cfg.password*/ ) > 0 ) {
+	if( conf_get_int(conf,CONF_protocol) == PROT_TELNET ) {
+		if( strlen( conf_get_str(conf,CONF_username) ) > 0 ) {
+			if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 				char bufpass[256]; strcpy(bufpass,conf_get_str(conf,CONF_password)) ;
 				MASKPASS(bufpass); strcat(buffer,bufpass); memset(bufpass,0,strlen(bufpass));
-				//MASKPASS(cfg.password); strcat( buffer, cfg.password ) ; MASKPASS(cfg.password);
 				strcat( buffer, "\\n" ) ;
 				}
 			}
@@ -2889,7 +2898,8 @@ else if( BackgroundImageFlag && ((UINT_PTR)wParam == TIMER_SLIDEBG) ) {  // Chan
 	}
 #endif
 else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bug d'affichage)
-	InvalidateRect( hwnd, NULL, TRUE ) ;
+	//RefreshBackground( hwnd ) ; // On inhibe cette fonction a cause du probleme de fuite memoire due a l'image de fond !!! 
+	InvalidateRect( hwnd, NULL, TRUE ) ; // On remplace par
 	
 	// Envoi de l'anti-idle
 	if( AntiIdleCount++ >= AntiIdleCountMax ) {
@@ -3039,12 +3049,6 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		HANDLE filemap = NULL;
 
 		if (wParam == IDM_DUPSESS) {
-#ifdef PERSOPORT
-		char bufpass[256];
-		strcpy(bufpass,conf_get_str(conf,CONF_password));
-		MASKPASS(bufpass);
-		conf_set_str(conf,CONF_password,bufpass);
-#endif
 		    /*
 		     * Allocate a file-mapping memory chunk for the
 		     * config structure.
@@ -3072,11 +3076,6 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		    inherit_handles = TRUE;
 		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
 		    cl = c;
-#ifdef PERSOPORT
-		strcpy(bufpass,conf_get_str(conf,CONF_password));
-		MASKPASS(bufpass);
-		conf_set_str(conf,CONF_password,bufpass);
-#endif
 		} else if (wParam == IDM_SAVEDSESS) {
 		    unsigned int sessno = ((lParam - IDM_SAVED_MIN)
 					   / MENU_SAVED_STEP) + 1;
@@ -3462,6 +3461,9 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_SCRIPTFILE :
 		OpenAndSendScriptFile( hwnd ) ;
 		break ;
+	  case IDM_EXPORTSETTINGS :
+		SaveCurrentSetting( hwnd ) ;
+		break ;
 	  case IDM_PSCP:
 		SendFile( hwnd ) ;
 		break ;
@@ -3632,6 +3634,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_MBUTTONUP:
       case WM_RBUTTONUP:
 #ifdef PERSOPORT
+	if( ProtectFlag ) { break ; }
         if(!PuttyFlag && MouseShortcutsFlag) {
 	if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
 		if( back ) SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ;

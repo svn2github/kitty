@@ -16,6 +16,16 @@ char * get_param_str( const char * val ) ;
 #if (defined IMAGEPORT) && (!defined FDJ)
 void DisableBackgroundImage( void ) ;
 #endif
+void CheckVersionFromWebSite( HWND hwnd ) ;
+static void checkupdate_handler(union control *ctrl, void *dlg,
+			  void *data, int event)
+{
+    HWND *hwndp = (HWND *)ctrl->generic.context.p;
+
+    if (event == EVENT_ACTION) {
+	CheckVersionFromWebSite(*hwndp);
+    }
+}
 #endif
 
 static void about_handler(union control *ctrl, void *dlg,
@@ -144,14 +154,28 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, int has_help,
 	c = ctrl_pushbutton(s, "About", 'a', HELPCTX(no_help),
 			    about_handler, P(hwndp));
 	c->generic.column = 0;
+#ifdef PERSOPORT
 	if (has_help) {
 	    c = ctrl_pushbutton(s, "Help", 'h', HELPCTX(no_help),
 				help_handler, P(hwndp));
-#ifdef PERSOPORT
 		if( get_param("CONFIGBOXHEIGHT")>7 ) c->generic.column = 0 ; else 
-#endif
 	    c->generic.column = 1;
 	}
+#ifndef FDJ
+	if( !get_param("PUTTY") ) {
+		c = ctrl_pushbutton(s, "Check Update", NO_SHORTCUT, HELPCTX(no_help),
+			    checkupdate_handler, P(hwndp));
+		if( get_param("CONFIGBOXHEIGHT")>7 ) c->generic.column = 0 ; else
+		c->generic.column = 2;
+	}
+#endif
+#else
+	if (has_help) {
+	    c = ctrl_pushbutton(s, "Help", 'h', HELPCTX(no_help),
+				help_handler, P(hwndp));
+	    c->generic.column = 1;
+	}
+#endif
     }
 
     /*

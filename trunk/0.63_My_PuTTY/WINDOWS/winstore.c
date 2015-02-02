@@ -44,6 +44,7 @@ static const char hex[16] = "0123456789ABCDEF";
 #endif
 
 int get_param( const char * val ) ;
+
 void DelDir( const char * directory ) ;
 BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) ;
 void CleanFolderName( char * folder ) ;

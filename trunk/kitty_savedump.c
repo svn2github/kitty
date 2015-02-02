@@ -316,6 +316,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 #ifdef SCPORT
 	fprintf( fp, "try_write_syslog=%d\n",		conf_get_int(conf,CONF_try_write_syslog) ) ; 
 	fprintf( fp, "try_pkcs11_auth=%d\n",		conf_get_int(conf,CONF_try_pkcs11_auth) ) ;
+	fprintf( fp, "pkcs11_libfile=%s\n",		conf_get_filename(conf,CONF_pkcs11_libfile)->path ) ;
 	fprintf( fp, "pkcs11_token_label=%s\n",		conf_get_str(conf,CONF_pkcs11_token_label) ) ;
 	fprintf( fp, "pkcs11_cert_label=%s\n",		conf_get_str(conf,CONF_pkcs11_cert_label) ) ;
 #endif
@@ -496,7 +497,9 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "url_defbrowser=%d\n",		conf_get_int(conf,CONF_url_defbrowser) ) ; 
 	fprintf( fp, "url_defregex=%d\n",		conf_get_int(conf,CONF_url_defregex) ) ; 
 	fprintf( fp, "url_browser=%s\n",		conf_get_filename(conf,CONF_url_browser)->path ) ; 
-	fprintf( fp, "url_regex=%s\n",			conf_get_str(conf,CONF_url_regex) ) ; 
+	fprintf( fp, "url_regex=%s\n",			conf_get_str(conf,CONF_url_regex) ) ;
+	fprintf( fp, "urlhack_default_regex=%s\n",	urlhack_default_regex ) ;
+	fprintf( fp, "urlhack_liberal_regex=%s\n",	urlhack_liberal_regex ) ;
 #endif
 #ifdef ZMODEMPORT
 	fprintf( fp, "rzcommand=%s\n",			conf_get_filename(conf,CONF_rzcommand)->path ) ;
@@ -602,7 +605,7 @@ void SaveSpecialMenu( FILE *fp ) {
 	}
 
 // Recupere une copie d'ecran
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 void SaveScreenShot( FILE *fp ) {
 	char buf[128] ;
 	FILE *fp2 ;
@@ -714,7 +717,7 @@ void SaveDump( void ) {
 		fputs( "\n@ SpecialMenu @\n\n", fpout ) ;
 		SaveSpecialMenu( fpout ) ; fflush( fpout ) ;
 
-#ifdef IMAGEPORT	
+#if (defined IMAGEPORT) && (!defined FDJ)
 		fputs( "\n@ ScreenShot @\n\n", fpout ) ;
 		SaveScreenShot( fpout ) ; fflush( fpout ) ;
 #endif

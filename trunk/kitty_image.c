@@ -1,3 +1,7 @@
+// Probleme du bug de consommation memoire avec le shrink => 
+//	- voir 0/1 dans la fonction RedrawBackground
+//	- voir dans le fichier WINDOW.C le  if((UINT_PTR)wParam == TIMER_REDRAW)
+
 
 // Essai de compilation séparé
 #ifdef FDJ
@@ -1408,7 +1412,7 @@ void RedrawBackground( HWND hwnd ) {
 		(get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(conf_get_int(conf,CONF_bg_type)/*cfg.bg_type*/ != 0) ) 
 			{
 			clean_bg() ;
-			load_bg_bmp();
+			load_bg_bmp();   // Apparement c'est ça qui faisait la fuite memoire !!!
 			}
 	RedrawWindow(hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
 	InvalidateRect(hwnd, NULL, TRUE) ;

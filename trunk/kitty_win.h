@@ -28,4 +28,7 @@ void RunCommand( HWND hwnd, char * cmd ) ;
 // Démarre l'éditeur embarqué
 void RunPuttyEd( HWND hwnd ) ;
 
+// Verifie si une mise a jour est disponible sur le site web
+void CheckVersionFromWebSite( HWND hwnd ) ;
+
 #endif

@@ -19,6 +19,7 @@ int cygterm_get_flag( void ) ;
 #endif
 #ifdef PERSOPORT
 union control * ctrlHostnameEdit = NULL ;
+void MASKPASS( char * password ) ;
 #endif
 
 #define PRINTER_DISABLED_STRING "None (printing disabled)"
@@ -1120,31 +1121,26 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	     * double-click on the list box _and_ that session
 	     * contains a hostname.
 	     */
-	    if (load_selected_session(ssd, dlg, conf, &mbl) &&
+#ifdef PERSOPORT
+	     if (load_selected_session(ssd, dlg, conf, &mbl) &&
 		(mbl && ctrl == ssd->listbox && conf_launchable(conf))) {
-#if (defined IMAGEPORT) && (!defined FDJ) && (defined STARTBUTTON)
-		/*
-			if( (!get_param("PUTTY"))&&(strlen(savedsession)>0) ) {
-			RunSession( hwnd, CurrentFolder, savedsession ) ;	// On charge avec -load
-			//dlg_end(dlg, 0) ;
-			}
-		
-		else
-		
-		
-		if( (!get_param("PUTTY"))&&get_param("BACKGROUNDIMAGE")&&(strlen(savedsession)>0)&&(cfg->bg_type>0) )
-			BackgroundImagePatch( 1 ) ;
-		else
-			*/
-#endif
+		MASKPASS( conf_get_str( conf, CONF_password) );
 		dlg_end(dlg, 1);       /* it's all over, and succeeded */
 	    }
+	MASKPASS( conf_get_str( conf, CONF_password) );
+#else
+	     if (load_selected_session(ssd, dlg, conf, &mbl) &&
+		(mbl && ctrl == ssd->listbox && conf_launchable(conf))) {
+		dlg_end(dlg, 1);       /* it's all over, and succeeded */
+	    }
+#endif
+
 	} else if (ctrl == ssd->savebutton) {
 	    int isdef = !strcmp(ssd->savedsession, "Default Settings");
 #ifdef PERSOPORT
 	if( (get_param("INIFILE")==2/*SAVEMODE_DIR*/) && get_param("DIRECTORYBROWSE") ) {
 		if( !isdef ) { 
-			if( (strlen(conf_get_str(conf,CONF_sessionname)/*cfg->sessionname*/)>0) && (strlen(ssd->savedsession)==0) ) strcpy(ssd->savedsession,conf_get_str(conf,CONF_sessionname)/*cfg->sessionname*/); 
+			if( (strlen(conf_get_str(conf,CONF_sessionname))>0) && (strlen(ssd->savedsession)==0) ) strcpy(ssd->savedsession,conf_get_str(conf,CONF_sessionname)); 
 			}
 		}
 #endif
@@ -1161,9 +1157,13 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	    }
             {
 #ifdef PERSOPORT
-		conf_set_str( conf, CONF_folder, CurrentFolder ) ; //strcpy( cfg->folder, CurrentFolder );
-#endif
+		conf_set_str( conf, CONF_folder, CurrentFolder ) ;
+		MASKPASS( conf_get_str( conf, CONF_password) );
+		char *errmsg = save_settings(ssd->savedsession, conf);
+		MASKPASS( conf_get_str( conf, CONF_password) );
+#else
                 char *errmsg = save_settings(ssd->savedsession, conf);
+#endif
                 if (errmsg) {
                     dlg_error_msg(dlg, errmsg);
                     sfree(errmsg);
@@ -1205,6 +1205,9 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		dlg_end(dlg, 1);
                 return;
             }
+#ifdef PERSOPORT
+	MASKPASS( conf_get_str( conf, CONF_password) );
+#endif
 	    /*
 	     * Annoying special case. If the `Open' button is
 	     * pressed while no host name is currently set, _and_
@@ -2970,19 +2973,18 @@ void setup_config_box(struct controlbox *b, int midsession,
 	    }
 #ifdef PERSOPORT
 	if( !get_param("PUTTY" ) ) {
-	//s = ctrl_getset(b, "Connection", "automatic", "Auto-connect");
 	c = ctrl_editbox(s, "Auto-login password", NO_SHORTCUT, 50,
 		     HELPCTX(no_help),
-		     conf_editbox_handler, I(CONF_password), I(1) ) ; //dlg_stdeditbox_handler, I(offsetof(Config,password)), I(sizeof(((Config *)0)->password)));
+		     conf_editbox_handler, I(CONF_password), I(1) ) ;
 	c->editbox.password = 1;
 	ctrl_editbox(s, "Command", NO_SHORTCUT, 74,
 		     HELPCTX(no_help),
-		     conf_editbox_handler, I(CONF_autocommand), I(1) ) ; // dlg_stdeditbox_handler, I(offsetof(Config,autocommand)),  I(sizeof(((Config *)0)->autocommand)));
+		     conf_editbox_handler, I(CONF_autocommand), I(1) ) ; 
 	ctrl_filesel(s, "Login script file:", NO_SHORTCUT,
 			"Scr Files (*.scr, *.txt)\0*.scr;*.txt\0All Files (*.*)\0*\0\0\0"
 			 ,FALSE, "Select the login script file to load",
 			 HELPCTX(no_help),
-			 conf_scriptfilesel_handler, I(CONF_scriptfile) ) ; // dlg_stdfilesel_handler, I(offsetof(Config, scriptfile)));
+			 conf_scriptfilesel_handler, I(CONF_scriptfile) ) ; 
 	ctrlScriptFileContentEdit = ctrl_editbox(s, "Login script content:", NO_SHORTCUT, 60,
 		     HELPCTX(no_help),
 		     conf_editbox_handler, I(CONF_scriptfilecontent), I(1) ) ;

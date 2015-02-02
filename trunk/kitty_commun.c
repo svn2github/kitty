@@ -5,6 +5,9 @@
 #include "kitty_commun.h"
 #include "kitty_tools.h"
 
+// Flag permettant d'activer l'acces a du code particulier permettant d'avoir plus d'info dans le kitty.dmp
+int debug_flag = 0 ;
+
 #ifdef PERSOPORT
 
 #ifndef SAVEMODE_REG
@@ -144,23 +147,6 @@ int IsPortableMode( void ) {
 int backend_connected = 0 ;
 
 void SetSSHConnected( void ) { backend_connected = 1 ; }
-
-char *dupvprintf(const char *fmt, va_list ap) ;
-void logevent(void *frontend, const char *string);
-
-// Affichage d'un message dans l'event log
-void debug_logevent( const char *fmt, ... ) {
-	va_list ap;
-	char *buf;
-
-	if( debug_flag ) {
-		va_start(ap, fmt);
-		buf = dupvprintf(fmt, ap) ;
-		va_end(ap);
-		logevent(NULL,buf);
-		free(buf);
-		}
-	}
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) { return memset( ptr, 0, cnt ) ; }
 

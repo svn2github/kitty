@@ -179,7 +179,7 @@ pageant.exe: conf.o misc.o pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o \
 		pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o sshmd5.o \
 		sshpubk.o sshrsa.o sshsh256.o sshsh512.o sshsha.o tree234.o \
 		version.o winhelp.o winmisc.o winpgnt.o winpgntc.o \
-		winutils.o kitty_tools.o \
+		winutils.o \
 		kitty_commun.o wincapi.o \
 		../../bcrypt.a ../../mini.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
@@ -316,15 +316,19 @@ puttygen.exe: conf.o import.o misc.o notiming.o puttygen.res.o sshaes.o sshbn.o 
 		sshrand.o sshrsa.o sshrsag.o sshsh256.o sshsh512.o sshsha.o \
 		tree234.o version.o winctrls.o winhelp.o winmisc.o \
 		winnoise.o winnojmp.o winpgen.o winstore.o wintime.o \
-		winutils.o
+		winutils.o kitty_commun.o kitty_registry.o kitty_keygen.o \
+		wincapi.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,puttygen.map conf.o import.o \
 		misc.o notiming.o puttygen.res.o sshaes.o sshbn.o sshdes.o \
 		sshdss.o sshdssg.o sshmd5.o sshprime.o sshpubk.o sshrand.o \
 		sshrsa.o sshrsag.o sshsh256.o sshsh512.o sshsha.o tree234.o \
 		version.o winctrls.o winhelp.o winmisc.o winnoise.o \
 		winnojmp.o winpgen.o winstore.o wintime.o winutils.o \
+		wincapi.o kitty_commun.o kitty_registry.o kitty_keygen.o \
+		../../mini.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 -lole32 \
-		-lshell32 -luser32 -lwinmm -lwinspool
+		-lshell32 -luser32 -lwinmm -lwinspool \
+		-lcrypt32
 
 puttytel.exe: be_nos_s.o cmdline.o conf.o config.o dialog.o ldisc.o ldiscucs.o \
 		logging.o minibidi.o misc.o nocproxy.o nogss.o pinger.o \
@@ -607,7 +611,8 @@ sercfg.o: ../sercfg.c ../putty.h ../dialog.h ../storage.h ../puttyps.h \
 settings.o: ../settings.c ../putty.h ../storage.h ../puttyps.h ../network.h \
 		../misc.h ../windows/winstuff.h ../macosx/osx.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
-		../windows/winhelp.h ../charset/charset.h
+		../windows/winhelp.h ../charset/charset.h \
+		../../kitty_settings.c
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../settings.c
 
 sftp.o: ../sftp.c ../misc.h ../int64.h ../tree234.h ../sftp.h ../puttymem.h
@@ -1135,6 +1140,9 @@ kitty_iv.o: ../../kitty_iv.c ../../kitty_iv.h
 
 kitty_launcher.o: ../../kitty_launcher.c
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_launcher.c -DNO
+
+kitty_keygen.o: ../../kitty_keygen.c
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_keygen.c -DNO
 
 kitty_regex.o: ../../kitty_regex.c ../../kitty_regex.h
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_regex.c

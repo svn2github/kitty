@@ -19,6 +19,7 @@
 #define IDM_SCRIPTFILE 0x0360
 #define IDM_RESIZE 0x0370
 #define IDM_REPOS 0x0380
+#define IDM_EXPORTSETTINGS 0x0390
 
 
 #ifndef SAVEMODE_REG
@@ -86,7 +87,7 @@ static int PasteCommandFlag = 0 ;
 
 // Flag de gestion de la fonction hyperlink
 #ifdef HYPERLINKPORT
-static int HyperlinkFlag = 1 ;
+static int HyperlinkFlag = 0 ;
 #else
 static int HyperlinkFlag = 0 ;
 #endif
@@ -346,7 +347,8 @@ static struct TShortcuts {
 	int viewer ;
 	int visible ;
 	int winscp ;
-	int showportforward
+	int showportforward ;
+	int resetterminal
 	} shortcuts_tab ;
 	
 static int NbShortCuts = 0 ;
@@ -2273,7 +2275,7 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
 		StartWinSCP( hwnd, RemotePath ) ;
-		free( RemotePath ) ;
+		// free( RemotePath ) ; RemotePath = NULL ;
 		return 1 ;
 		}
 	else if( (cmd[0]=='i')&&(cmd[1]=='e')&&(cmd[2]==':') ) { // __ie: Lance un navigateur sur le lien
@@ -2287,7 +2289,7 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
 		StartNewSession( hwnd, RemotePath ) ;
-		free( RemotePath ) ;
+		// free( RemotePath ) ; RemotePath = NULL ;
 		return 1 ;
 		}
 	else if( (cmd[0]=='c')&&(cmd[1]=='m')&&(cmd[2]==':') ) { // __cm: Execute une commande externe
@@ -3215,6 +3217,17 @@ int ShowPortfwd( HWND hwnd, Conf * conf ) {
 	MessageBox( NULL, pf, "Port forwarding", MB_OK ) ;
 	return SetTextToClipboard( pf ) ;
 	}
+	
+	
+void SaveCurrentSetting( HWND hwnd ) {
+	char filename[4096], buffer[4096] ;
+	strcpy( buffer, "Connection files (*.ktx)|*.ktx|All files (*.*)|*.*|" ) ;
+	if( buffer[strlen(buffer)-1]!='|' ) strcat( buffer, "|" ) ;
+	if( SaveFileName( hwnd, filename, "Save file...", buffer ) ) {
+		save_open_settings_forced( filename, conf ) ;
+		}
+	}
+	
 /*
 int ShowPortfwd( HWND hwnd, Conf * conf ) {
 	char pf[2048]="" ;
@@ -3282,10 +3295,14 @@ int InternalCommand( HWND hwnd, char * st ) {
 		MessageBox( NULL, b, "URL regex", MB_OK ) ; return 1 ; 
 	}
 #endif
+	else if( !strcmp( st, "/save" ) ) { 
+		SaveCurrentSetting(hwnd);
+		return 1 ; 
+		}
 #ifdef SAVEDUMPPORT
 	else if( !strcmp( st, "/savedump" ) ) { SaveDump() ; return 1 ; }
 #endif
-#ifdef IMAGEPORT
+#if (defined IMAGEPORT) && (!defined FDJ)
 	else if( !strcmp( st, "/screenshot" ) ) { MakeScreenShot() ; return 1 ; }
 #endif
 	else if( !strcmp( st, "/savereg" ) ) { chdir( InitialDirectory ) ; SaveRegistryKey() ; return 1 ; }
@@ -3374,7 +3391,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 		return 1 ;
 		}
 	else if( !strcmp( st, "/passwd" ) ) {
-		if( strlen( conf_get_str(conf,CONF_password) /*cfg.password*/ ) > 0 ) {
+		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 			char bufpass[128], buffer[1024] ;
 			strcpy( bufpass, conf_get_str(conf,CONF_password) ) ;
 			MASKPASS(bufpass);
@@ -3644,7 +3661,7 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 		}
 
 	// set_debug_text( cmd ) ;
-	// MessageBox( hwnd, cmd, "Command",MB_OK);
+	//MessageBox( hwnd, cmd, "Command",MB_OK);
 	if( debug_flag ) { debug_logevent( "Run: %s", cmd ) ; }
 	RunCommand( hwnd, cmd ) ;
 	memset(cmd,0,strlen(cmd));
@@ -4196,7 +4213,13 @@ int DefineShortcuts( char * buf ) {
 	else if( strstr( pst, "{BREAK}" )==pst ) { key = key + VK_CANCEL ; pst += 7 ; }
 	else if( strstr( pst, "{NUMLOCK}" )==pst ) { key = key + VK_NUMLOCK ; pst += 9 ; }
 	else if( strstr( pst, "{SCROLL}" )==pst ) { key = key + VK_SCROLL ; pst += 8 ; }
-	
+	else if( strstr( pst, "{ADD}" )==pst ) { key = key + VK_ADD ; pst += 5 ; }
+	else if( strstr( pst, "{MULTIPLY}" )==pst ) { key = key + VK_MULTIPLY ; pst += 10 ; }
+	else if( strstr( pst, "{SEPARATOR}" )==pst ) { key = key + VK_SEPARATOR ; pst += 11 ; }
+	else if( strstr( pst, "{SUBTRACT}" )==pst ) { key = key + VK_SUBTRACT ; pst += 10 ; }
+	else if( strstr( pst, "{DECIMAL}" )==pst ) { key = key + VK_DECIMAL ; pst += 9 ; }
+	else if( strstr( pst, "{DIVIDE}" )==pst ) { key = key + VK_DIVIDE ; pst += 8 ; }
+	else if( strstr( pst, "{ATTN}" )==pst ) { key = key + VK_ATTN ; pst += 6 ; }
 	else if( pst[0] == '{' ) {key = 0 ; }
 	else { key = key + toupper(pst[0]) ; }
 	
@@ -4278,6 +4301,7 @@ void InitShortcuts( void ) {
 		shortcuts_tab.imagechange = CONTROLKEY+VK_F11 ;
 	if( !readINI(KittyIniFile,"Shortcuts","rollup",buffer) || ( (shortcuts_tab.rollup=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.rollup = CONTROLKEY+VK_F12 ;
+	if( !readINI(KittyIniFile,"Shortcuts","resetterminal",buffer) || ( (shortcuts_tab.resetterminal=DefineShortcuts(buffer))<=0 ) ) { }
 
 	if( ReadParameter( "Shortcuts", "list", list ) ) {
 		pl=list ;
@@ -4387,6 +4411,8 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		{ SendMessage( hwnd, WM_COMMAND, IDM_TOTRAY, 0 ) ; return 1 ; }
 	else if( key == shortcuts_tab.visible )  		// Always visible 
 			{ SendMessage( hwnd, WM_COMMAND, IDM_VISIBLE, 0 ) ; return 1 ; }
+	else if( key == shortcuts_tab.resetterminal ) 		// Envoi d'un fichier par SCP
+		{ SendMessage( hwnd, WM_COMMAND, IDM_RESET, 0 ) ; return 1 ; }
 #ifndef FDJ
 	else if( key == shortcuts_tab.input ) 			// Fenetre de controle
 			{ MainHwnd = hwnd ; _beginthread( routine_inputbox, 0, (void*)&hwnd ) ;
@@ -4528,6 +4554,12 @@ void LoadParameters( void ) {
 			WinSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( WinSCPPath, buffer ) ;
 			}
 		}
+	if( ReadParameter( INIT_SECTION, "PSCPPath", buffer ) ) {
+		if( existfile( buffer ) ) { 
+			if( PSCPPath!=NULL) { free(PSCPPath) ; PSCPPath = NULL ; }
+			PSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( PSCPPath, buffer ) ;
+			}
+		}
 #ifdef HYPERLINKPORT
 	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  
 		if( !stricmp( buffer, "NO" ) ) HyperlinkFlag = 0 ; 
@@ -4542,7 +4574,7 @@ void LoadParameters( void ) {
 #endif
 
 #if (defined IMAGEPORT) && (!defined FDJ)
-	if( ReadParameter( INIT_SECTION, "shrinkbitmap", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetShrinkBitmapEnable(0) ; }
+	if( ReadParameter( INIT_SECTION, "shrinkbitmap", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SetShrinkBitmapEnable(1) ; else SetShrinkBitmapEnable(0) ; }
 #endif
 	if( readINI( KittyIniFile, "ConfigBox", "height", buffer ) ) {
 		ConfigBoxHeight = atoi( buffer ) ;
@@ -4674,6 +4706,9 @@ void InitWinMain( void ) {
 	
 #ifdef FDJ
 	CreateSSHHandler();
+	CreateFileAssoc() ;
+#else
+	if( !RegTestKey(HKEY_CLASSES_ROOT,"kitty.connect.1") ) { CreateFileAssoc() ; }
 #endif
 
 	// Initialisation de la version binaire

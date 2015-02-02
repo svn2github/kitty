@@ -6,7 +6,7 @@
 #include <windows.h>
 
 // Flag permettant d'activer l'acces a du code particulier permettant d'avoir plus d'info dans le kitty.dmp
-static int debug_flag = 0 ;
+extern int debug_flag ;
 
 // Répertoire de sauvegarde de la configuration (savemode=dir)
 extern char * ConfigDirectory ;
@@ -30,9 +30,6 @@ int IsPortableMode( void ) ;
 extern int backend_connected ;
 
 void SetSSHConnected( void ) ;
-
-// Affichage d'un message dans l'event log
-void debug_logevent( const char *fmt, ... ) ;
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) ;
 

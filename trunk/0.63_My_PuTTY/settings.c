@@ -695,14 +695,13 @@ void save_open_settings(void *sesskey, Conf *conf)
 	write_setting_i(sesskey, "HyperlinkBrowserUseDefault", conf_get_int(conf, CONF_url_defbrowser));
 	write_setting_filename(sesskey, "HyperlinkBrowser", conf_get_filename(conf, CONF_url_browser));
 	write_setting_i(sesskey, "HyperlinkRegularExpressionUseDefault", conf_get_int(conf, CONF_url_defregex));
-	write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
-
 #ifndef NO_HYPERLINK
 	if( !strcmp(conf_get_str(conf, CONF_url_regex),"@°@°@NO REGEX--") ) 
 		write_setting_s(sesskey, "HyperlinkRegularExpression", urlhack_default_regex ) ;
 	else
 		write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
 #else
+	write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
 #endif
 #endif
 #ifdef IVPORT
@@ -778,11 +777,10 @@ void save_open_settings(void *sesskey, Conf *conf)
     sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host)/*cfg->host*/, conf_get_str(conf, CONF_termtype)/*cfg->termtype*/ ) ;
     char pst[128] ;
     strcpy( pst, conf_get_str(conf, CONF_password ) );
-    cryptstring( pst /*cfg->password*/, PassKey ) ;
-    write_setting_s(sesskey, "Password", pst /*cfg->password*/);
+    MASKPASS(pst);
+    cryptstring( pst, PassKey ) ;
+    write_setting_s(sesskey, "Password", pst);
     memset(pst,0,strlen(pst));
-    //decryptstring( pst /*cfg->password*/, PassKey ) ;
-    //conf_set_str( conf, CONF_password, pst) ;
     write_setting_i(sesskey, "CtrlTabSwitch", conf_get_int(conf, CONF_ctrl_tab_switch));
     write_setting_s(sesskey, "Comment", conf_get_str(conf, CONF_comment) );
 #endif
@@ -1309,24 +1307,25 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "ForegroundOnBell", 0, conf, CONF_foreground_on_bell /*&cfg->foreground_on_bell*/);
 
     char PassKey[1024] = "" ;
-    sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host)/*cfg->host*/, conf_get_str(conf, CONF_termtype)/*cfg->termtype*/ ) ;
-    gpps(sesskey, "Password", "", conf, CONF_password /*cfg->password, sizeof(cfg->password)*/);
+    sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    gpps(sesskey, "Password", "", conf, CONF_password );
     char pst[128] ;
-    strcpy( pst, conf_get_str( conf, CONF_password ) );
+    strcpy( pst, conf_get_str( conf, CONF_password ) ) ;
     decryptstring( pst, PassKey ) ;
     
-    if( strlen( pst /*cfg->password*/ ) > 0 ) {
+    if( strlen( pst ) > 0 ) {
 	FILE *fp ;
 	if( ( fp = fopen( "kitty.password", "r") ) != NULL ) { // Affichage en clair du password dans le fichier kitty.password si celui-ci existe
 		fclose( fp ) ;
 		if( ( fp = fopen( "kitty.password", "w" ) ) != NULL ) {
-			fprintf( fp, "%s", pst /*cfg->password*/ ) ;
+			fprintf( fp, "%s", pst ) ;
 			fclose( fp ) ;
 			}
 		}
 	}
-    //MASKPASS(pst);
-    conf_set_str( conf, CONF_password, pst ) ; // decryptstring( cfg->password, PassKey ) ;
+    MASKPASS(pst);
+    conf_set_str( conf, CONF_password, pst ) ;
+    
     memset(pst,0,strlen(pst));
     gppi(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps(sesskey, "Comment", "", conf, CONF_comment );
@@ -1427,3 +1426,6 @@ void get_sesslist(struct sesslist *list, int allocate)
 	list->sessions = NULL;
     }
 }
+#ifdef PERSOPORT
+#include "../kitty_settings.c"
+#endif
