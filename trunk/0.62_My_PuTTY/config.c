@@ -437,7 +437,9 @@ void GetSessionFolderName( const char * session, char * folder ) ;
 void CleanFolderName( char * folder ) ;
 int GetSessionField( const char * session_in, const char * folder, const char * field, char * result ) ;
 char *stristr (const char *meule_de_foin, const char *aiguille) ;
-void RunSession( HWND hwnd, const char * folder_in, char * session_in ) ;
+void RunPuTTY( HWND hwnd, char * param ) ;
+void RunConfig( Config *cfg ) ;
+int RunSession( HWND hwnd, const char * folder_in, char * session_in ) ;
 
 extern int ConfigBoxHeight ;
 extern char ** FolderList ;
@@ -1041,26 +1043,33 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 #ifdef PERSOPORT
 #if (defined IMAGEPORT) && (!defined FDJ) && (defined STARTBUTTON)
 	else if (ctrl == ssd->startbutton) {
+	    int already_run = 0 ;
+	
+	    if( strlen(savedsession)==0 ) if (cfg_launchable(cfg)) { /*RunPuTTY( hwnd, cfg->host ) ;*/ RunConfig( cfg) ; already_run=1; }
+	    if( !already_run ) 
 	    if( strlen(savedsession)>0 ) {
-		if (cfg_launchable(cfg)) { RunSession( hwnd, CurrentFolder, savedsession ) ; }
+		if (cfg_launchable(cfg)) { if( RunSession( hwnd, CurrentFolder, savedsession ) ) { already_run=1 ; } }
 		else { dlg_beep(dlg); }
 		}
-	   else {
-		if( dlg_last_focused(ctrl, dlg) == ssd->listbox && !cfg_launchable(cfg)) {
-		Config cfg2;
-		int mbl = FALSE;
-		if (!load_selected_session(ssd, savedsession, dlg, &cfg2, &mbl)) { dlg_beep(dlg); }
-		/* If at this point we have a valid session, go! */
-		if (mbl && cfg_launchable(&cfg2)) {
-		    *cfg = cfg2;       /* structure copy */
-		    cfg->remote_cmd_ptr = NULL;
-		} else
-		    dlg_beep(dlg);
+	    if( !already_run ) {
+		if( dlg_last_focused(ctrl, dlg) == ssd->listbox /*&& !cfg_launchable(cfg)*/) {
+			Config cfg2;
+			int mbl = FALSE;
+			char *oldsavedsession ;
+			oldsavedsession=(char*)malloc(strlen(savedsession)+1);strcpy(oldsavedsession,savedsession);
+			if (!load_selected_session(ssd, savedsession, dlg, &cfg2, &mbl)) { dlg_beep(dlg); }
+			/* If at this point we have a valid session, go! */
+			if (mbl && cfg_launchable(&cfg2)) {
+				*cfg = cfg2;       /* structure copy */
+				cfg->remote_cmd_ptr = NULL;
+				} else
+				dlg_beep(dlg);
 		    
-		if (cfg_launchable(cfg)) { 
-			RunSession( hwnd, CurrentFolder, savedsession ) ; 
+			if (cfg_launchable(cfg)) { RunSession( hwnd, CurrentFolder, savedsession ) ; already_run=1 ; }
+			strcpy(savedsession,oldsavedsession); free(oldsavedsession);
+			dlg_refresh(ssd->editbox, dlg) ;
+			sessionsaver_handler( ctrlSessionList, dlg, data, EVENT_REFRESH ) ;
 			}
-	    }
 		}
 	    //if (cfg_launchable(cfg)) /* { dlg_end(dlg, 1); } else */ { RunSession( hwnd, CurrentFolder, savedsession ) ; dlg_beep(dlg); }
 	}

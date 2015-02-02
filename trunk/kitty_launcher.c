@@ -413,6 +413,62 @@ void DisplayContextMenu( HWND hwnd, HMENU menu ) {
 
 	}
 	
+void RunConfig( Config *cfg ) {
+		char b[2048];
+		char c[180], *cl;
+		int freecl = FALSE;
+		BOOL inherit_handles;
+		STARTUPINFO si;
+		PROCESS_INFORMATION pi;
+		HANDLE filemap = NULL;
+
+			MASKPASS(cfg->password);
+		    /*
+		     * Allocate a file-mapping memory chunk for the
+		     * config structure.
+		     */
+		    SECURITY_ATTRIBUTES sa;
+		    Config *p;
+
+		    sa.nLength = sizeof(sa);
+		    sa.lpSecurityDescriptor = NULL;
+		    sa.bInheritHandle = TRUE;
+		    filemap = CreateFileMapping(INVALID_HANDLE_VALUE,
+						&sa,
+						PAGE_READWRITE,
+						0, sizeof(Config), NULL);
+		    if (filemap && filemap != INVALID_HANDLE_VALUE) {
+			p = (Config *) MapViewOfFile(filemap,
+						     FILE_MAP_WRITE,
+						     0, 0, sizeof(Config));
+			if (p) {
+			    *p = *cfg;  /* structure copy */
+			    UnmapViewOfFile(p);
+			}
+		    }
+		    inherit_handles = TRUE;
+		    sprintf(c, "putty &%p", filemap);
+		    cl = c;
+		MASKPASS(cfg->password);
+		    
+		GetModuleFileName(NULL, b, sizeof(b) - 1);
+		si.cb = sizeof(si);
+		si.lpReserved = NULL;
+		si.lpDesktop = NULL;
+		si.lpTitle = NULL;
+		si.dwFlags = 0;
+		si.cbReserved2 = 0;
+		si.lpReserved2 = NULL;
+		CreateProcess(b, cl, NULL, NULL, inherit_handles,
+			      NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+
+		if (filemap)
+		    CloseHandle(filemap);
+		if (freecl)
+		    sfree(cl);
+
+	}
+
 void RunPuTTY( HWND hwnd, char * param ) {
 	char buffer[4096]="",shortname[1024]="" ; ;
 	if( GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) 
@@ -425,15 +481,16 @@ void RunPuTTY( HWND hwnd, char * param ) {
 			}
 	}
 
-void RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
+int RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
 	char buffer[4096]="", shortname[1024]="" ;
 	char *session=NULL ;
+	int return_code=0 ;
 	
-	if( session_in==NULL ) return ;
-	if( strlen(session_in) <= 0 ) return ;
+	if( session_in==NULL ) return 0 ;
+	if( strlen(session_in) <= 0 ) return 0 ;
 		
-	if( !GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) return ;
-	if( !GetShortPathName( buffer, shortname, 1023 ) ) return ;
+	if( !GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) return 0 ;
+	if( !GetShortPathName( buffer, shortname, 1023 ) ) return 0 ;
 
 	session = (char*)malloc(strlen(session_in)+100) ;
 	
@@ -453,6 +510,7 @@ void RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
 				else sprintf( buffer, "%s -load \"%s\"", shortname, session ) ;
 				}
 			RunCommand( hwnd, buffer ) ;
+			return_code = 1 ;
 			}
 		else { RunCommand( hwnd, session_in ) ; }
 		}
@@ -486,9 +544,11 @@ void RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
 			}*/
 //MessageBox( hwnd, buffer, "Info", MB_OK ) ;
 		RunCommand( hwnd, buffer ) ;
+		return_code = 1 ;
 		}
 
 	free( session ) ;
+	return return_code ;
 	}
 
 // Gestion de la taille des fenetres de la meme classe
@@ -735,7 +795,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		case WM_COMMAND: {//Commandes du menu
 			switch( LOWORD(wParam) ) {
 				case IDM_ABOUT:
-					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009/2011","About", MB_OK ) ;
+					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2013","About", MB_OK ) ;
 					break ;
 				case IDM_QUIT:
 					ResShell = Shell_NotifyIcon(NIM_DELETE, &TrayIcone) ;

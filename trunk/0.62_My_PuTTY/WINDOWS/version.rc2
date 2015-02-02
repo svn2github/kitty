@@ -126,7 +126,7 @@ BEGIN
 	    VALUE "ProductVersion",	VERSION_TEXT
 	    VALUE "LegalCopyright",	"Copyright \251 1997-2011 Simon Tatham."
 #if (defined PERSOPORT) && (!defined FDJ)
-		VALUE "Comments", "Additional features on KiTTY That's all folks! by 9bis.com, 2012"
+		VALUE "Comments", "Additional features on KiTTY That's all folks! by 9bis.com, 2013"
 		VALUE "Additional Notes", "Ne pas distribuer sans la permission de l'auteur.\0"
 #endif
 #if (!defined SNAPSHOT) && (!defined RELEASE)

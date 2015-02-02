@@ -555,6 +555,9 @@ static void xlatlognam(Filename *dest, Filename src,
 	len -= size;
     }
     *d = '\0';
+#ifdef PERSOPORT
+    int i ; while( (i=poss(":",buffer))>0 ) { buffer[i-1]='-' ;	}
+#endif
 
     *dest = filename_from_str(buffer);
 }

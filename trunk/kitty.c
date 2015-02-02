@@ -182,11 +182,11 @@ static int NoKittyFileFlag = 0 ;
 // Hauteur de la boîte de configuration
 int ConfigBoxHeight = 21 ;
 
-// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
-static int UserPassSSHNoSave = 0 ;
-
 // Hauteur de la fenêtre de la boîte de configuration (0=valeur par defaut)
 static int ConfigBoxWindowHeight = 0 ;
+
+// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
+static int UserPassSSHNoSave = 0 ;
 
 // Flag pour repasser en mode Putty basic
 static int PuttyFlag = 0 ;
@@ -1683,7 +1683,9 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	else { strcat(buffer, filename ) ; }
 	strcat( buffer, "\" " ) ;
 	strcat( buffer, cfg.username ) ; strcat( buffer, "@" ) ;
-	strcat( buffer, cfg.host ) ; strcat( buffer, ":" ) ; strcat( buffer, remotedir ) ;
+	if( poss( ":", cfg.host )>0 ) { strcat( buffer, "[" ) ; strcat( buffer, cfg.host ) ; strcat( buffer, "]" ) ; }
+	else { strcat( buffer, cfg.host ) ; }
+	strcat( buffer, ":" ) ; strcat( buffer, remotedir ) ;
 	//strcat( buffer, " > kitty.log 2>&1" ) ; //if( !system( buffer ) ) unlink( "kitty.log" ) ;
 
 	chdir( InitialDirectory ) ;
@@ -1805,7 +1807,9 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 		}
 	strcat( buffer, "\"" ) ; 
 	strcat( buffer, cfg.username ) ; strcat( buffer, "@" ) ;
-	strcat( buffer, cfg.host ) ; strcat( buffer, ":" ) ; 
+	if( poss( ":", cfg.host )>0 ) { strcat( buffer, "[" ) ; strcat( buffer, cfg.host ) ; strcat( buffer, "]" ) ; }
+	else { strcat( buffer, cfg.host ) ; }
+	strcat( buffer, ":" ) ; 
 	
 	if( filename[0]=='/' ) { strcat(buffer, filename ) ; }
 	else {
@@ -1892,7 +1896,9 @@ void GetFile( HWND hwnd ) {
 					strcat( buffer, "\" " ) ;
 					}
 				strcat( buffer, cfg.username ) ; strcat( buffer, "@" ) ;
-				strcat( buffer, cfg.host ) ; strcat( buffer, ":" ) ;
+				if( poss( ":", cfg.host )>0 ) { strcat( buffer, "[" ) ; strcat( buffer, cfg.host ) ; strcat( buffer, "]" ) ; }
+				else { strcat( buffer, cfg.host ) ; }
+				strcat( buffer, ":" ) ;
 				strcat( buffer, pst ) ; strcat( buffer, " \"" ) ;
 				strcat( buffer, dir ) ; strcat( buffer, "\"" ) ;
 				//strcat( buffer, " > kitty.log 2>&1" ) ;
@@ -3216,7 +3222,9 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 		sprintf( cmd, "%s ftp://%s", shortpath, cfg.username ) ;
 		if( strlen( cfg.password ) > 0 ) 
 			{ strcat( cmd, ":" ); MASKPASS(cfg.password);strcat(cmd,cfg.password );MASKPASS(cfg.password); }
-		strcat( cmd, "@" ) ; strcat( cmd, cfg.host ) ; 
+		strcat( cmd, "@" ) ; 
+		if( poss( ":", cfg.host )>0 ) { strcat( cmd, "[" ) ; strcat( cmd, cfg.host ) ; strcat( cmd, "]" ) ; }
+		else { strcat( cmd, cfg.host ) ; }
 		strcat( cmd, ":21" ) ; //sprintf( buffer, "%d", cfg.port ); strcat( cmd, buffer ) ;
 		if( directory!=NULL ) if( strlen(directory)>0 ) {
 			strcat( cmd, directory ) ;
@@ -3452,8 +3460,10 @@ void ReadInitScript( const char * filename ) {
 			pst[0] = '\0' ;
 			l++ ;
 			fclose( fp ) ;
-			bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
-			WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
+			if( IniFileFlag==SAVEMODE_REG ) {
+				bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
+				WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
+				}
 			}
 		}
 	else {
@@ -3887,7 +3897,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		ResizeWinList( hwnd, cfg.width, cfg.height ) ; return 1 ; 
 		} // Retaille toutes les autres fenetres a la dimension de celle-ci
 
-	if( key == shortcuts_tab.printall ) {
+	if( key == shortcuts_tab.printall ) {		
 		SendMessage( hwnd, WM_COMMAND, IDM_COPYALL, 0 ) ;
 		SendMessage( hwnd, WM_COMMAND, IDM_PRINT, 0 ) ;
 		return 1 ;
@@ -3909,8 +3919,10 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 			logevent(NULL,"Send automatic command");
 			
 			return 1 ; }
-	if( key == shortcuts_tab.print ) 	// Impression presse papier
-		{ SendMessage( hwnd, WM_COMMAND, IDM_PRINT, 0 ) ; return 1 ; }
+	if( key == shortcuts_tab.print ) {	// Impression presse papier
+		SendMessage( hwnd, WM_COMMAND, IDM_PRINT, 0 ) ; 
+		return 1 ; 
+		}
 #ifndef FDJ
 	if( key == shortcuts_tab.inputm )	 		// Fenetre de controle
 			{ 
@@ -4225,25 +4237,16 @@ void InitWinMain( void ) {
 	appname = KiTTYClassName ;
 #endif
 
-	// Teste l'intégrité du programme
-#ifndef NO_TRANSPARENCY
-	FILE *fp = fopen( "kitty.err.log","r" ) ;
-	if( fp==NULL ) {
-		if( !CheckMD5Integrity() ) {
-			fprintf(stderr,"La signature du programme n'est pas bonne\n");
-			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
-			exit(1);
-			}
-		}
-	else { fclose( fp ) ; }
-#endif
-
 	// Initialise le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;
 	
 	// Test le mode de fonctionnement de la sauvegarde des sessions
 	GetSaveMode() ;
-
+	
+	// Initialise la taille de la ConfigBox (en cas de DPI speciaux)
+	double ScaleY = GetDeviceCaps(GetDC(hwnd),LOGPIXELSY)/96.0 ; // La police standard (100%) vaut 96ppp (pixels per pouce)
+	if( ScaleY!=1.0 ) { ConfigBoxWindowHeight = (int)( 597*ScaleY ) ; }
+	
 	// Initialisation des parametres à partir du fichier kitty.ini
 	LoadParameters() ;
 	
@@ -4322,6 +4325,14 @@ void InitWinMain( void ) {
 	// Genère un fichier d'initialisation de toute les Sessions
 	sprintf( buffer, "%s\\kitty.ses.updt", InitialDirectory ) ;
 	if( existfile( buffer ) ) { InitAllSessions( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), "Sessions", buffer ) ; }
+	
+	// Initialise les logs
+	char hostname[4096], username[4096] ;
+	GetUserName( username, (void*)&i ) ;
+	i = 4095 ;
+	GetComputerName( hostname, (void*)&i ) ;
+	sprintf( buffer, "Starting from %s@%s", username, hostname ) ;
+	logevent(NULL,buffer);
 	}
 
 
