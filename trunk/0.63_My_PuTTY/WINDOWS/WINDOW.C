@@ -202,6 +202,7 @@ static HBITMAP caretbm;
 #ifdef HYPERLINKPORT
 #include "urlhack.h"
 static int urlhack_cursor_is_hand = 0;
+void urlhack_enable(void);
 #endif
 
 #ifdef PERSOPORT
@@ -678,6 +679,8 @@ InitWinMain();
 			HyperlinkFlag = 1 ;
 		} else if( !strcmp(p, "-nohyperlink") ) {
 			HyperlinkFlag = 0 ;
+		} else if( !strcmp(p, "-hyperlinkfix") ) {
+			FixWrongRegex();
 #endif
 #endif
 		} else if( !strcmp(p, "-xpos") ) {
@@ -764,13 +767,13 @@ InitWinMain();
 			i++ ;
 			if( strlen(argv[i])>0 ) {
 				load_open_settings_forced( argv[i], conf ) ;
-				if( conf_launchable(conf) ) got_host=1 ;
+				got_host=1;
 			}
 		} else if( !strcmp(p, "-loadfile") ) {
 			i++ ;
 			if( strlen(argv[i])>0 ) {
 				load_open_settings_forced( argv[i], conf ) ;
-				if( conf_launchable(conf) ) got_host=1 ;
+				got_host=1;
 			}
 #endif
 		} else if (!strcmp(p, "-cleanup") ||
@@ -1040,15 +1043,18 @@ int xpos_init=0, ypos_init=0 ;
 		xpos_init=conf_get_int(conf,CONF_xpos) ; //if( xpos_init>(GetSystemMetrics(SM_CXSCREEN)-10) ) xpos_init = 10 ;
 		ypos_init=conf_get_int(conf,CONF_ypos) ; //if( ypos_init>(GetSystemMetrics(SM_CYSCREEN)-10) ) ypos_init = 10 ;
 		}
+
 while( conf_get_int(conf,CONF_icone)/*cfg.icone*/ > GetNumberOfIcons() ) { 
     conf_set_int( conf, CONF_icone, conf_get_int( conf, CONF_icone) - GetNumberOfIcons() ) ;
 }
+    
 if( conf_get_int(conf,CONF_icone)/*cfg.icone*/ == 0 ) {
 	if( GetIconeFlag() > 0 ) SetIconeNum( time( NULL ) % GetNumberOfIcons() ) ; else SetIconeNum( 0 ) ; 
 } else{
 	if( GetIconeFlag() > 0 ) SetIconeNum( conf_get_int(conf,CONF_icone) - 1 ) ; else SetIconeNum( 0 ) ; 
 }
 #endif
+
     if (!prev) {
 	wndclass.style = 0;
 	wndclass.lpfnWndProc = WndProc;
@@ -1161,6 +1167,7 @@ TrayIcone.hWnd = hwnd ;
 		// other location is necessary for our custom window text display for
 		// when we're handling our own border here.
 	}
+
 	hwnd = CreateWindowEx(exwinmode|WS_EX_ACCEPTFILES, appname, winname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
@@ -1273,7 +1280,7 @@ TrayIcone.hWnd = hwnd ;
 
 	popup_menus[SYSMENU].menu = GetSystemMenu(hwnd, FALSE);
 #ifdef TUTTYPORT
-	EnableMenuItem(m, SC_CLOSE, conf_get_int(conf,CONF_window_closable) ? MF_ENABLED : MF_GRAYED);
+	EnableMenuItem(popup_menus[SYSMENU].menu, SC_CLOSE, conf_get_int(conf,CONF_window_closable) ? MF_ENABLED : MF_GRAYED);
 #endif
 	popup_menus[CTXMENU].menu = CreatePopupMenu();
 	AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_PASTE, "&Paste");
@@ -3318,6 +3325,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			}
 			term->url_update = TRUE;
 			term_update(term);
+			urlhack_enable();
 		}
 #endif
 		/* Screen size changed ? */
