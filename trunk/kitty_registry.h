@@ -39,6 +39,14 @@ BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) ;
 // Copie une clé de registre vers une autre
 void RegCopyTree( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) ;
 
+// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+BOOL RegCleanPuTTY( void ) ;
+
+// Creation du SSH Handler
+void CreateSSHHandler() ;
+
+// Vérifie l'existance de la clé de KiTTY sinon la copie depuis PuTTY
+void TestRegKeyOrCopyFromPuTTY( HKEY hMainKey, char * KeyName ) ;
 
 void InitRegistryAllSessions( HKEY hMainKey, LPCTSTR lpSubKey, char * SubKeyName, char * filename, char * text ) ;
 void InitAllSessions( HKEY hMainKey, LPCTSTR lpSubKey, char * SubKeyName, char * filename ) ;

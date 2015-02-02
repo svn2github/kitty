@@ -364,3 +364,193 @@ void RegCopyTree( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) {
  
 	RegCloseKey( hKey ) ;
 }
+
+// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+BOOL RegCleanPuTTY( void ) {
+	HKEY hKey, hSubKey ;
+	DWORD retCode, i;
+	TCHAR    achKey[MAX_KEY_LENGTH];   // buffer for subkey name
+	DWORD    cbName;                   // size of name string 
+	TCHAR    achClass[MAX_PATH] = TEXT("");  // buffer for class name 
+	DWORD    cchClassName = MAX_PATH;  // size of class string 
+	DWORD    cSubKeys=0;               // number of subkeys 
+	DWORD    cbMaxSubKey;              // longest subkey size 
+	DWORD    cchMaxClass;              // longest class string 
+	DWORD    cValues;              // number of values for key 
+	DWORD    cchMaxValue;          // longest value name 
+	DWORD    cbMaxValueData;       // longest value data 
+	DWORD    cbSecurityDescriptor; // size of security descriptor 
+	FILETIME ftLastWriteTime;      // last write time 
+	char *buffer = NULL ;
+#ifdef FDJ
+return 1 ;
+#endif
+	if( (retCode = RegOpenKeyEx ( HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY", 0, KEY_WRITE, &hSubKey)) == ERROR_SUCCESS ) {
+		RegDeleteValue( hSubKey, "Build" ) ;
+		RegDeleteValue( hSubKey, "Folders" ) ;
+		RegDeleteValue( hSubKey, "KiCount" ) ;
+		RegDeleteValue( hSubKey, "KiLastSe" ) ;
+		RegDeleteValue( hSubKey, "KiLastUH" ) ;
+		RegDeleteValue( hSubKey, "KiLastUp" ) ;
+		RegDeleteValue( hSubKey, "KiPath" ) ;
+		RegDeleteValue( hSubKey, "KiSess" ) ;
+		RegDeleteValue( hSubKey, "KiVers" ) ;
+		RegDeleteValue( hSubKey, "CtHelperPath" ) ;
+		RegDeleteValue( hSubKey, "PSCPPath" ) ;
+		RegDeleteValue( hSubKey, "WinSCPPath" ) ;
+		RegDeleteValue( hSubKey, "KiClassName" ) ;
+		RegCloseKey(hSubKey) ;
+		}
+	
+	RegDelTree (HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Commands" ) ;
+	RegDelTree (HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Folders" ) ;
+	RegDelTree (HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Launcher" ) ;
+	
+	// On ouvre la clé
+	if( RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Sessions", 0, KEY_READ|KEY_WRITE, &hKey) != ERROR_SUCCESS ) return 0;
+	
+	retCode = RegQueryInfoKey(
+        hKey,                    // key handle 
+        achClass,                // buffer for class name 
+        &cchClassName,           // size of class string 
+        NULL,                    // reserved 
+        &cSubKeys,               // number of subkeys 
+        &cbMaxSubKey,            // longest subkey size 
+        &cchMaxClass,            // longest class string 
+        &cValues,                // number of values for this key 
+        &cchMaxValue,            // longest value name 
+        &cbMaxValueData,         // longest value data 
+        &cbSecurityDescriptor,   // security descriptor 
+        &ftLastWriteTime);
+	
+	// Enumerate the subkeys, until RegEnumKeyEx fails.
+	if (cSubKeys) {  //printf( "\nNumber of subkeys: %d\n", cSubKeys);
+		for (i=0; i<cSubKeys; i++) { 
+			cbName = MAX_KEY_LENGTH;
+			if( ( retCode = RegEnumKeyEx(hKey, i, achKey, &cbName,NULL,NULL,NULL, &ftLastWriteTime) ) == ERROR_SUCCESS ) {
+				buffer = (char*) malloc( strlen( achKey ) + 50 ) ;
+				sprintf( buffer, "Software\\SimonTatham\\PuTTY\\Sessions\\%s\\Commands", achKey ) ;
+				RegDelTree( HKEY_CURRENT_USER, buffer );
+				sprintf( buffer, "Software\\SimonTatham\\PuTTY\\Sessions\\%s", achKey ) ;
+				if( (retCode = RegOpenKeyEx ( HKEY_CURRENT_USER, buffer, 0, KEY_WRITE, &hSubKey)) == ERROR_SUCCESS ) {
+					RegDeleteValue( hSubKey, "BCDelay" ) ;
+					RegDeleteValue( hSubKey, "BgOpacity" ) ;
+					RegDeleteValue( hSubKey, "BgSlideshow" ) ;
+					RegDeleteValue( hSubKey, "BgType" ) ;
+					RegDeleteValue( hSubKey, "BgImageFile" ) ;
+					RegDeleteValue( hSubKey, "BgImageStyle" ) ;
+					RegDeleteValue( hSubKey, "BgImageAbsoluteX" ) ;
+					RegDeleteValue( hSubKey, "BgImageAbsoluteY" ) ;
+					RegDeleteValue( hSubKey, "BgImagePlacement" ) ;
+					RegDeleteValue( hSubKey, "SendToTray" ) ;
+					RegDeleteValue( hSubKey, "SaveOnExit" ) ;
+					RegDeleteValue( hSubKey, "Folder" ) ;
+					RegDeleteValue( hSubKey, "Icone" ) ;
+					RegDeleteValue( hSubKey, "IconeFile" ) ;
+					RegDeleteValue( hSubKey, "InitDelay" ) ;
+					RegDeleteValue( hSubKey, "Password" ) ;
+					RegDeleteValue( hSubKey, "Autocommand" ) ;
+					RegDeleteValue( hSubKey, "AutocommandOut" ) ;
+					RegDeleteValue( hSubKey, "AntiIdle" ) ;
+					RegDeleteValue( hSubKey, "LogTimestamp" ) ;
+					RegDeleteValue( hSubKey, "Notes" ) ;
+					RegDeleteValue( hSubKey, "CygtermCommand" ) ;
+					RegDeleteValue( hSubKey, "WakeupReconnect" ) ;
+					RegDeleteValue( hSubKey, "FailureReconnect" ) ;
+					RegDeleteValue( hSubKey, "Scriptfile" ) ;
+					RegDeleteValue( hSubKey, "TransparencyValue" ) ;
+					RegDeleteValue( hSubKey, "TermXPos" ) ;
+					RegDeleteValue( hSubKey, "TermYPos" ) ;
+					RegDeleteValue( hSubKey, "AuthPKCS11" ) ;
+					RegDeleteValue( hSubKey, "PKCS11LibFile" ) ;
+					RegDeleteValue( hSubKey, "PKCS11TokenLabel" ) ;
+					RegDeleteValue( hSubKey, "PKCS11CertLabel" ) ;
+					RegDeleteValue( hSubKey, "CopyURLDetection" ) ;
+					RegDeleteValue( hSubKey, "HyperlinkUnderline" ) ;
+					RegDeleteValue( hSubKey, "HyperlinkUseCtrlClick" ) ;
+					RegDeleteValue( hSubKey, "HyperlinkBrowserUseDefault" ) ;
+					RegDeleteValue( hSubKey, "HyperlinkBrowser" ) ;
+					RegDeleteValue( hSubKey, "HyperlinkRegularExpressionUseDefault" ) ;
+					RegDeleteValue( hSubKey, "HyperlinkRegularExpression" ) ;
+					RegDeleteValue( hSubKey, "rzCommand" ) ;
+					RegDeleteValue( hSubKey, "rzOptions" ) ;
+					RegDeleteValue( hSubKey, "szCommand" ) ;
+					RegDeleteValue( hSubKey, "szOptions" ) ;
+					RegDeleteValue( hSubKey, "zDownloadDir" ) ;
+					RegDeleteValue( hSubKey, "SaveWindowPos" ) ;
+					//RegDeleteValue( hSubKey, "" ) ;
+ 					RegCloseKey(hSubKey) ;
+					}
+				free( buffer );
+				}
+			}
+		} 
+ 
+	RegCloseKey( hKey ) ;
+	
+	return 1;
+	}
+
+// Creation du SSH Handler
+void CreateSSHHandler() {
+	char path[1024], buffer[1024] ;
+
+	GetModuleFileName( NULL, (LPTSTR)path, 1024 ) ;
+
+	// Telnet
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "telnet", "", "URL:Telnet Protocol") ;
+	RegTestOrCreateDWORD( HKEY_CLASSES_ROOT, "telnet", "EditFlags", 2) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "telnet", "FriendlyTypeName", "@ieframe.dll,-907") ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "telnet", "URL Protocol", "") ;
+	RegTestOrCreateDWORD( HKEY_CLASSES_ROOT, "telnet", "BrowserFlags", 8) ;
+
+	sprintf(buffer, "%s,0", path ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "telnet\\DefaultIcon", "", buffer ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "telnet\\shell", "", "") ;
+
+	sprintf(buffer, "\"%s\" %%1", path ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "telnet\\shell\\open\\command", "", buffer ) ;
+
+	// SSH
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "ssh", "", "URL:SSH Protocol") ;
+	RegTestOrCreateDWORD( HKEY_CLASSES_ROOT, "ssh", "EditFlags", 2) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "ssh", "FriendlyTypeName", "@ieframe.dll,-907") ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "ssh", "URL Protocol", "") ;
+	RegTestOrCreateDWORD( HKEY_CLASSES_ROOT, "ssh", "BrowserFlags", 8) ;
+
+	sprintf(buffer, "%s,0", path ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "ssh\\DefaultIcon", "", buffer ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "ssh\\shell", "", "") ;
+
+	sprintf(buffer, "\"%s\" %%1", path ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "ssh\\shell\\open\\command", "", buffer ) ;
+
+	// PuTTY
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "putty", "", "URL:PuTTY Protocol") ;
+	RegTestOrCreateDWORD( HKEY_CLASSES_ROOT, "putty", "EditFlags", 2) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "putty", "FriendlyTypeName", "@ieframe.dll,-907") ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "putty", "URL Protocol", "") ;
+	RegTestOrCreateDWORD( HKEY_CLASSES_ROOT, "putty", "BrowserFlags", 8) ;
+
+	sprintf(buffer, "%s,0", path ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "putty\\DefaultIcon", "", buffer ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "putty\\shell", "", "") ;
+
+	sprintf(buffer, "\"%s\" -load \"%%1\"", path ) ;
+	RegTestOrCreate( HKEY_CLASSES_ROOT, "putty\\shell\\open\\command", "", buffer ) ;
+	}
+
+// Vérifie l'existance de la clé de KiTTY sinon la copie depuis PuTTY
+void TestRegKeyOrCopyFromPuTTY( HKEY hMainKey, char * KeyName ) { 
+	HKEY hKey ;
+	if( RegOpenKeyEx( hMainKey, TEXT(KeyName), 0, KEY_READ, &hKey) == ERROR_SUCCESS ) {
+		RegCloseKey( hKey ) ;
+		}
+	else {
+		RegCreateKey( hMainKey, TEXT(KeyName), &hKey ) ;
+		RegCloseKey( hKey ) ;
+#ifndef FDJ
+		RegCopyTree( hMainKey, "Software\\SimonTatham\\PuTTY", TEXT(KeyName) ) ;
+#endif
+		}
+	}

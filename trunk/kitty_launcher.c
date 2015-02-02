@@ -481,7 +481,40 @@ void RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
 	free( session ) ;
 	}
 
+// Gestion de la taille des fenetres de la meme classe
+BOOL CALLBACK ResizeWinListProc( HWND hwnd, LPARAM lParam ) {
+	char buffer[256] ;
+	GetClassName( hwnd, buffer, 256 ) ;
+	
+	if( !strcmp( buffer, KiTTYClassName ) )
+	if( hwnd != MainHwnd ) {
+		RECT * rc = (RECT*) lParam ;
+		LPARAM pos = MAKELPARAM( rc->left, rc->top ) ;
+		LPARAM size = MAKELPARAM( rc->right, rc->bottom ) ;
+		//SendNotifyMessage( hwnd, WM_COMMAND, IDM_RESIZE, size ) ;
+		//SendNotifyMessage( hwnd, WM_COMMAND, IDM_REPOS, pos ) ;
+		PostMessage( hwnd, WM_COMMAND, IDM_REPOS, pos ) ;
+		PostMessage( hwnd, WM_COMMAND, IDM_RESIZE, size ) ;
+		//PostMessage( hwnd, WM_COMMAND, IDM_RESIZEH, rc->bottom ) ;
+		//SetWindowPos( hwnd, 0, 0, 0, rc->right-rc->left+1, rc->bottom-rc->top+1, SWP_NOZORDER|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOACTIVATE ) ;
+		//SetWindowPos( hwnd, 0, 0, 0, 50,50, SWP_NOZORDER|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOACTIVATE);
+		NbWin++ ;
+		}
 
+	return TRUE ;
+	}
+
+int ResizeWinList( HWND hwnd, int width, int height ) {
+	NbWin=0 ;
+	RECT rc;
+	GetWindowRect(hwnd, &rc) ;
+	rc.right = width ;
+	rc.bottom = height ;
+	EnumWindows( ResizeWinListProc, (LPARAM)&rc ) ;
+	SetForegroundWindow( hwnd ) ;
+	return NbWin ;
+	}
+	
 // Gestion Hide/UnHide all
 static int CurrentVisibleWin = -1 ; /* -1 = toutes visibles */
 
@@ -505,6 +538,27 @@ BOOL CALLBACK RefreshWinListProc( HWND hwnd, LPARAM lParam ) {
 int RefreshWinList( HWND hwnd ) {
 	NbWin=0 ;
 	EnumWindows( RefreshWinListProc, 0 ) ;
+	return NbWin ;
+	}
+	
+// Command sender (envoi d'une meme commande a toutes les fenetres)
+BOOL CALLBACK SendCommandProc( HWND hwnd, LPARAM lParam ) {
+	char buffer[256] ;
+	GetClassName( hwnd, buffer, 256 ) ;
+	
+	if( !strcmp( buffer, KiTTYClassName ) )
+	if( hwnd != MainHwnd ) {
+		SendKeyboardPlus( hwnd, (char*)lParam ) ;
+		NbWin++ ;
+		}
+
+	return TRUE ;
+	}
+
+int SendCommandAllWindows( HWND hwnd, char * cmd ) {
+	NbWin=0 ;
+	if( cmd==NULL ) return 0 ;
+	if( strlen(cmd) > 0 ) EnumWindows( SendCommandProc, (LPARAM)cmd ) ;
 	return NbWin ;
 	}
 	

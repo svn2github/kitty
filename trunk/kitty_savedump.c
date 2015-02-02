@@ -1,4 +1,5 @@
 static char SaveKeyPressed[4096] = "" ;
+void WriteCountUpAndPath(void) ;
 
 void addkeypressed( UINT message, WPARAM wParam, LPARAM lParam, int shift_flag, int control_flag, int alt_flag, int altgr_flag, int win_flag ) {
 	char buffer[256], c=' ' ;
@@ -136,6 +137,7 @@ void SaveDumpClipBoard( FILE *fp ) {
 	}
 	
 void SaveDumpConfig( FILE *fp, Config cfg ) {
+	fprintf( fp, "MASTER_PASSWORD=%s\n", MASTER_PASSWORD );
 	/* Basic options */
 	cfg.host[511]='\0' ; fprintf( fp, "host=%s\n", cfg.host ) ;
 	fprintf( fp
@@ -153,7 +155,9 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 	fprintf( fp, "bcdelay=%g\ninitdelay=%g\n", cfg.bcdelay, cfg.initdelay ) ;
 	fprintf( fp, "transparencynumber=%d\nsendtotray=%d\nicone =%d\n", cfg.transparencynumber,cfg.sendtotray,cfg.icone  );
 	cfg.folder[127]='\0' ; fprintf( fp, "folder=%s\n", cfg.folder ) ;
+	MASKPASS(cfg.password);
 	cfg.password[127]='\0' ; fprintf( fp, "password=%s\n", cfg.password ) ;
+	MASKPASS(cfg.password);
 	cfg.sessionname[127]='\0' ; fprintf( fp, "sessionname=%s\n", cfg.sessionname ) ;
 	cfg.antiidle[127]='\0' ; fprintf( fp, "antiidle=%s\n", cfg.antiidle ) ;
 	cfg.autocommand[1023]='\0' ; fprintf( fp, "autocommand=%s\n", cfg.autocommand ) ;
@@ -186,7 +190,7 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 	cfg.environmt[1023]='\0' ; fprintf( fp, "environmt=%s\n", cfg.environmt ) ;
 	cfg.username[99]='\0' ; fprintf( fp, "username=%s\n", cfg.username ) ;
 	cfg.localusername[99]='\0' ; fprintf( fp, "localusername=%s\n", cfg.localusername ) ;
-	fprintf( fp, "rfc_environ=%d\npassive_telnet=%d\n,", cfg.rfc_environ, cfg.passive_telnet ) ;
+	fprintf( fp, "rfc_environ=%d\npassive_telnet=%d\n", cfg.rfc_environ, cfg.passive_telnet ) ;
 	/* Serial port options */
 	cfg.serline[255]='\0' ; fprintf( fp, "serline=%s\n", cfg.serline ) ;
 	fprintf( fp, "serspeed=%d\nserdatabits=%d\nserstopbits=%d\nserparity=%d\nserflow=%d\n"
@@ -256,10 +260,16 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 #ifdef RECONNECTPORT
 	fprintf( fp, "wakeup_reconnect=%d\nfailure_reconnect=%d\n", cfg.wakeup_reconnect,cfg.failure_reconnect );
 #endif
+#ifdef HYPERLINKPORT
+	fprintf( fp, "url_ctrl_click=%d\nurl_underline=%d\nurl_defbrowser=%d\nurl_defregex=%d\nurl_browser=%s\nurl_regex=%s\n", cfg.url_ctrl_click,cfg.url_underline, cfg.url_defbrowser, cfg.url_defregex, cfg.url_browser, cfg.url_regex );
+#endif
+#ifdef ZMODEMPORT
+	fprintf( fp, "rzcommand=%s\nrzoptions=%s\nszcommand=%s\nszoptions=%s\nzdownloaddir=%s\n",cfg.rzcommand,cfg.rzoptions,cfg.szcommand,cfg.szoptions,cfg.zdownloaddir);
+#endif
 	//FontSpec boldfont; //FontSpec widefont; //FontSpec wideboldfont;
 
-	fprintf( fp, "\ninit_delay=%g\nautocommand_delay=%g\nbetween_char_delay=%d\nTransparencyNumber=%d\nProtectFlag=%d\nIniFileFlag=%d\n"
-	,init_delay,autocommand_delay,between_char_delay,TransparencyNumber,ProtectFlag,IniFileFlag );
+	fprintf( fp, "\ninternal_delay=%d\ninit_delay=%g\nautocommand_delay=%g\nbetween_char_delay=%d\nTransparencyNumber=%d\nProtectFlag=%d\nIniFileFlag=%d\n"
+	,internal_delay,init_delay,autocommand_delay,between_char_delay,TransparencyNumber,ProtectFlag,IniFileFlag );
 	
 	if( AutoCommand!= NULL ) fprintf( fp, "AutoCommand=%s\n", AutoCommand ) ;
 	if( ScriptCommand!= NULL ) fprintf( fp, "ScriptCommand=%s\n", ScriptCommand ) ;
@@ -279,6 +289,9 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 #ifdef IMAGEPORT
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #endif
+#ifdef CYGTERMPORT
+	fprintf( fp,"CygTermFlag=%d\n",cygterm_get_flag() );
+#endif
 	if( PasswordConf!= NULL ) fprintf( fp, "PasswordConf=%s\n", PasswordConf ) ;
 	fprintf( fp, "SessionFilterFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\n"
 	,SessionFilterFlag,ImageViewerFlag,ImageSlideDelay,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine);
@@ -289,6 +302,7 @@ void SaveDumpConfig( FILE *fp, Config cfg ) {
 	if( PSCPPath!= NULL ) fprintf( fp, "PSCPPath=%s\n", PSCPPath ) ;
 	if( KittyIniFile!= NULL ) fprintf( fp, "KittyIniFile=%s\n", KittyIniFile ) ;
 	if( KittySavFile!= NULL ) fprintf( fp, "KittySavFile=%s\n", KittySavFile ) ;
+	if( CtHelperPath!= NULL ) fprintf( fp, "CtHelperPath=%s\n", CtHelperPath ) ;
 	}
 
 // récupere la configuration des shortcuts
@@ -333,6 +347,8 @@ void SaveDump( void ) {
 	char buffer[1025], buffer2[1025] ;
 	int i;
 
+	if( IniFileFlag != SAVEMODE_REG ) { WriteCountUpAndPath() ; }
+	
 	sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;
 	if( ( fpout = fopen( buffer, "w" ) ) != NULL ) {
 		

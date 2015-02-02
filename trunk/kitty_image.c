@@ -1,4 +1,21 @@
 
+// Essai de compilation séparée
+#ifdef NO
+#include <windows.h>
+#include "putty.h"
+
+extern Config cfg;
+extern int offset_width, offset_height ;
+extern int font_width, font_height ;
+extern COLORREF colours[NALLCOLOURS] ;
+extern HWND MainHwnd ;
+extern int BackgroundImageFlag ;
+extern int PuttyFlag ;
+
+int stricmp(const char *s1, const char *s2) ;
+int GetSessionField( const char * session_in, const char * folder_in, const char * field, char * result ) ;
+#endif
+
 static void init_dc_blend(void);
 static BOOL (WINAPI * pAlphaBlend)(HDC,int,int,int,int,HDC,int,int,int,int,BLENDFUNCTION) = 0 ;
 
