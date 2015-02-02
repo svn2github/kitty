@@ -1140,13 +1140,13 @@ void CountUp( void ) {
 			{ WriteParameter( INIT_SECTION, "KiPath", buffer) ; }
 			
 	if( ReadParameter( INIT_SECTION, "KiLic", buffer ) == 0 ) { 
-		strcpy( buffer, "KI60" ) ;
+		strcpy( buffer, "KI63" ) ;
 		license_make_with_first( buffer, 25, 97, 0 )  ;
 		license_form( buffer, '-', 5 ) ;
 		WriteParameter( INIT_SECTION, "KiLic", buffer) ; 
 		}
 	else if( !license_test( buffer, '-', 97, 0 ) ) {
-		strcpy( buffer, "KI60" ) ;
+		strcpy( buffer, "KI63" ) ;
 		license_make_with_first( buffer, 25, 97, 0 )  ;
 		license_form( buffer, '-', 5 ) ;
 		WriteParameter( INIT_SECTION, "KiLic", buffer) ; 
@@ -3126,8 +3126,25 @@ int WindowsCount( HWND hwnd ) {
 	EnumWindows( EnumWindowsProc, 0 ) ;
 	return NbWindows ;
 	}
+	
+	
+// Gestion de la fenetre d'affichage des portforward
+// void AddNewPortForwardMsg( char * st) est dans kitty_commun
+extern char*PortForwardMsg ;
+
+int ShowPortfwd( HWND hwnd, Conf * conf ) {
+	if( PortForwardMsg!=NULL ) {
+		MessageBox( NULL, PortForwardMsg, "Running port forwarding", MB_OK ) ;
+		return SetTextToClipboard( PortForwardMsg ) ;
+		}
+	else {
+		MessageBox( NULL, "No port forward", "Running port forwarding", MB_OK ) ;
+		return 1;
+		}
+	}
 
 // Mettre la liste des port forward dans le presse-papier et l'afficher a l'ecran
+	/*
 int ShowPortfwd( HWND hwnd, Conf * conf ) {
 	char pf[2048]="" ;
 	char *key, *val;
@@ -3145,6 +3162,7 @@ int ShowPortfwd( HWND hwnd, Conf * conf ) {
 	MessageBox( NULL, pf, "Port forwarding", MB_OK ) ;
 	return SetTextToClipboard( pf ) ;
 	}
+*/
 /* ANCIENNE PROCEDURE
 int ShowPortfwd( HWND hwnd, char * portfwd ) {
 	char pf[2048], *p ;
@@ -3315,6 +3333,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 		return 1 ;
 		}
 	else if( !strcmp( st, "/redraw" ) ) { InvalidateRect( MainHwnd, NULL, TRUE ) ; return 1 ; }
+	else if( !strcmp( st, "/refresh" ) ) { RefreshBackground( MainHwnd ) ; return 1 ; }
 	else if( strstr( st, "/PrintCharSize " ) == st ) { PrintCharSize=atoi( st+15 ) ; return 1 ; }
 	else if( strstr( st, "/PrintMaxLinePerPage " ) == st ) { PrintMaxLinePerPage=atoi( st+21) ; return 1 ; }
 	else if( strstr( st, "/PrintMaxCharPerLine " ) == st ) { PrintMaxCharPerLine=atoi( st+21 ) ; return 1 ; }
@@ -3707,13 +3726,13 @@ void ManageInitScript( const char * input_str, const int len ) {
 	memcpy( st, input_str, len+1 ) ;
 	for( i=0 ; i<len ; i++ ) if( st[i]=='\0' ) st[i]=' ' ;
 	
-	if( debug_flag ) { debug_log( ">%d|", len ) ; debug_log( "%s|\n", st ) ; }
+	//if( debug_flag ) { debug_log( ">%d|", len ) ; debug_log( "%s|\n", st ) ; }
 
 	if( strstr( st, ScriptFileContent ) != NULL ) {
 		SendKeyboardPlus( MainHwnd, ScriptFileContent+strlen(ScriptFileContent)+1 ) ;
 		l = strlen( ScriptFileContent ) + strlen( ScriptFileContent+strlen(ScriptFileContent)+1 ) + 2 ;
 		
-		if( debug_flag ) { debug_log( "<%d|", l ) ; debug_log( "%s|\n", ScriptFileContent+strlen(ScriptFileContent)+1 ) ; }
+		//if( debug_flag ) { debug_log( "<%d|", l ) ; debug_log( "%s|\n", ScriptFileContent+strlen(ScriptFileContent)+1 ) ; }
 		
 		ScriptFileContent[0]=ScriptFileContent[l] ;
 		i = 0 ;
@@ -3738,12 +3757,17 @@ void ReadInitScript( const char * filename ) {
 			strcpy( name, filename ) ;
 			}
 
-	if( name == NULL ) 
-		if( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path != NULL )
-		if( strlen( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) > 0 ) {
-			name = (char*) malloc( strlen( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) + 1 ) ;
-			strcpy( name, conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) ;
+	if( name == NULL ) {
+		if( strlen(conf_get_str(conf,CONF_scriptfilecontent)) >0 ) {
+			name = (char*) malloc( strlen( conf_get_str(conf,CONF_scriptfilecontent) ) + 1 ) ;
+			strcpy( name, conf_get_str(conf,CONF_scriptfilecontent) ) ;
 			}
+		//if( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path != NULL )
+		//if( strlen( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) > 0 ) {
+		//	name = (char*) malloc( strlen( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) + 1 ) ;
+		//	strcpy( name, conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) ;
+		//	}
+		}
 
 	if( name != NULL ) {
 	if( existfile( name ) ) {
@@ -3770,7 +3794,8 @@ void ReadInitScript( const char * filename ) {
 			fclose( fp ) ;
 			if( IniFileFlag==SAVEMODE_REG ) {
 				bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
-				WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
+				//WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
+				conf_set_str(conf, CONF_scriptfilecontent, buffer );
 				}
 			}
 		if( buffer!=NULL ) { free(buffer); buffer=NULL; }
@@ -4721,6 +4746,9 @@ int return_offset_width(void) { return offset_width ; }
 int return_font_height(void) { return font_height ; }
 int return_font_width(void) { return font_width ; }
 COLORREF return_colours258(void) { return colours[258]; }
+
+// Commandes internes
+int InternalCommand( HWND hwnd, char * st ) ;
 
 // Positionne le repertoire ou se trouve la configuration 
 void SetConfigDirectory( const char * Directory ) ;

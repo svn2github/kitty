@@ -38,4 +38,16 @@ PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) ;
 
 // Fonction permettant de changer le statut du stockage automatique des ssh host keys
 void SetAutoStoreSSHKey( void ) ;
+
+// Gestion de la fenetre d'affichage des portforward
+extern char*PortForwardMsg ;
+void AddNewPortForwardMsg( char * st) ;
+
+#ifdef PORTKNOCKINGPORT
+#define PROTO_TCP 1
+#define PROTO_UDP 2
+int knock( char *hostname, unsigned short port, unsigned short proto) ;
+int ManagePortKnocking( char* host, char *portstr ) ;
+#endif
+
 #endif

@@ -150,6 +150,34 @@ void conf_filesel_handler(union control *ctrl, void *dlg,
     }
 }
 
+#ifdef PERSOPORT
+void ReadInitScript( const char * filename ) ;
+int existfile( const char * filename );
+union control * ctrlScriptFileContentEdit = NULL ;
+void conf_scriptfilesel_handler(union control *ctrl, void *dlg,
+			  void *data, int event)
+{
+    int key = ctrl->fileselect.context.i;
+    Conf *conf = (Conf *)data;
+
+    if (event == EVENT_REFRESH) {
+	dlg_filesel_set(ctrl, dlg, conf_get_filename(conf, key));
+    } else if (event == EVENT_VALCHANGE) {
+	Filename *filename = dlg_filesel_get(ctrl, dlg);
+	if( filename && existfile(filename->path) ) {
+		//conf_set_filename(conf, key, filename);
+		ReadInitScript(filename->path);
+		if( ctrlScriptFileContentEdit ) dlg_editbox_set(ctrlScriptFileContentEdit, dlg, conf_get_str(conf,CONF_scriptfilecontent));
+		 Filename * fn = filename_from_str( "" ) ;
+		conf_set_filename(conf,CONF_scriptfile,fn);
+		dlg_filesel_set(ctrl, dlg,  fn ) ;
+		filename_free(fn);
+		}
+        filename_free(filename);
+    }
+}
+#endif
+
 void conf_fontsel_handler(union control *ctrl, void *dlg,
 			  void *data, int event)
 {
@@ -1368,10 +1396,31 @@ static void charclass_handler(union control *ctrl, void *dlg,
 }
 
 struct colour_data {
+#ifdef TUTTYPORT
+	    union control *listbox, *redit, *gedit, *bedit, *button,
+	*bold_checkbox, *underline_checkbox, *selected_checkbox;
+#else
     union control *listbox, *redit, *gedit, *bedit, *button;
+#endif
 };
 
 static const char *const colours[] = {
+#ifdef TUTTYPORT
+    "Default Foreground", "Default Bold Foreground",
+    "Default Underlined Foreground",
+    "Default Background", "Default Bold Background",
+    "Default Underlined Background",
+    "Cursor Text", "Cursor Colour",
+    "Selected Text Foreground", "Selected Text Background",
+    "ANSI Black", "ANSI Black Bold", "ANSI Black Underlined",
+    "ANSI Red", "ANSI Red Bold", "ANSI Red Underlined",
+    "ANSI Green", "ANSI Green Bold", "ANSI Green Underlined",
+    "ANSI Yellow", "ANSI Yellow Bold", "ANSI Yellow Underlined",
+    "ANSI Blue", "ANSI Blue Bold", "ANSI Blue Underlined",
+    "ANSI Magenta", "ANSI Magenta Bold", "ANSI Magenta Underlined",
+    "ANSI Cyan", "ANSI Cyan Bold", "ANSI Cyan Underlined",
+    "ANSI White", "ANSI White Bold", "ANSI White Underlined"
+#else
     "Default Foreground", "Default Bold Foreground",
     "Default Background", "Default Bold Background",
     "Cursor Text", "Cursor Colour",
@@ -1383,7 +1432,62 @@ static const char *const colours[] = {
     "ANSI Magenta", "ANSI Magenta Bold",
     "ANSI Cyan", "ANSI Cyan Bold",
     "ANSI White", "ANSI White Bold"
+#endif
 };
+
+#ifdef TUTTYPORT
+void dlg_control_enable(union control *ctrl, void *dlg, int enable);
+static const int itemcolour[] = {
+    0, 1, 2, 0, 1, 2, 0, 0, 3, 3, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2,
+    0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
+};
+
+static const int idxcolour[2][2][2][34] = {
+    {
+     {
+      {0, 2, 4, 5, 6, 8, 10, 12, 14, 16,
+       18, 20, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1},		/* 0, 0, 0: !bold && !under && !selected */
+      {0, 2, 4, 5, 32, 33, 6, 8, 10, 12,
+       18, 20, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1}		/* 0, 0, 1: !bold && !under && selected */
+      },
+     {
+      {0, 22, 2, 23, 4, 5, 6, 24, 8, 25,
+       10, 26, 12, 27, 14, 28, 16, 29, 18, 30,
+       20, 31, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1},		/* 0, 1, 0: !bold && under && !selected */
+      {0, 22, 2, 23, 4, 5, 32, 33, 6, 24,
+       8, 25, 10, 26, 12, 27, 14, 28, 16, 29,
+       18, 30, 20, 31, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1}		/* 0, 1, 1: !bold && under && selected */
+      },
+     },
+    {
+     {
+      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+       10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+       20, 21, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1},		/* 1, 0, 0: bold && !under && !selected */
+      {0, 1, 2, 3, 4, 5, 32, 33, 6, 7,
+       8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+       18, 19, 20, 21, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1}		/* 1, 0, 1: bold && !under && selected */
+      },
+     {
+      {0, 1, 22, 2, 3, 23, 4, 5, 6, 7,
+       24, 8, 9, 25, 10, 11, 26, 12, 13, 27,
+       14, 15, 28, 16, 17, 29, 18, 19, 30, 20,
+       21, 31, -1, -1},		/* 1, 1, 0: bold && under && !selected */
+      {0, 1, 22, 2, 3, 23, 4, 5, 32, 33,
+       6, 7, 24, 8, 9, 25, 10, 11, 26, 12,
+       13, 27, 14, 15, 28, 16, 17, 29, 18, 19,
+       30, 20, 21, 31}		/* 1, 1, 1: bold && under && selected */
+      },
+     }
+};
+#endif
 
 static void colour_handler(union control *ctrl, void *dlg,
 			    void *data, int event)
@@ -1393,13 +1497,75 @@ static void colour_handler(union control *ctrl, void *dlg,
 	(struct colour_data *)ctrl->generic.context.p;
     int update = FALSE, clear = FALSE, r, g, b;
 
+#ifdef TUTTYPORT
+    if (ctrl == cd->bold_checkbox) {
+	    	conf_set_int(conf,CONF_bold_colour,1);
+		dlg_control_enable(cd->bold_checkbox, dlg,0);
+	switch (event) {
+	case EVENT_REFRESH:
+	    dlg_checkbox_set(cd->bold_checkbox, dlg, conf_get_int(conf,CONF_bold_colour) );
+	    break;
+	case EVENT_VALCHANGE:
+	    conf_set_int(conf,CONF_bold_colour, dlg_checkbox_get(cd->bold_checkbox, dlg));
+	    dlg_refresh(cd->listbox, dlg);
+	    break;
+	};
+    } else if (ctrl == cd->underline_checkbox) {
+	switch (event) {
+	case EVENT_REFRESH:
+	    dlg_checkbox_set(cd->underline_checkbox, dlg,
+			     conf_get_int(conf,CONF_under_colour) );
+	    break;
+	case EVENT_VALCHANGE:
+	    conf_set_int( conf, CONF_under_colour, dlg_checkbox_get(cd->underline_checkbox, dlg) ) ;
+	    dlg_refresh(cd->listbox, dlg);
+	    break;
+	};
+    } else if (ctrl == cd->selected_checkbox) {
+	switch (event) {
+	case EVENT_REFRESH:
+	    dlg_checkbox_set(cd->selected_checkbox, dlg, conf_get_int(conf,CONF_sel_colour) );
+	    break;
+	case EVENT_VALCHANGE:
+	    conf_set_int( conf, CONF_sel_colour, dlg_checkbox_get(cd->selected_checkbox, dlg) ) ;
+	    dlg_refresh(cd->listbox, dlg);
+	    break;
+	};
+    };
+#endif
     if (event == EVENT_REFRESH) {
 	if (ctrl == cd->listbox) {
 	    int i;
 	    dlg_update_start(ctrl, dlg);
 	    dlg_listbox_clear(ctrl, dlg);
 	    for (i = 0; i < lenof(colours); i++)
+#ifdef TUTTYPORT
+		/* This allows us to hide list items we don't need to
+		 * see: if bold-as-colour (or underline) turned off, we just hide those bold
+		 * choices to decrease user confusion. And, of course, it looks
+		 * lots cooler to have "jumping" controls. Feels more interactive. :)
+		 */
+	    {
+		switch (itemcolour[i]) {
+		case 0:
+		    dlg_listbox_add(ctrl, dlg, colours[i]);
+		    break;
+		case 1:
+		    if (conf_get_int(conf,CONF_bold_colour))
+			dlg_listbox_add(ctrl, dlg, colours[i]);
+		    break;
+		case 2:
+		    if (conf_get_int(conf,CONF_under_colour))
+			dlg_listbox_add(ctrl, dlg, colours[i]);
+		    break;
+		case 3:
+		    if (conf_get_int(conf,CONF_sel_colour))
+			dlg_listbox_add(ctrl, dlg, colours[i]);
+		};
+	    };
+#else
 		dlg_listbox_add(ctrl, dlg, colours[i]);
+#endif
 	    dlg_update_done(ctrl, dlg);
 	    clear = TRUE;
 	    update = TRUE;
@@ -1412,6 +1578,17 @@ static void colour_handler(union control *ctrl, void *dlg,
 		clear = TRUE;
 	    } else {
 		clear = FALSE;
+#ifdef TUTTYPORT
+	    /* I know this looks a bit weird, but I just had no
+	     * other choice. Other way it would break existing code and
+	     * worse yet, existing saved session structure.
+	     * This way, underline colours are stored in last 10
+	     * positions of the colours array, not breaking anything.
+	     * But the price is some weird transformations based on
+	     * predefined index array.
+	     */
+	    i = idxcolour[conf_get_int(conf,CONF_bold_colour)][conf_get_int(conf,CONF_under_colour)][conf_get_int(conf,CONF_sel_colour)][i];
+#endif
 		r = conf_get_int_int(conf, CONF_colours, i*3+0);
 		g = conf_get_int_int(conf, CONF_colours, i*3+1);
 		b = conf_get_int_int(conf, CONF_colours, i*3+2);
@@ -1432,6 +1609,10 @@ static void colour_handler(union control *ctrl, void *dlg,
 
 	    i = dlg_listbox_index(cd->listbox, dlg);
 	    if (i >= 0) {
+#ifdef TUTTYPORT
+    		i = idxcolour[conf_get_int(conf,CONF_bold_colour)][conf_get_int(conf,CONF_under_colour)][conf_get_int(conf,CONF_sel_colour)][i];
+
+#endif
 		if (ctrl == cd->redit)
 		    conf_set_int_int(conf, CONF_colours, i*3+0, cval);
 		else if (ctrl == cd->gedit)
@@ -1452,6 +1633,9 @@ static void colour_handler(union control *ctrl, void *dlg,
 	     * EVENT_CALLBACK when it's finished and allow us to
 	     * pick up the results.
 	     */
+#ifdef TUTTYPORT
+ i = idxcolour[conf_get_int(conf,CONF_bold_colour)][conf_get_int(conf,CONF_under_colour)][conf_get_int(conf,CONF_sel_colour)][i];
+#endif
 	    dlg_coloursel_start(ctrl, dlg,
 				conf_get_int_int(conf, CONF_colours, i*3+0),
 				conf_get_int_int(conf, CONF_colours, i*3+1),
@@ -1465,6 +1649,9 @@ static void colour_handler(union control *ctrl, void *dlg,
 	     * return nonzero on success, or zero if the colour
 	     * selector did nothing (user hit Cancel, for example).
 	     */
+#ifdef TUTTYPORT
+ i = idxcolour[conf_get_int(conf,CONF_bold_colour)][conf_get_int(conf,CONF_under_colour)][conf_get_int(conf,CONF_sel_colour)][i];
+#endif
 	    if (dlg_coloursel_results(ctrl, dlg, &r, &g, &b)) {
 		conf_set_int_int(conf, CONF_colours, i*3+0, r);
 		conf_set_int_int(conf, CONF_colours, i*3+1, g);
@@ -2167,7 +2354,12 @@ void setup_config_box(struct controlbox *b, int midsession,
 		      conf_radiobutton_handler,
 		      I(CONF_funky_type),
 		      "ESC[n~", I(0), "Linux", I(1), "Xterm R6", I(2),
-		      "VT400", I(3), "VT100+", I(4), "SCO", I(5), NULL);
+		      "VT400", I(3), "VT100+", I(4), "SCO", I(5), 
+#ifdef TUTTYPORT
+//		      "AT&T 513", I(6), 
+//		      "Sun Xterm", I(8),
+#endif
+		      NULL);
 
     s = ctrl_getset(b, "Terminal/Keyboard", "appkeypad",
 		    "Application keypad settings:");
@@ -2624,6 +2816,19 @@ void setup_config_box(struct controlbox *b, int midsession,
                       "The colour", I(2),
                       "Both", I(3),
                       NULL);
+#ifdef TUTTYPORT
+    cd = (struct colour_data *) ctrl_alloc(b, sizeof(struct colour_data));
+    memset(cd , 0, sizeof(*cd ));
+    cd->bold_checkbox =
+	ctrl_checkbox(s, "Bolded text is a different colour", NO_SHORTCUT,
+		      HELPCTX(no_help), colour_handler, P(cd));
+    cd->underline_checkbox =
+	ctrl_checkbox(s, "Underlined text is a different colour", NO_SHORTCUT,
+		      HELPCTX(no_help), colour_handler, P(cd));
+    cd->selected_checkbox =
+	ctrl_checkbox(s, "Selected text is a different colour", NO_SHORTCUT,
+		      HELPCTX(no_help), colour_handler, P(cd));
+#endif
 
     str = dupprintf("Adjust the precise colours %s displays", appname);
     s = ctrl_getset(b, "Window/Colours", "adjust", str);
@@ -2632,7 +2837,9 @@ void setup_config_box(struct controlbox *b, int midsession,
 	      " Modify button to change its appearance.",
 	      HELPCTX(colours_config));
     ctrl_columns(s, 2, 67, 33);
+#ifndef TUTTYPORT
     cd = (struct colour_data *)ctrl_alloc(b, sizeof(struct colour_data));
+#endif
     cd->listbox = ctrl_listbox(s, "Select a colour to adjust:", 'u',
 			       HELPCTX(colours_config), colour_handler, P(cd));
     cd->listbox->generic.column = 0;
@@ -2760,9 +2967,12 @@ void setup_config_box(struct controlbox *b, int midsession,
 		     conf_editbox_handler, I(CONF_autocommand), I(1) ) ; // dlg_stdeditbox_handler, I(offsetof(Config,autocommand)),  I(sizeof(((Config *)0)->autocommand)));
 	ctrl_filesel(s, "Login script file:", NO_SHORTCUT,
 			"Scr Files (*.scr, *.txt)\0*.scr;*.txt\0All Files (*.*)\0*\0\0\0"
-			 ,FALSE, "Select login script file",
+			 ,FALSE, "Select the login script file to load",
 			 HELPCTX(no_help),
-			 conf_filesel_handler, I(CONF_scriptfile) ) ; // dlg_stdfilesel_handler, I(offsetof(Config, scriptfile)));
+			 conf_scriptfilesel_handler, I(CONF_scriptfile) ) ; // dlg_stdfilesel_handler, I(offsetof(Config, scriptfile)));
+	ctrlScriptFileContentEdit = ctrl_editbox(s, "Login script content:", NO_SHORTCUT, 60,
+		     HELPCTX(no_help),
+		     conf_editbox_handler, I(CONF_scriptfilecontent), I(1) ) ;
 	}
 #endif
 
@@ -3366,6 +3576,20 @@ void setup_config_box(struct controlbox *b, int midsession,
 			  sshbug_handler, I(CONF_sshbug_maxpkt2));
 	}
     }
+#ifdef PORTKNOCKINGPORT
+    // port knocking panel
+     if( !get_param("PUTTY") ) {
+    ctrl_settitle(b, "Connection/Port knocking",
+		      "Options controlling port knocking") ;
+    s = ctrl_getset(b, "Connection/Port knocking", "PortKnocking",
+			"Port knocking sequence");
+    ctrl_editbox(s, "Sequence:",  NO_SHORTCUT, 100,
+		 HELPCTX(no_help),
+		 conf_editbox_handler, I(CONF_portknockingoptions), I(1));
+    ctrl_text(s, "The sequence is a list of port:protocol separated by comma. Valid protocols are tcp and udp.",HELPCTX(no_help));
+    ctrl_text(s, "Ex: 2001:tcp, 2002:udp",HELPCTX(no_help));
+	}
+#endif
 #ifdef ZMODEMPORT
     // z-modem panel
      if( (!get_param("PUTTY"))&&get_param("ZMODEM") ) {
@@ -3419,6 +3643,17 @@ void setup_config_box(struct controlbox *b, int midsession,
 		     conf_editbox_handler, I(CONF_szoptions), I(1)); // dlg_stdeditbox_handler, I(offsetof(Config,szoptions)),I(sizeof(((Config *)0)->szoptions)));
 /**/
 	}
+#endif
+#ifdef PERSOPORT
+	if( !get_param("PUTTY") ) {
+		ctrl_settitle(b, "Comment", "Options comments");
+		s = ctrl_getset(b, "Comment", "freecomment",
+			"Now you can add comments on your session");
+		ctrl_editbox(s, "Comment", NO_SHORTCUT, 100,
+		 HELPCTX(no_help),
+		 conf_editbox_handler, I(CONF_comment),
+		 I(1));
+		}
 #endif
 }
 

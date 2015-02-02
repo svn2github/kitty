@@ -183,8 +183,8 @@ static enum {
 static int descent;
 
 #ifndef NCFGCOLOURS
-#ifdef IVPORT
-#define NCFGCOLOURS 24
+#ifdef PERSOPORT
+#define NCFGCOLOURS 34
 #else
 #define NCFGCOLOURS 22
 #endif
@@ -1053,6 +1053,14 @@ TrayIcone.hWnd = hwnd ;
 	    winmode &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
 	if (conf_get_int(conf, CONF_alwaysontop))
 	    exwinmode |= WS_EX_TOPMOST;
+#ifdef TUTTYPORT
+	if (!conf_get_int(conf, CONF_window_has_sysmenu))
+	    winmode &= ~(WS_SYSMENU);
+	if (!conf_get_int(conf, CONF_window_minimizable))
+	    winmode &= ~(WS_MINIMIZEBOX);
+	if (!conf_get_int(conf, CONF_window_maximizable))
+	    winmode &= ~(WS_MAXIMIZEBOX);
+#endif
 	if (conf_get_int(conf, CONF_sunken_edge))
 	    exwinmode |= WS_EX_CLIENTEDGE;
 #ifdef PERSOPORT
@@ -1189,6 +1197,9 @@ TrayIcone.hWnd = hwnd ;
 	char *str;
 
 	popup_menus[SYSMENU].menu = GetSystemMenu(hwnd, FALSE);
+#ifdef TUTTYPORT
+	EnableMenuItem(m, SC_CLOSE, conf_get_int(conf,CONF_window_closable) ? MF_ENABLED : MF_GRAYED);
+#endif
 	popup_menus[CTXMENU].menu = CreatePopupMenu();
 	AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_PASTE, "&Paste");
 
@@ -1252,6 +1263,8 @@ TrayIcone.hWnd = hwnd ;
 	}
     }
 #ifdef PERSOPORT
+	// SETTINGS specifique a la session
+    
 	if( !PuttyFlag ) {
 		// Lancement automatique dans le Tray
 		if( conf_get_int(conf,CONF_sendtotray)/*cfg.sendtotray*/ ) AutoSendToTray = 1 ;
@@ -1327,6 +1340,9 @@ else {
 	}
 #endif
 
+#endif
+#ifdef PORTKNOCKINGPORT
+ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
 #endif
 
     start_backend();
@@ -1777,10 +1793,19 @@ static void conftopalette(void)
     static const int ww[] = {
 	256, 257, 258, 259, 260, 261,
 	0, 8, 1, 9, 2, 10, 3, 11,
+#ifdef TUTTYPORT
+	4, 12, 5, 13, 6, 14, 7, 15,
+	262, 263, 264, 265, 266, 267,
+	268, 269, 270, 271, 272, 273
+    };
+
+    for (i = 0; i < NCFGCOLOURS; i++) {
+#else
 	4, 12, 5, 13, 6, 14, 7, 15
     };
 
     for (i = 0; i < 22; i++) {
+#endif
 	int w = ww[i];
 	defpal[w].rgbtRed = conf_get_int_int(conf, CONF_colours, i*3+0);
 	defpal[w].rgbtGreen = conf_get_int_int(conf, CONF_colours, i*3+1);
@@ -3185,6 +3210,10 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		    /* Gracefully unzoom if necessary */
 		    if (IsZoomed(hwnd) && (resize_action == RESIZE_DISABLED))
 			ShowWindow(hwnd, SW_RESTORE);
+#ifdef TUTTYPORT
+		    HMENU m = GetSystemMenu (hwnd, FALSE);
+		    EnableMenuItem(m, SC_CLOSE, conf_get_int(conf,CONF_window_closable) ? MF_ENABLED : MF_GRAYED);
+#endif
 		}
 		/* Pass new config data to the logging module */
 		log_reconfig(logctx, conf);
@@ -3273,7 +3302,19 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		    else
 			nflg |= WS_THICKFRAME;
 
+#ifdef TUTTYPORT
+		    if (!conf_get_int(conf,CONF_window_has_sysmenu))
+			nflg &= ~WS_SYSMENU;
+		    else
+			nflg |= WS_SYSMENU;
+		    if (!conf_get_int(conf,CONF_window_minimizable))
+			nflg &= ~WS_MINIMIZEBOX;
+		    else
+			nflg |= WS_MINIMIZEBOX;
+		    if (resize_action == RESIZE_DISABLED || !conf_get_int(conf,CONF_window_maximizable))
+#else		    
 		    if (resize_action == RESIZE_DISABLED)
+#endif
 			nflg &= ~WS_MAXIMIZEBOX;
 		    else
 			nflg |= WS_MAXIMIZEBOX;
@@ -4893,6 +4934,13 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
 	attr |= (260 << ATTR_FGSHIFT) | (261 << ATTR_BGSHIFT);
         is_cursor = TRUE;
     }
+    
+#ifdef TUTTYPORT
+    if (!conf_get_int(conf,CONF_sel_colour) && (attr & ATTR_SELECTED)) {
+	attr &= ~ATTR_SELECTED;
+	attr |= ATTR_REVERSE;
+    };
+#endif
 
     nfont = 0;
     if (vtmode == VT_POORMAN && lattr != LATTR_NORM) {
@@ -4981,6 +5029,55 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
 	if (nbg < 16) nbg |= 8;
 	else if (nbg >= 256) nbg |= 1;
     }
+#ifdef TUTTYPORT
+    /*
+     * quick & dirty hack: underlined text has colour preference over bold & normal
+     * another one: selected text have absolute preference over all other attributes
+     */
+    if (attr & ATTR_SELECTED) {
+	nfg = 272;
+	nbg = 273;
+    } else {
+	if (conf_get_int(conf,CONF_under_colour) && (nfont & FONT_UNDERLINE)) {
+	    if (nfg < 7)
+		nfg += 264;
+	    else if (nfg > 7 && nfg < 16)
+		nfg += 256;
+	    else
+		switch (nfg) {
+		case 256:
+		    nfg = 262;
+		    break;
+		case 257:
+		    nfg = 262;
+		    break;
+		case 258:
+		    nfg = 263;
+		    break;
+		case 259:
+		    nfg = 263;
+		};
+	    if (nbg < 7)
+		nbg += 264;
+	    else if (nbg > 7 && nbg < 16)
+		nbg += 256;
+	    else
+		switch (nbg) {
+		case 256:
+		    nbg = 262;
+		    break;
+		case 257:
+		    nbg = 262;
+		    break;
+		case 258:
+		    nbg = 263;
+		    break;
+		case 259:
+		    nbg = 263;
+		};
+	};
+    };
+#endif
     fg = colours[nfg];
     bg = colours[nbg];
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -7403,6 +7500,7 @@ void do_beep(void *frontend, int mode)
 				else 
 					flash_window(2) ; 
 				}
+			else { if( conf_get_int(conf,CONF_beep_ind)==B_IND_FLASH ) flash_window(2) ; }
 			}
 	} else if( VisibleFlag==VISIBLE_TRAY ) {
 		if( conf_get_int(conf,CONF_foreground_on_bell)/*cfg.foreground_on_bell*/ ) { SendMessage( MainHwnd, WM_COMMAND, IDM_FROMTRAY, 0 ); }

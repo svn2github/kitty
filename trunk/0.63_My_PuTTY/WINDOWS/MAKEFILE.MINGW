@@ -118,14 +118,15 @@ UPX = upx
 # You may also need to tell windres where to find include files:
 # RCINC = --include-dir c:\cygwin\include\
 
-# 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DPERFPORT -DIVPORT \
+# 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DPERFPORT -DIVPORT -DTUTTYPORT-DPORTKNOCKINGPORT \
 
 # Anciens flags: -DSCPORT
 
 FDJFLAG = FDJ1
 
 CFLAGS = -Wall -O2 -D_WINDOWS -DWIN32S_COMPAT -D$(FDJFLAG) \
-		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DUSE_CAPI -DPERFPORT \
+		-DUSE_CAPI \
+		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DPERFPORT -DTUTTYPORT \
 		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -I.././ -I../../ \
 		-I../charset/ -I../windows/ -I../unix/ -I../mac/ \
 		-I../macosx \
@@ -1253,8 +1254,8 @@ putty_notrans.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.
 		winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_tools.o kitty_win.o \
-		../../url.a 
-	$(CPP) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
+		urlhack.o regexp.o
+	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o config.o conf.o cproxy.o dialog.o ldisc.o ldiscucs.o \
 		logging.o minibidi.o misc.o pgssapi.o pinger.o portfwd.o \
 		proxy.o putty.res.o raw.o rlogin.o sercfg.o settings.o \
@@ -1268,7 +1269,7 @@ putty_notrans.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.
 		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_tools.o kitty_win.o \
-		../../url.a \
+		urlhack.o regexp.o \
 		../../bcrypt.a ../../libjpeg.a ../../libregex.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
@@ -1289,8 +1290,8 @@ putty_portable.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc
 		winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_tools.o kitty_win.o \
-		../../url.a 
-	$(CPP) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
+		urlhack.o regexp.o
+	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o ldiscucs.o \
 		logging.o minibidi.o misc.o pgssapi.o pinger.o portfwd.o \
 		proxy.o putty.res.o raw.o rlogin.o sercfg.o settings.o \
@@ -1304,7 +1305,7 @@ putty_portable.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc
 		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_tools.o kitty_win.o \
-		../../url.a \
+		urlhack.o regexp.o \
 		../../bcrypt.a ../../libjpeg.a ../../libregex.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
@@ -1325,8 +1326,8 @@ putty_zmodem.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o
 		winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_tools.o kitty_win.o \
-		../../url.a 
-	$(CPP) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
+		urlhack.o regexp.o
+	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o ldiscucs.o \
 		logging.o minibidi.o misc.o pgssapi.o pinger.o portfwd.o \
 		proxy.o putty.res.o raw.o rlogin.o sercfg.o settings.o \
@@ -1340,7 +1341,7 @@ putty_zmodem.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o
 		winser.o winstore.o wintime.o winucs.o winutils.o winx11.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_tools.o kitty_win.o \
-		../../url.a \
+		urlhack.o regexp.o \
 		../../bcrypt.a ../../libjpeg.a ../../libregex.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \

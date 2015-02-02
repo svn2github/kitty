@@ -4639,6 +4639,7 @@ static void ssh_setup_portfwd(Ssh ssh, Conf *conf)
 	    } else {
 		pfrec->status = CREATE;
 	    }
+
 	} else {
 	    sfree(saddr);
 	    sfree(host);
@@ -4652,7 +4653,6 @@ static void ssh_setup_portfwd(Ssh ssh, Conf *conf)
     for (i = 0; (epf = index234(ssh->portfwds, i)) != NULL; i++)
 	if (epf->status == DESTROY) {
 	    char *message;
-
 	    message = dupprintf("%s port forwarding from %s%s%d",
 				epf->type == 'L' ? "local" :
 				epf->type == 'R' ? "remote" : "dynamic",
@@ -4830,6 +4830,26 @@ static void ssh_setup_portfwd(Ssh ssh, Conf *conf)
 	    sfree(sportdesc);
 	    sfree(dportdesc);
 	}
+#ifdef PERSOPORT
+for (i = 0; (epf = index234(ssh->portfwds, i)) != NULL; i++) {
+	char buf[1024]="";
+	if( epf->type=='R' )
+	sprintf( buf, "[%c] %c\t %s:%d \t<-- \t%s%d\n"
+		, epf->status==DESTROY?'D':epf->status==KEEP?'K':epf->status==CREATE?'C':'?', epf->type 
+		, epf->daddr==NULL?"":epf->daddr, epf->dport
+		, epf->saddr==NULL?"":epf->saddr, epf->sport
+		//, epf->sserv, epf->dserv
+		) ;
+	else
+	sprintf( buf, "[%c] %c\t %s%d \t\t--> \t%s:%d\n"
+		, epf->status==DESTROY?'D':epf->status==KEEP?'K':epf->status==CREATE?'C':'?', epf->type 
+		, epf->saddr==NULL?"":epf->saddr, epf->sport
+		, epf->daddr==NULL?"":epf->daddr, epf->dport
+		//, epf->sserv, epf->dserv
+		) ;
+	AddNewPortForwardMsg(buf);
+	}
+#endif
 }
 
 static void ssh1_smsg_stdout_stderr_data(Ssh ssh, struct Packet *pktin)
@@ -8590,10 +8610,14 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 				   FALSE);
 #ifdef PERSOPORT
 			if( strlen(ManagePassPhrase(NULL))>0 ) {
-				strcpy( s->cur_prompt->prompts[0]->result, ManagePassPhrase(NULL) ) ;
+				//strcpy( s->cur_prompt->prompts[0]->result, ManagePassPhrase(NULL) ) ;
+				char *p=ManagePassPhrase(NULL) ;
+				
+				ret=get_userpass_input(s->cur_prompt, p, strlen(p)+1);
+			
 				logevent("Test passphrase");
 				ManagePassPhrase("");
-				ret = 1 ;
+				ret=1;
 				}
 			else
 #endif

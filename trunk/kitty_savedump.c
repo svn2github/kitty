@@ -160,6 +160,7 @@ void SaveDumpEnvironment( FILE *fp ) {
 	}
 	
 void SaveDumpConfig( FILE *fp, Conf * conf ) {
+	char *buf=NULL ;
 	CountUp();
 	fprintf( fp, "MASTER_PASSWORD=%s\n", MASTER_PASSWORD ) ;
 	fprintf( fp, "[[PuTTY structure configuration]]\n" ) ;
@@ -205,6 +206,16 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "autocommand=%s\n",		conf_get_str(conf,CONF_autocommand) ) ;
 	fprintf( fp, "autocommandout=%s\n",		conf_get_str(conf,CONF_autocommandout) ) ;
 	fprintf( fp, "scriptfile=%s\n",			conf_get_filename(conf,CONF_scriptfile)->path ) ;
+	fprintf( fp, "scriptfilecontent=%s",		conf_get_str(conf,CONF_scriptfilecontent) ) ;
+	
+	buf=(char*)malloc( strlen(conf_get_str(conf,CONF_scriptfilecontent)) + 20 ) ;
+	strcpy( buf, conf_get_str(conf,CONF_scriptfilecontent) ) ;
+	long l=decryptstring( buf, MASTER_PASSWORD ) ;
+	int i;
+	for( i=0; i<l ; i++ ) { if( buf[i]=='\0' ) buf[i]='\n' ; }
+	fprintf( fp, " (%s)\n", buf ) ;
+	free(buf);
+	buf=NULL;
 
 	/* SSH options */
 	fprintf( fp, "remote_cmd=%s\n",			conf_get_str(conf,CONF_remote_cmd) ) ;
@@ -407,6 +418,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "scrollbar_on_left=%d\n",		conf_get_int(conf,CONF_scrollbar_on_left) ) ;
 	fprintf( fp, "shadowbold=%d\n",			conf_get_int(conf,CONF_shadowbold) ) ;
 	fprintf( fp, "shadowboldoffset=%d\n",		conf_get_int(conf,CONF_shadowboldoffset) ) ;
+	fprintf( fp, "comment=%s\n",			conf_get_str(conf,CONF_comment) ) ;
 #ifdef RECONNECTPORT
 	fprintf( fp, "wakeup_reconnect=%d\n",		conf_get_int(conf,CONF_wakeup_reconnect) ) ;
 	fprintf( fp, "failure_reconnect=%d\n",		conf_get_int(conf,CONF_failure_reconnect) ) ;
@@ -425,6 +437,19 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "szcommand=%s\n",			conf_get_filename(conf,CONF_szcommand)->path ) ;
 	fprintf( fp, "szoptions=%s\n",			conf_get_str(conf,CONF_szoptions) ) ;
 	fprintf( fp, "zdownloaddir=%s\n",		conf_get_str(conf,CONF_zdownloaddir) ) ;
+#endif
+#ifdef TUTTYPORT
+	fprintf( fp, "window_closable=%d\n",		conf_get_int(conf,CONF_window_closable) ) ; 
+	fprintf( fp, "window_minimizable=%d\n",		conf_get_int(conf,CONF_window_minimizable) ) ; 
+	fprintf( fp, "window_maximizable=%d\n",		conf_get_int(conf,CONF_window_maximizable) ) ; 
+	fprintf( fp, "window_has_sysmenu=%d\n",		conf_get_int(conf,CONF_window_has_sysmenu) ) ; 
+	fprintf( fp, "bottom_buttons=%d\n",		conf_get_int(conf,CONF_bottom_buttons) ) ; 
+	fprintf( fp, "bold_colour=%d\n",		conf_get_int(conf,CONF_bold_colour) ) ; 
+	fprintf( fp, "under_colour=%d\n",		conf_get_int(conf,CONF_under_colour) ) ; 
+	fprintf( fp, "sel_colour=%d\n",			conf_get_int(conf,CONF_sel_colour) ) ; 
+#endif
+#ifdef PORTKNOCKINGPORT
+	fprintf( fp, "portknocking=%s\n",		conf_get_str(conf,CONF_portknockingoptions) ) ;
 #endif
 	//FontSpec boldfont; //FontSpec widefont; //FontSpec wideboldfont;
 
@@ -466,6 +491,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	if( KittyIniFile!= NULL ) fprintf( fp, "KittyIniFile=%s\n", KittyIniFile ) ;
 	if( KittySavFile!= NULL ) fprintf( fp, "KittySavFile=%s\n", KittySavFile ) ;
 	if( CtHelperPath!= NULL ) fprintf( fp, "CtHelperPath=%s\n", CtHelperPath ) ;
+	if( strlen(ManagePassPhrase(NULL))>0 ) fprintf( fp, "PassPhrase=%s\n", ManagePassPhrase(NULL)) ;
 	}
 
 // recupere la configuration des shortcuts
@@ -560,6 +586,10 @@ void SaveDump( void ) {
 		fputs( "\n@ RunningProcess @\n\n", fpout ) ;
 		PrintAllProcess( fpout ) ; fflush( fpout ) ;
 
+		fputs( "\n@ CurrentEventLog @\n\n", fpout ) ;
+		i=0 ; while( print_event_log( fpout, i ) ) { i++ ; }
+		fflush( fpout ) ;
+		
 		fputs( "\n@ ClipBoardContent @\n\n", fpout ) ;
 		SaveDumpClipBoard( fpout ) ; fflush( fpout ) ;
 
@@ -580,10 +610,6 @@ void SaveDump( void ) {
 			}
 		fflush( fpout ) ;
 			
-		fputs( "\n@ CurrentEventLog @\n\n", fpout ) ;
-		i=0 ; while( print_event_log( fpout, i ) ) { i++ ; }
-		fflush( fpout ) ;
-
 		if( DebugText!= NULL ) {
 			fputs( "\n@ Debug @\n\n", fpout ) ;
 			fprintf( fpout, "%s\n",  DebugText ) ;

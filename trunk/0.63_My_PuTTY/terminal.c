@@ -5062,8 +5062,12 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 				posPlt(scrpos, term->selend));
 	    } else
 		selected = FALSE;
+#ifdef TUTTYPORT
+	    tattr = (tattr ^ rv ^ (selected ? ATTR_SELECTED : 0));
+#else
 	    tattr = (tattr ^ rv
 		     ^ (selected ? ATTR_REVERSE : 0));
+#endif
 
 	    /* 'Real' blinking ? */
 	    if (term->blink_is_real && (tattr & ATTR_BLINK)) {
