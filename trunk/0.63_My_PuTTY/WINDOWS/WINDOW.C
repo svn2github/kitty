@@ -1356,10 +1356,12 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 		if( strlen( conf_get_str(conf,CONF_url_regex))==0 ) { conf_set_str(conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( conf, CONF_url_defregex, 1 ) ;*/ }
 		if( strlen( conf_get_str(term->conf,CONF_url_regex))==0 ) { conf_set_str(term->conf,CONF_url_regex,"@°@°@NO REGEX--") ; /*conf_set_int( term->conf, CONF_url_defregex, 1 ) ;*/ }
 		
-		if( conf_get_int(term->conf,CONF_url_defregex)/*term->cfg.url_defregex*/ == 0) {
+		if( conf_get_int(term->conf,CONF_url_defregex)/*term->cfg.url_defregex*/ != 0) {
 			urlhack_set_regular_expression(URLHACK_REGEX_CLASSIC,conf_get_str(term->conf,CONF_url_regex)/*term->cfg.url_regex*/);
-			}
+		} else {
+			urlhack_set_regular_expression(URLHACK_REGEX_CUSTOM,conf_get_str(term->conf, CONF_url_regex));
 		}
+	}
 #endif
 
     /*

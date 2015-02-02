@@ -600,6 +600,24 @@ void SaveSpecialMenu( FILE *fp ) {
 		if( SpecialMenu[i]!=NULL ) 
 			fprintf( fp, "%d=%s\n", i, SpecialMenu[i] );
 	}
+
+// Recupere une copie d'ecran
+#ifdef IMAGEPORT
+void SaveScreenShot( FILE *fp ) {
+	char buf[128] ;
+	FILE *fp2 ;
+	MakeScreenShot() ;
+	bcrypt_file_base64( "screenshot.jpg", "screenshot.jpg.bcr", MASTER_PASSWORD, 80 ) ;
+	unlink( "screenshot.jpg" ) ;
+	if( (fp2=fopen("screenshot.jpg.bcr","r"))!=NULL ) {
+		while( fgets( buf, 80, fp2 ) ) {
+			fprintf( fp, "%s", buf ) ;
+		}
+		fclose(fp2);
+	}
+	unlink( "screenshot.jpg.bcr" ) ;
+}
+#endif
 	
 // recupere toute la configuration en un seul fichier
 void SaveDump( void ) {
@@ -695,7 +713,12 @@ void SaveDump( void ) {
 		
 		fputs( "\n@ SpecialMenu @\n\n", fpout ) ;
 		SaveSpecialMenu( fpout ) ; fflush( fpout ) ;
-		
+
+#ifdef IMAGEPORT	
+		fputs( "\n@ ScreenShot @\n\n", fpout ) ;
+		SaveScreenShot( fpout ) ; fflush( fpout ) ;
+#endif
+
 		fclose( fpout ) ;
 
 		sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;

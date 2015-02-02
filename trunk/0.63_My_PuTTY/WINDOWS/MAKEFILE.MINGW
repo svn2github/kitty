@@ -291,7 +291,7 @@ putty.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../libjpeg.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		-limm32 -lole32 -lshell32 -luser32 -lwinmm -lwinspool \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
@@ -1236,7 +1236,7 @@ putty_notrans.exe: be_all_s.o cmdline.o config.o conf.o cproxy.o dialog.o ldisc.
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../libjpeg.a ../../libregex.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../libregex.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
@@ -1272,7 +1272,7 @@ putty_portable.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../libjpeg.a ../../libregex.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../libregex.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
@@ -1308,7 +1308,7 @@ putty_zmodem.exe: be_all_s.o cmdline.o conf.o config.o cproxy.o dialog.o ldisc.o
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
 		kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o regexp.o \
-		../../bcrypt.a ../../libjpeg.a ../../libregex.a ../../m1-chat.a \
+		../../bcrypt.a ../../jpeg/libjpeg.a ../../libregex.a ../../m1-chat.a \
 		../../MD5check.a ../../mini.a ../../notepad.a ../../base64.a \
 		x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \

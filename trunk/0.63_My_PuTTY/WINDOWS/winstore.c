@@ -56,6 +56,7 @@ static char seedpath[2 * MAX_PATH + 10] = "\0";
 static char sesspath[2 * MAX_PATH] = "\0";
 static char initialsesspath[2 * MAX_PATH] = "\0";
 static char sshkpath[2 * MAX_PATH] = "\0";
+static char jumplistpath[2 * MAX_PATH] = "\0";
 static char oldpath[2 * MAX_PATH] = "\0";
 static char sessionsuffix[16] = "\0";
 static char keysuffix[16] = "\0";
@@ -263,6 +264,8 @@ int loadPath() {
 		strcpy(initialsesspath,sesspath);
 		strcpy(sshkpath, GetConfigDirectory());
 		strcat(sshkpath, "\\SshHostKeys");
+		strcpy(jumplistpath, GetConfigDirectory());
+		strcat(jumplistpath, "\\Jumplist");
 		strcpy(seedpath, GetConfigDirectory());
 		strcat(seedpath, "\\putty.rnd");
 		}
@@ -272,6 +275,8 @@ int loadPath() {
 		strcpy(initialsesspath,sesspath);
 		strcpy(sshkpath, puttypath);
 		strcat(sshkpath, "\\SshHostKeys");
+		strcpy(jumplistpath, puttypath);
+		strcat(jumplistpath, "\\Jumplist");
 		strcpy(seedpath, puttypath);
 		strcat(seedpath, "\\putty.rnd");
 		}
@@ -319,6 +324,14 @@ int loadPath() {
 					*p = '\0';
 					joinPath(sshkpath, puttypath, p2);
 					p2 = sshkpath+strlen(sshkpath)-1;
+					while ((*p2 == ' ')||(*p2 == '\n')||(*p2 == '\r')||(*p2 == '\t')) --p2;
+					*(p2+1) = '\0';
+				}
+				else if (!strcmp(p, "Jumplist")) {
+					p = strchr(p2, '\n');
+					*p = '\0';
+					joinPath(jumplistpath, puttypath, p2);
+					p2 = jumplistpath+strlen(jumplistpath)-1;
 					while ((*p2 == ' ')||(*p2 == '\n')||(*p2 == '\r')||(*p2 == '\t')) --p2;
 					*(p2+1) = '\0';
 				}
@@ -397,6 +410,7 @@ void SaveDumpPortableConfig( FILE * fp ) {
 	fprintf( fp, "sesspath=%s\n", sesspath ) ;
 	fprintf( fp, "initialsesspath=%s\n", initialsesspath ) ;
 	fprintf( fp, "sshkpath=%s\n", sshkpath ) ;
+	fprintf( fp, "jumplistpath=%s\n", jumplistpath ) ;
 	fprintf( fp, "oldpath=%s\n", oldpath ) ;
 	fprintf( fp, "sessionsuffix=%s\n", sessionsuffix ) ;
 	fprintf( fp, "keysuffix=%s\n", keysuffix ) ;

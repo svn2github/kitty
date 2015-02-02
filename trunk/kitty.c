@@ -3276,9 +3276,17 @@ int InternalCommand( HWND hwnd, char * st ) {
 	else if( !strcmp( st, "/debug" ) ) { debug_flag = abs( debug_flag - 1 ) ; return 1 ; }
 #ifdef HYPERLINKPORT
 	else if( !strcmp( st, "/hyperlink" ) ) { HyperlinkFlag = abs( HyperlinkFlag - 1 ) ; return 1 ; }
+	else if( !strcmp( st, "/urlregex" ) ) { 
+		char b[1024] ;
+		sprintf(b,"%d: %s",conf_get_int(term->conf,CONF_url_defregex),conf_get_str(conf,CONF_url_regex));
+		MessageBox( NULL, b, "URL regex", MB_OK ) ; return 1 ; 
+	}
 #endif
 #ifdef SAVEDUMPPORT
 	else if( !strcmp( st, "/savedump" ) ) { SaveDump() ; return 1 ; }
+#endif
+#ifdef IMAGEPORT
+	else if( !strcmp( st, "/screenshot" ) ) { MakeScreenShot() ; return 1 ; }
 #endif
 	else if( !strcmp( st, "/savereg" ) ) { chdir( InitialDirectory ) ; SaveRegistryKey() ; return 1 ; }
 	else if( !strcmp( st, "/savesessions" ) ) { 
@@ -4698,19 +4706,6 @@ void InitWinMain( void ) {
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( strlen( buffer ) > 0 ) strcpy( KiTTYClassName, buffer ) ; }
 	appname = KiTTYClassName ;
-#endif
-
-	// Teste l'integrite du programme
-#ifndef NO_TRANSPARENCY
-	FILE *fp = fopen( "kitty.err.log","r" ) ;
-	if( fp==NULL ) {
-		if( !CheckMD5Integrity() ) {
-			fprintf(stderr,"La signature du programme n'est pas bonne\n");
-			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
-			exit(1);
-			}
-		}
-	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus
