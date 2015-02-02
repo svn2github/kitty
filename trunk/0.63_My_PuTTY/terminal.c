@@ -1284,7 +1284,6 @@ void term_update(Terminal *term)
 {
     Context ctx;
     term->window_update_pending = FALSE;
-
     ctx = get_ctx(term->frontend);
     if (ctx) {
 	int need_sbar_update = term->seen_disp_event;
@@ -1293,7 +1292,6 @@ void term_update(Terminal *term)
 	    term->seen_disp_event = 0;
 	    need_sbar_update = TRUE;
 	}
-
 	if (need_sbar_update)
 	    update_sbar(term);
 	do_paint(term, ctx, TRUE);
@@ -5040,7 +5038,6 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 					urlhack_toggle_y = urlhack_region.y0;
 				}
 			}
-
 			if (urlhack_is_link == 1 && urlhack_hover_current == 1) {	
 				tattr |= ATTR_UNDER;
 			}
@@ -6027,17 +6024,29 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	      case MA_CLICK:
 #ifdef HYPERLINKPORT
 	        if( !get_param("PUTTY") && get_param("HYPERLINK") ) {
+#ifdef PUTTYXPORT
+		if (term->mouse_is_down == braw && braw != MBT_WHEEL_UP && braw != MBT_WHEEL_DOWN) {// HACK: ADDED FOR hyperlink stuff  // MORE HACKING (@unphased: allow sequences of mouse wheel up and mouse wheel down to pass through)
+#else
 		if (term->mouse_is_down == braw) {// HACK: ADDED FOR hyperlink stuff
+#endif
 			unlineptr(ldata); 
 			return;
 			}	      
 		}
 		else {
-		if (term->mouse_is_down == braw)
+#ifdef PUTTYXPORT
+		if (term->mouse_is_down == braw && braw != MBT_WHEEL_UP && braw != MBT_WHEEL_DOWN) // MORE HACKING (@unphased: allow sequences of mouse wheel up and mouse wheel down to pass through)
+#else
+	        if (term->mouse_is_down == braw)
+#endif
 		    return;
 		}
 #else
+#ifdef PUTTYXPORT
+		if (term->mouse_is_down == braw && braw != MBT_WHEEL_UP && braw != MBT_WHEEL_DOWN) // MORE HACKING (@unphased: allow sequences of mouse wheel up and mouse wheel down to pass through)
+#else
 		if (term->mouse_is_down == braw)
+#endif
 		    return;
 #endif
 		term->mouse_is_down = braw;
@@ -6648,6 +6657,8 @@ term_mouse(term, b, translate_button(b), MA_DRAG,
 
 
 Fonction term_mouse dans TERMINAL.C
+Ligne 1298:     A priori le problème est dans term_update(term) ;  
 
-Ligne 6263:     A priori le problème est dans term_update(term);  A verifier ??? 
+Fonction term_update dans TERMINAL.C
+Ligne 1297: 		do_paint(term, ctx, TRUE);
 */

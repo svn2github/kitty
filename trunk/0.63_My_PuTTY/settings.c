@@ -581,7 +581,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "WindowMaximizable", conf_get_int(conf, CONF_window_maximizable) );
     write_setting_i(sesskey, "WindowHasSysMenu", conf_get_int(conf, CONF_window_has_sysmenu) );
     write_setting_i(sesskey, "DisableBottomButtons", conf_get_int(conf, CONF_bottom_buttons) );
-    write_setting_i(sesskey, "BoldAsColour", conf_get_int(conf, CONF_bold_colour) );
+    write_setting_i(sesskey, "BoldAsColourTest", conf_get_int(conf, CONF_bold_colour) );
     write_setting_i(sesskey, "UnderlinedAsColour", conf_get_int(conf, CONF_under_colour) );
     write_setting_i(sesskey, "SelectedAsColour", conf_get_int(conf, CONF_sel_colour) );
     for (i = 0; i < NCFGCOLOURS; i++) {
@@ -1057,7 +1057,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "WindowMaximizable", 1, conf, CONF_window_maximizable);
     gppi(sesskey, "WindowHasSysMenu", 1, conf, CONF_window_has_sysmenu);
     gppi(sesskey, "DisableBottomButtons", 1, conf, CONF_bottom_buttons);
-    gppi(sesskey, "BoldAsColour", 1, conf, CONF_bold_colour);
+    gppi(sesskey, "BoldAsColourTest", 1, conf, CONF_bold_colour);
     gppi(sesskey, "UnderlinedAsColour", 0, conf, CONF_under_colour);
     gppi(sesskey, "SelectedAsColour", 0, conf, CONF_sel_colour);
     for (i = 0; i < NCFGCOLOURS; i++) {
@@ -1299,6 +1299,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     gpps(sesskey, "Autocommand", "", conf, CONF_autocommand /*cfg->autocommand, sizeof(cfg->autocommand)*/);
     gpps(sesskey, "AutocommandOut", "", conf, CONF_autocommandout /*cfg->autocommandout, sizeof(cfg->autocommandout)*/);
     gpps(sesskey, "Folder", "", conf, CONF_folder /*cfg->folder, sizeof(cfg->folder)*/);
+    if( strlen(conf_get_str(conf, CONF_folder)) == 0 ) { conf_set_str( conf, CONF_folder, "Default" ) ; }
     gppi(sesskey, "LogTimeRotation", 0, conf, CONF_logtimerotation /*&cfg->logtimerotation*/);
     gppi(sesskey, "TermXPos", -1, conf, CONF_xpos /*&cfg->xpos*/);
     gppi(sesskey, "TermYPos", -1, conf, CONF_ypos /*&cfg->ypos*/);

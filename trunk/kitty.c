@@ -321,6 +321,11 @@ static int ZModemFlag = 0 ;
 int GetZModemFlag(void) { return ZModemFlag ; }
 void SetZModemFlag( const int flag ) { ZModemFlag = flag ; }
 
+// Flag pour inhiber le comportement ou toutes les sessions appartiennent au folder defaut
+static int SessionsInDefaultFlag = 1 ;
+int GetSessionsInDefaultFlag(void) { return SessionsInDefaultFlag ; }
+void SetSessionsInDefaultFlag( const int flag ) { SessionsInDefaultFlag = flag ; }
+
 // Flag pour inhiber le filtre sur la liste des sessions de la boite de configuration
 static int SessionFilterFlag = 1 ;
 int GetSessionFilterFlag(void) { return SessionFilterFlag ; }
@@ -336,7 +341,7 @@ int ImageSlideDelay = - 1 ;
 
 // Compteur pour l'envoi de anti-idle
 int AntiIdleCount = 0 ;
-int AntiIdleCountMax = 5 ;
+int AntiIdleCountMax = 6 ;
 char AntiIdleStr[128] = "" ;
 
 // Chemin vers le programme cthelper.exe
@@ -590,6 +595,21 @@ return ;
 		send( debug_sock_fd, (char*)bief, strlen(bief), 0 ) ;
 		va_end( ap ) ;
 		}
+	}
+
+char *dupvprintf(const char *fmt, va_list ap) ;
+void logevent(void *frontend, const char *string);
+
+// Affichage d'un message dans l'event log
+void debug_logevent( const char *fmt, ... ) {
+	va_list ap;
+	char *buf;
+	va_start(ap, fmt);
+	buf = dupvprintf(fmt, ap) ;
+	va_end(ap);
+	//MessageBox(NULL,buf,"logevent",MB_OK);
+	logevent(NULL,buf);
+	free(buf);
 	}
 
 // Procedure de recuperation de la valeur d'un flag
@@ -1218,7 +1238,8 @@ void CreateDefaultIniFile( void ) {
 		
 			writeINI( KittyIniFile, "ConfigBox", "height", "21" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "filter", "yes" ) ;
-			writeINI( KittyIniFile, "ConfigBox", "noexit", "no" ) ;
+			writeINI( KittyIniFile, "ConfigBox", "#default", "yes" ) ;
+			writeINI( KittyIniFile, "ConfigBox", "#noexit", "no" ) ;
 
 #if (defined IMAGEPORT) && (!defined FDJ)
 			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "no" ) ;
@@ -1256,12 +1277,14 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#remotedir", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#PSCPPath", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#WinSCPPath", "" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#CtHelperPath", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#antiidle=", " \\k08\\" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#antiidledelay", "60" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#sshversion", "OpenSSH_5.5" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#WinSCPProtocol", "sftp" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#autostoresshkey", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#UserPassSSHNoSave", "no" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#KiClassName", "PuTTY" ) ;
 #ifdef RECONNECTPORT
 			writeINI( KittyIniFile, INIT_SECTION, "#ReconnectDelay", "5" ) ;
 #endif
@@ -1279,7 +1302,9 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "internaldelay", "10" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "slidedelay", "0" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "wintitle", "yes" ) ;
-		
+#ifdef ZMODEMPORT
+			writeINI( KittyIniFile, INIT_SECTION, "zmodem", "yes" ) ;
+#endif
 			writeINI( KittyIniFile, "Print", "height", "100" ) ;
 			writeINI( KittyIniFile, "Print", "maxline", "60" ) ;
 			writeINI( KittyIniFile, "Print", "maxchar", "85" ) ;
@@ -1924,7 +1949,7 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	if( nb_pscp_run<4 ) { sprintf( buffer, "start %s ", pscppath ) ; nb_pscp_run++ ; }
 	else { sprintf( buffer, "%s ", pscppath ) ; nb_pscp_run = 0 ; }
 	
-	strcat( buffer, "-r " ) ; //strcat( buffer, "-batch " ) ;
+	strcat( buffer, "-scp -r " ) ; //strcat( buffer, "-batch " ) ;
 	if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
 		if( !strcmp( pscpport,"*" ) ) sprintf( pscpport, "%d", conf_get_int(conf, CONF_port)/*cfg.port*/ ) ;
 		strcat( buffer, "-P " ) ;
@@ -2061,7 +2086,7 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 	if( nb_pscp_run<4 ) { sprintf( buffer, "start %s ", pscppath ) ; nb_pscp_run++ ; }
 	else { sprintf( buffer, "%s ", pscppath ) ; nb_pscp_run = 0 ; }
 
-	strcat( buffer, "-r " ) ; //strcat( buffer, "-batch " ) ;
+	strcat( buffer, "-scp -r " ) ; //strcat( buffer, "-batch " ) ;
 	if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
 		if( !strcmp( pscpport,"*" ) ) sprintf( pscpport, "%d", conf_get_int(conf,CONF_port)/*cfg.port*/ ) ;
 		strcat( buffer, "-P " ) ;
@@ -2154,7 +2179,7 @@ void GetFile( HWND hwnd ) {
 				else { return ; }
 				//else { strcpy( dir, InitialDirectory ) ; }
 
-				sprintf( buffer, "start %s ", pscppath ) ;
+				sprintf( buffer, "start %s -scp ", pscppath ) ;
 				if( conf_get_int(conf,CONF_sshprot)/*cfg.sshprot*/ == 2 ) {
 					sprintf( b1, "-%d", conf_get_int(conf,CONF_sshprot)/*cfg.sshprot*/ ) ; strcat( buffer, b1 ); 
 					strcat( buffer, " " ) ;
@@ -3431,6 +3456,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 			}
 		return 1 ;
 		}
+	else if( !strcmp( st, "/switchcrypt" ) ) { SwitchCryptFlag() ; return 1 ; }
 	else if( !strcmp( st, "/redraw" ) ) { InvalidateRect( MainHwnd, NULL, TRUE ) ; return 1 ; }
 	else if( !strcmp( st, "/refresh" ) ) { RefreshBackground( MainHwnd ) ; return 1 ; }
 	else if( strstr( st, "/PrintCharSize " ) == st ) { PrintCharSize=atoi( st+15 ) ; return 1 ; }
@@ -4534,7 +4560,7 @@ void LoadParameters( void ) {
 		}
 	if( ReadParameter( INIT_SECTION, "antiidle", buffer ) ) { strcpy( AntiIdleStr, buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "antiidledelay", buffer ) ) 
-		{ AntiIdleCountMax = (int) (atoi( buffer )/10) ; if( AntiIdleCountMax<=0 ) AntiIdleCountMax =1 ; }
+		{ AntiIdleCountMax = (int)floor(atoi(buffer)/10.0) ; if( AntiIdleCountMax<=0 ) AntiIdleCountMax =1 ; }
 	if( ReadParameter( INIT_SECTION, "shortcuts", buffer ) ) { if( !stricmp( buffer, "NO" ) ) ShortcutsFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "mouseshortcuts", buffer ) ) { if( !stricmp( buffer, "NO" ) ) MouseShortcutsFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "size", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SizeFlag = 1 ; }
@@ -4587,6 +4613,9 @@ void LoadParameters( void ) {
 		}
 	if( readINI( KittyIniFile, "ConfigBox", "filter", buffer ) ) {
 		if( !stricmp( buffer, "NO" ) ) SessionFilterFlag = 0 ;
+		}
+	if( readINI( KittyIniFile, "ConfigBox", "default", buffer ) ) {
+		if( !stricmp( buffer, "NO" ) ) SessionsInDefaultFlag = 0 ;
 		}
 	if( readINI( KittyIniFile, "Print", "height", buffer ) ) {
 		PrintCharSize = atoi( buffer ) ;

@@ -15,6 +15,8 @@ IDI_MAINICON ICON "putty.ico"
 
 #ifdef PERSOPORT
 
+IDI_FILEASSOC ICON "../../res/file_assoc/kitty_assoc.ico"
+
 #ifndef FDJ
 IDI_MAINICON_0 ICON "../../kitty.ico"
 IDI_MAINICON_1 ICON "putty.ico"
@@ -75,6 +77,8 @@ IDI_MAINICON_44 ICON "../../cthelper/puttycyg.ico"
 IDC_HOVER CURSOR "../../res/Hover.cur"
 
 IDI_PUTTY_LAUNCH	ICON "../../res/putty_launcher.ico"
+
+//IDI_NUCLEAR ICON "../../res/nuclear.ico"
 
 #define IDB_OK	1098
 

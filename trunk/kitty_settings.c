@@ -201,7 +201,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "WindowMaximizable", conf_get_int(conf, CONF_window_maximizable) );
     write_setting_i_forced(sesskey, "WindowHasSysMenu", conf_get_int(conf, CONF_window_has_sysmenu) );
     write_setting_i_forced(sesskey, "DisableBottomButtons", conf_get_int(conf, CONF_bottom_buttons) );
-    write_setting_i_forced(sesskey, "BoldAsColour", conf_get_int(conf, CONF_bold_colour) );
+    write_setting_i_forced(sesskey, "BoldAsColourTest", conf_get_int(conf, CONF_bold_colour) );
     write_setting_i_forced(sesskey, "UnderlinedAsColour", conf_get_int(conf, CONF_under_colour) );
     write_setting_i_forced(sesskey, "SelectedAsColour", conf_get_int(conf, CONF_sel_colour) );
     for (i = 0; i < NCFGCOLOURS; i++) {
@@ -670,7 +670,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "WindowMaximizable", 1, conf, CONF_window_maximizable);
     gppi_forced(sesskey, "WindowHasSysMenu", 1, conf, CONF_window_has_sysmenu);
     gppi_forced(sesskey, "DisableBottomButtons", 1, conf, CONF_bottom_buttons);
-    gppi_forced(sesskey, "BoldAsColour", 1, conf, CONF_bold_colour);
+    gppi_forced(sesskey, "BoldAsColourTest", 1, conf, CONF_bold_colour);
     gppi_forced(sesskey, "UnderlinedAsColour", 0, conf, CONF_under_colour);
     gppi_forced(sesskey, "SelectedAsColour", 0, conf, CONF_sel_colour);
     for (i = 0; i < NCFGCOLOURS; i++) {
@@ -957,18 +957,31 @@ void load_open_settings_forced(char *filename, Conf *conf) {
 /*****
 FONCTIONS SUPPORT
 *****/
+
+static int CryptFileFlag = 0 ;
+int SwitchCryptFlag( void ) { CryptFileFlag = abs( CryptFileFlag -1 ) ; return CryptFileFlag ; }
+
 void mungestr(const char *in, char *out);
 void unmungestr(char *in, char *out, int outlen) ;
 
 void write_setting_i_forced(void *handle, const char *key, int value) {
-	fprintf( (FILE*)handle, "%s\\%i\\\n", key, value ) ;
+	char buf[1024] ;
+	sprintf( buf, "%s\\%i\\", key, value ) ;
+	if( CryptFileFlag ) { cryptstring(buf,MASTER_PASSWORD); }
+	//fprintf( (FILE*)handle, "%s\\%i\\\n", key, value ) ;
+	fprintf( (FILE*)handle, "%s\n", buf ) ;
 }
 
 void write_setting_s_forced(void *handle, const char *key, const char *value) {
 	char *p ;
 	p=(char*)malloc( 3*strlen(value)+256 );
 	mungestr(value, p);
-	fprintf( (FILE*)handle, "%s\\%s\\\n", key, p ) ;
+	char * buf ;
+	buf = (char*) malloc( 2*(strlen(key)+strlen(p))+10 ) ;
+	sprintf( buf, "%s\\%s\\", key, p ) ;
+	if( CryptFileFlag ) { cryptstring(buf,MASTER_PASSWORD); }
+	fprintf( (FILE*)handle, "%s\n", buf ) ;
+	free(buf);
 	free(p);
 }
 
@@ -976,7 +989,12 @@ void write_setting_filename_forced(void *handle, const char *key, Filename *valu
 	char *p ;
 	p=(char*)malloc( 3*strlen(value->path)+256 );
 	mungestr(value->path, p);
-	fprintf( (FILE*)handle, "%s\\%s\\\n", key, p ) ;
+	char * buf ;
+	buf = (char*) malloc( 2*(strlen(key)+strlen(p))+10 ) ;
+	sprintf( buf, "%s\\%s\\", key, p ) ;
+	if( CryptFileFlag ) { cryptstring(buf,MASTER_PASSWORD); }
+	fprintf( (FILE*)handle, "%s\n", buf ) ;
+	free(buf) ;
 	free(p);
 }
 
@@ -1088,6 +1106,8 @@ int read_setting_i_forced(void *handle, const char *key, int defvalue) {
 	rewind(handle);
 	sprintf( name, "%s\\", key ) ;
 	while( fgets(buffer,2047,handle)!=NULL ) {
+		while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
+		if( buffer[strlen(buffer)-1] != '\\' ) { decryptstring( buffer, MASTER_PASSWORD) ; }
 		if( strstr( buffer, name ) == buffer ) {
 			while( (buffer[strlen(buffer)-1]=='\\')||(buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
 			n = atoi( buffer+strlen(name) ) ;
@@ -1104,6 +1124,8 @@ char *read_setting_s_forced(void *handle, const char *key) {
 	sprintf( name, "%s\\", key ) ;
 	
 	while( fgets(buffer,2047,handle)!=NULL ) {
+		while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
+		if( buffer[strlen(buffer)-1] != '\\' ) { decryptstring( buffer, MASTER_PASSWORD) ; }
 		if( strstr( buffer, name ) == buffer ) {
 			while( (buffer[strlen(buffer)-1]=='\\')||(buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
 			loadResult = (char*) malloc( strlen( buffer+strlen(name) ) + 1 ) ;
@@ -1120,6 +1142,8 @@ Filename *read_setting_filename_forced(void *handle, const char *key) {
 	rewind(handle);
 	sprintf( name, "%s\\", key ) ;
 	while( fgets(buffer,2047,handle)!=NULL ) {
+		while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
+		if( buffer[strlen(buffer)-1] != '\\' ) { decryptstring( buffer, MASTER_PASSWORD) ; }
 		if( strstr( buffer, name ) == buffer ) {
 			while( (buffer[strlen(buffer)-1]=='\\')||(buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
 			unmungestr( buffer+strlen(name), buffer, 2047 ) ;

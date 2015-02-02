@@ -206,6 +206,7 @@ static int urlhack_cursor_is_hand = 0;
 
 #ifdef PERSOPORT
 #include <process.h>
+#include <math.h>
 #include "../../kitty.h"
 #include "../../kitty_commun.h"
 #include "../../kitty_crypt.h"
@@ -521,7 +522,12 @@ InitWinMain();
 	conf_set_int(conf, CONF_logtype, LGTYP_NONE);
 
 	do_defaults(NULL, conf);
-
+#ifdef PERSOPORT
+	// On cree la session "Default Settings" si elle n'existe pas
+	{ char buffer[1024] ; GetSessionFolderName( "Default Settings", buffer ) ; 
+	if( strlen( buffer ) == 0 ) { save_settings( "Default Settings", conf ) ; }
+	}
+#endif
 	p = cmdline;
 
 	/*
@@ -653,7 +659,7 @@ InitWinMain();
 			if( DirectoryBrowseFlag ) SetSessPath( pfolder ) ;
 			SetInitCurrentFolder( pfolder ) ;
 			i++ ;
-		} else if( !strcmp(p, "-version") ) {
+		} else if( !strcmp(p, "-version") || !strcmp(p, "-about") ) {
 			showabout(hwnd) ; exit( 0 ) ;
 		} else if( !strcmp(p, "-noicon") ) {
 			SetIconeFlag( -1 ) ;
@@ -956,12 +962,11 @@ InitWinMain();
 		}
 	    }
 	}
-
 #ifdef PERSOPORT
 	// Creation du fichier kitty.ini par defaut si besoin
 	CreateDefaultIniFile() ;
 #endif
-	
+
 	cmdline_run_saved(conf);
 
 	if (loaded_session || got_host)
@@ -970,7 +975,6 @@ InitWinMain();
 	if ((!allow_launch || !conf_launchable(conf)) && !do_config()) {
 	    cleanup_exit(0);
 	}
-
 	/*
 	 * Muck about with the hostname in various ways.
 	 */
@@ -1075,7 +1079,6 @@ if( conf_get_int(conf,CONF_icone)/*cfg.icone*/ == 0 ) {
 
 	RegisterClass(&wndclass);
     }
-
 #ifdef PERSOPORT
 // Initialisation de la structure NOTIFYICONDATA
 TrayIcone.cbSize = sizeof(TrayIcone);					// On alloue la taille necessaire pour la structure
@@ -1161,6 +1164,7 @@ TrayIcone.hWnd = hwnd ;
 		// other location is necessary for our custom window text display for
 		// when we're handling our own border here.
 	}
+
 	hwnd = CreateWindowEx(exwinmode|WS_EX_ACCEPTFILES, appname, winname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
@@ -1314,12 +1318,12 @@ TrayIcone.hWnd = hwnd ;
             AppendMenu(m, MF_ENABLED, IDM_VISIBLE, "Always visi&ble");
         AppendMenu(m, MF_ENABLED, IDM_PROTECT, "Prote&ct");
         AppendMenu(m, MF_ENABLED, IDM_WINROL, "Roll-u&p");
-        AppendMenu(m, MF_ENABLED, IDM_SHOWPORTFWD, "Po&rt forwarding");
         AppendMenu(m, MF_ENABLED, IDM_SCRIPTFILE, "Send scr&ipt file" ) ;
         if( PSCPPath!=NULL ) AppendMenu(m, MF_ENABLED, IDM_PSCP, "Send wit&h pscp");
         else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_PSCP, "Send wit&h pscp");
         if( WinSCPPath!=NULL ) AppendMenu(m, MF_ENABLED, IDM_WINSCP, "&Start WinSCP");
         else AppendMenu(m, MF_DISABLED|MF_GRAYED, IDM_WINSCP, "&Start WinSCP");
+        AppendMenu(m, MF_ENABLED, IDM_SHOWPORTFWD, "Po&rt forwarding");
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
 	AppendMenu(m, MF_ENABLED, IDM_EXPORTSETTINGS, "Export &current settings" ) ;
         }
@@ -2968,12 +2972,10 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 	InvalidateRect( hwnd, NULL, TRUE ) ; // On remplace par
 	
 	// Envoi de l'anti-idle
-	if( AntiIdleCount++ >= AntiIdleCountMax ) {
-	//if( AntiIdleCount++ >= 0 )  {
+	AntiIdleCount += 1 ;
+	if( AntiIdleCount >= AntiIdleCountMax ) {
 		AntiIdleCount = 0 ;
-		//if(strlen( cfg.antiidle ) > 0) SendAutoCommand( hwnd, cfg.antiidle ) ;
-		//else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
-		if(strlen( conf_get_str(conf,CONF_antiidle)/*cfg.antiidle*/ ) > 0) SendAutoCommand( hwnd, conf_get_str(conf,CONF_antiidle)/*cfg.antiidle*/ ) ;
+		if(strlen( conf_get_str(conf,CONF_antiidle) ) > 0) SendAutoCommand( hwnd, conf_get_str(conf,CONF_antiidle) ) ;
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
 	}
@@ -3312,13 +3314,15 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		 * HACK: PuttyTray / Nutty
 		 * Reconfigure
 		 */
-		if( conf_get_int(conf, CONF_url_defregex) != 0 ) {
-			urlhack_set_regular_expression(URLHACK_REGEX_CLASSIC, conf_get_str(term->conf,CONF_url_regex) ) ;
-		} else {
-			urlhack_set_regular_expression(URLHACK_REGEX_CUSTOM, conf_get_str(term->conf, CONF_url_regex) ) ;
+		if( !PuttyFlag && HyperlinkFlag ) {
+			if( conf_get_int(conf, CONF_url_defregex) != 0 ) {
+				urlhack_set_regular_expression(URLHACK_REGEX_CLASSIC, conf_get_str(term->conf,CONF_url_regex) ) ;
+			} else {
+				urlhack_set_regular_expression(URLHACK_REGEX_CUSTOM, conf_get_str(term->conf, CONF_url_regex) ) ;
+			}
+			term->url_update = TRUE;
+			term_update(term);
 		}
-		term->url_update = TRUE;
-		term_update(term);
 #endif
 		/* Screen size changed ? */
 		if (conf_get_int(conf, CONF_height) !=
@@ -4880,10 +4884,13 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 				   TO_CHR_X(p.x),
 				   TO_CHR_Y(p.y), shift_pressed,
 				   control_pressed, is_alt_pressed());
+#ifndef PUTTYXPORT
+// HACK (@unphased: I am removing the "button release" when triggered by mouse wheel to better replicate iTerm2's behavior)
 			term_mouse(term, b, translate_button(b),
 				   MA_RELEASE, TO_CHR_X(p.x),
 				   TO_CHR_Y(p.y), shift_pressed,
 				   control_pressed, is_alt_pressed());
+#endif
 		    } /* else: not sure when this can fail */
 		} else {
 		    /* trigger a scroll */

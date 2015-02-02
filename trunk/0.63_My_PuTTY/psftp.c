@@ -2349,7 +2349,6 @@ static int do_sftp_init(void)
 {
     struct sftp_packet *pktin;
     struct sftp_request *req;
-
     /*
      * Do protocol initialisation. 
      */
@@ -2365,7 +2364,6 @@ static int do_sftp_init(void)
     req = fxp_realpath_send(".");
     pktin = sftp_wait_for_reply(req);
     homedir = fxp_realpath_recv(pktin, req);
-
     if (!homedir) {
 	fprintf(stderr,
 		"Warning: failed to resolve home directory: %s\n",

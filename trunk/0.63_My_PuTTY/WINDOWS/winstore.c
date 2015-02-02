@@ -1529,7 +1529,6 @@ int verify_host_key(const char *hostname, int port,
 			packstr(regname, p);
 			strcat(p, keysuffix);
 			
-			debug_logevent( "VerifySSHKey(oldpath,sshkpath,regname,p)=(%s,%s,%s,%s)",oldpath,sshkpath,regname,p ) ;
 			hFile = CreateFile(p, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 			
 			SetCurrentDirectory(oldpath);
@@ -1698,7 +1697,6 @@ else {
 	packstr(regname, p);
 	strcat(p, keysuffix);
 	
-	debug_logevent( "WriteSSHKey(oldpath,sshkpath,regname,p)=(%s,%s,%s,%s)",oldpath,sshkpath,regname,p ) ;
 	hFile = CreateFile(p, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (hFile == INVALID_HANDLE_VALUE) {
@@ -1914,6 +1912,33 @@ static int transform_jumplist_registry
     char *old_value, *new_value;
     char *piterator_old, *piterator_new, *piterator_tmp;
 
+#ifdef PERSOPORT
+	char RecentSessionsFile[2*MAX_PATH] ;
+if( get_param("INIFILE")==SAVEMODE_DIR ) {
+	ret = ERROR_SUCCESS ;
+	if( !existdirectory(jumplistpath) ) { createPath(jumplistpath) ;}
+	sprintf(RecentSessionsFile,"%s/RecentSessions",jumplistpath);
+	if( !existfile(RecentSessionsFile) ) {
+		ret == ERROR_FILE_NOT_FOUND;
+		value_length=200 ;
+		old_value = snewn(value_length, char);
+		*old_value = '\0';
+		*(old_value + 1) = '\0';
+	} else {
+		FILE *fp ;
+		if( (fp = fopen( RecentSessionsFile, "r" )) != NULL ) {
+			value_length = filesize( RecentSessionsFile ) ;
+			old_value = snewn(value_length+2, char);
+			fread (old_value, value_length, 1, fp ) ;
+			old_value[value_length]='\0';
+			old_value[value_length+1]='\0';
+			fclose(fp) ;
+		} else { ret = JUMPLISTREG_ERROR_VALUEREAD_FAILURE ;  }
+	}
+}
+else {
+#endif
+	
     ret = RegCreateKeyEx(HKEY_CURRENT_USER, reg_jumplist_key, 0, NULL,
                          REG_OPTION_NON_VOLATILE, (KEY_READ | KEY_WRITE), NULL,
                          &pjumplist_key, NULL);
@@ -1958,6 +1983,9 @@ static int transform_jumplist_registry
         *old_value = '\0';
         *(old_value + 1) = '\0';
     }
+#ifdef PERSOPORT
+}
+#endif
 
     /* Check validity of registry data: REG_MULTI_SZ value must end
      * with \0\0. */
@@ -2006,6 +2034,15 @@ static int transform_jumplist_registry
         ++piterator_new;
 
         /* Save the new list to the registry. */
+#ifdef PERSOPORT
+if( get_param("INIFILE")==SAVEMODE_DIR ) {
+	FILE *fp ;
+	if( (fp = fopen( RecentSessionsFile, "w" )) != NULL ) {
+		fwrite ( new_value, piterator_new - new_value, 1, fp ) ;
+		fclose(fp) ;
+	}
+} else
+#endif
         ret = RegSetValueEx(pjumplist_key, reg_jumplist_value, 0, REG_MULTI_SZ,
                             new_value, piterator_new - new_value);
 
@@ -2023,6 +2060,9 @@ static int transform_jumplist_registry
         sfree(old_value);
 
     /* Clean up and return. */
+ #ifdef PERSOPORT
+if( !get_param("INIFILE")==SAVEMODE_DIR )
+#endif	   
     RegCloseKey(pjumplist_key);
 
     if (ret != ERROR_SUCCESS) {

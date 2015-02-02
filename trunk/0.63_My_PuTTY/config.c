@@ -1061,7 +1061,8 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 			else if( !GetSessionFilterFlag() ) // filtre desactive
 				dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
 			else {
-				if( (!strcmp( CurrentFolder, "Default" )) || (!strcmp(CurrentFolder,folder)) ) {
+				if( (!strcmp(CurrentFolder, "Default" )&&GetSessionsInDefaultFlag()) 
+				    || (!strcmp(CurrentFolder,folder)) ) {
 					if( (!strcmp( ssd->savedsession, "" )) 
 					|| ( strlen(ssd->savedsession)<=1 )
 					|| (stristr(host,ssd->savedsession)!=NULL)
@@ -1298,6 +1299,9 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	else if (!ssd->midsession && // creer un nouveau folder
 		   ssd->createbutton && ctrl == ssd->createbutton) {
 			if( strlen(ssd->savedsession) > 0 ) {
+				if( !stricmp(ssd->savedsession,"Default") ) {
+					MessageBox( NULL, "Your are not allowed to create a folder called Default !", "Error", MB_OK|MB_ICONERROR ) ;
+				} else
 				if( !get_param("DIRECTORYBROWSE") ) {
 					InitFolderList() ;
 					StringList_Add( FolderList, ssd->savedsession ) ;

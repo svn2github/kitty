@@ -248,18 +248,3 @@ void MakeDir( const char * directory ) {
 		}
 	_mkdir( fullpath ) ;
 	}
-
-char *dupvprintf(const char *fmt, va_list ap) ;
-void logevent(void *frontend, const char *string);
-
-// Affichage d'un message dans l'event log
-void debug_logevent( const char *fmt, ... ) {
-	va_list ap;
-	char *buf;
-	va_start(ap, fmt);
-	buf = dupvprintf(fmt, ap) ;
-	va_end(ap);
-	//MessageBox(NULL,buf,"logevent",MB_OK);
-	logevent(NULL,buf);
-	free(buf);
-	}

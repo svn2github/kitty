@@ -160,7 +160,8 @@ void urlhack_init()
     }
 
     /* Start with default terminal size */
-    window_text_len = 80*24+1;
+    //window_text_len = 80*24+1;
+    window_text_len = 500*300+1;
     window_text = snewn(window_text_len, char);
     urlhack_reset();
 }

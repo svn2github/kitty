@@ -118,16 +118,16 @@ UPX = upx
 # You may also need to tell windres where to find include files:
 # RCINC = --include-dir c:\cygwin\include\
 
-# 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DPERFPORT -DIVPORT -DTUTTYPORT-DPORTKNOCKINGPORT \
+# 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DTUTTYPORT -DPORTKNOCKINGPORT -DPUTTYXPORT \
 
-# Anciens flags: -DSCPORT
+# Anciens flags: -DSCPORT -DIVPORT -DPERFPORT (ne marche pas !!!)
 
 FDJFLAG = FDJ1
 
 CFLAGS = -Wall -O2 -D_WINDOWS -DWIN32S_COMPAT -D$(FDJFLAG) \
 		-DUSE_CAPI \
-		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DPERFPORT -DTUTTYPORT -DPORTKNOCKINGPORT \
-		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -I.././ -I../../ \
+ 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DTUTTYPORT -DPORTKNOCKINGPORT -DPUTTYXPORT \
+		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -DNO_SECUREZEROMEMORY -I.././ -I../../ \
 		-I../charset/ -I../windows/ -I../unix/ -I../mac/ \
 		-I../macosx \
 		-I../../sc -I../../url -I../../wincrypt
@@ -323,7 +323,7 @@ puttygen.exe: conf.o import.o misc.o notiming.o puttygen.res.o sshaes.o sshbn.o 
 		sshrand.o sshrsa.o sshrsag.o sshsh256.o sshsh512.o sshsha.o \
 		tree234.o version.o winctrls.o winhelp.o winmisc.o \
 		winnoise.o winnojmp.o winpgen.o winstore.o wintime.o \
-		winutils.o kitty_commun.o kitty_registry.o kitty_keygen.o \
+		winutils.o kitty_commun.o kitty_registry.o kitty_keygen.o kitty_tools.o \
 		wincapi.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,puttygen.map conf.o import.o \
 		misc.o notiming.o puttygen.res.o sshaes.o sshbn.o sshdes.o \
@@ -331,7 +331,7 @@ puttygen.exe: conf.o import.o misc.o notiming.o puttygen.res.o sshaes.o sshbn.o 
 		sshrsa.o sshrsag.o sshsh256.o sshsh512.o sshsha.o tree234.o \
 		version.o winctrls.o winhelp.o winmisc.o winnoise.o \
 		winnojmp.o winpgen.o winstore.o wintime.o winutils.o \
-		wincapi.o kitty_commun.o kitty_registry.o kitty_keygen.o \
+		wincapi.o kitty_commun.o kitty_registry.o kitty_keygen.o kitty_tools.o \
 		../../mini.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 -lole32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
@@ -372,7 +372,7 @@ be_nos_s.o: ../be_nos_s.c ../putty.h ../puttyps.h ../network.h ../misc.h \
 		../puttymem.h ../tree234.h ../windows/winhelp.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../be_nos_s.c
-
+	
 cmdgen.o: ../cmdgen.c ../putty.h ../ssh.h ../puttyps.h ../network.h \
 		../misc.h ../puttymem.h ../tree234.h ../int64.h \
 		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
@@ -620,7 +620,7 @@ settings.o: ../settings.c ../putty.h ../storage.h ../puttyps.h ../network.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
 		../windows/winhelp.h ../charset/charset.h \
 		../../kitty_settings.c
-	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../settings.c
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../settings.c -DMASTER_PASSWORD=`cat ../../masterpassword.txt`
 
 sftp.o: ../sftp.c ../misc.h ../int64.h ../tree234.h ../sftp.h ../puttymem.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../sftp.c
@@ -1128,9 +1128,10 @@ settings_nohyperlink.o: ../settings.c ../putty.h ../storage.h ../puttyps.h ../ne
 		../misc.h ../windows/winstuff.h \
 		../macosx/osx.h ../unix/unix.h ../puttymem.h ../tree234.h \
 		../windows/winhelp.h ../charset/charset.h
-	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o settings_nohyperlink.o -c ../settings.c -DNO_HYPERLINK
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o settings_nohyperlink.o -c ../settings.c -DNO_HYPERLINK \
+	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
 
-kitty.o: ../../kitty.c ../../kitty.h ../../kitty_savedump.c ../../kitty_launcher.c ../../kitty_launcher.h
+kitty.o: ../../kitty.c ../../kitty.h ../../kitty_savedump.c ../../kitty_launcher.c ../../kitty_launcher.h ../windows/window.c
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty.c \
 	-DBUILD_TIME=`date +'"%d/%m/%Y-%H:%M:%S(%Z)"'` \
 	-DBUILD_VERSION=`cat ../../version.txt` \

@@ -1,5 +1,6 @@
 #ifndef KITTY_H
 #define KITTY_H
+#include <math.h>
 
 // Handle sur la fenetre principale
 extern HWND MainHwnd ;
@@ -154,6 +155,10 @@ void SetUserPassSSHNoSave( const int flag ) ;
 int GetSessionFilterFlag(void) ;
 void SetSessionFilterFlag( const int flag ) ;
 
+// Flag pour inhiber le comportement ou toutes les sessions appartiennent au folder defaut
+int GetSessionsInDefaultFlag(void) ;
+void SetSessionsInDefaultFlag( const int flag ) ;
+
 // Chemin vers le programme cthelper.exe
 extern char * CtHelperPath ;
 
@@ -269,6 +274,7 @@ void ConvertDir2Reg( const char * Directory, HKEY hKey, char * path ) ;
 int Convert2Reg( const char * Directory ) ;
 void load_open_settings_forced(char *filename, Conf *conf) ;
 void save_open_settings_forced(char *filename, Conf *conf) ;
+int SwitchCryptFlag( void ) ;
 void CreateDefaultIniFile( void ) ;
 void InitSpecialMenu( HMENU m, const char * folder, const char * sessionname ) ;
 // Recupere une entree d'une session ( retourne 1 si existe )

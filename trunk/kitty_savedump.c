@@ -555,8 +555,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp,"CygTermFlag=%d\n",cygterm_get_flag() );
 #endif
 	if( PasswordConf!= NULL ) fprintf( fp, "PasswordConf=%s\n", PasswordConf ) ;
-	fprintf( fp, "SessionFilterFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\n"
-	,SessionFilterFlag,ImageViewerFlag,ImageSlideDelay,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine);
+	fprintf( fp, "SessionFilterFlag=%d\nSessionsInDefaultFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\n"
+	,SessionFilterFlag,SessionsInDefaultFlag,ImageViewerFlag,ImageSlideDelay,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine);
 	fprintf( fp, "AntiIdleCount=%d\nAntiIdleCountMax=%d\nIconeNum=%d\n"
 	,AntiIdleCount,AntiIdleCountMax,IconeNum);
 	fprintf( fp, "AntiIdleStr=%s\nInitialDirectory=%s\nConfigDirectory=%s\nBuildVersionTime=%s\n",AntiIdleStr,InitialDirectory,ConfigDirectory,BuildVersionTime);
