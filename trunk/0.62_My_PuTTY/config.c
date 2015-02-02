@@ -503,8 +503,13 @@ static void folder_handler(union control *ctrl, void *dlg,
 		else
 			i = dlg_listbox_getid(ctrl, dlg, i);
 		*(int *)ATOFFSET(data, ctrl->listbox.context.i) = i;
-		
+
 		dlg_editbox_get( ctrlSessionEdit, dlg, buffer, 1024 ) ;
+		
+		//if( strcmp(buffer, "" ) ) { dlg_editbox_set(ctrlSessionEdit, dlg,"" ) ; strcpy(buffer,"") ; }
+		// Impossible de reinitialiser le champ "Saved Sessions" sur un changement de folder
+		// sinon on n'est pas capable de modifier le folder associee a une session
+		
 		if( !strcmp( buffer, "" ) ) 
 			sessionsaver_handler( ctrlSessionList, dlg, data, EVENT_REFRESH ) ;
 		}
@@ -531,7 +536,7 @@ else if (event == EVENT_VALCHANGE) {
 
 struct sessionsaver_data {
 #ifdef PERSOPORT
-    union control *editbox, *listbox, *loadbutton, *savebutton, *delbutton, *createbutton, *delfolderbutton, *arrangebutton
+    union control *editbox, *listbox, *clearbutton, *loadbutton, *savebutton, *delbutton, *createbutton, *delfolderbutton, *arrangebutton
 #if (defined PERSOPORT) && (!defined FDJ) && (defined STARTBUTTON)
 	, *startbutton 
 #endif
@@ -789,6 +794,8 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	    dlg_listbox_clear(ctrl, dlg);
 #ifdef PERSOPORT
 		ctrlSessionList = ctrl ;
+		if(get_param("INIFILE")==SAVEMODE_DIR) CleanFolderName( CurrentFolder ) ;
+		
 		for (i = 0; i < ssd->sesslist.nsessions; i++) {
 			char folder[1024] ;
 			char host[1024] ;
@@ -816,6 +823,8 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 				|| (stristr(host,savedsession)!=NULL)
 				|| (stristr(ssd->sesslist.sessions[i],savedsession)!=NULL) )*/
 //if( strstr(ssd->sesslist.sessions[i],"CMD")) MessageBox(NULL,ssd->sesslist.sessions[i],folder,MB_OK);
+
+//debug_log( "savedsession=%s| CurrentFolder=%s| folder=%s| ssd->sesslist.sessions[%d]=%s|\n", savedsession, CurrentFolder, folder, i, ssd->sesslist.sessions[i] );
 				if (!strcmp( savedsession, "" )) {
 					if( (!strcmp(CurrentFolder,folder))
 						|| (!strcmp("",folder))
@@ -973,6 +982,11 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		get_sesslist(&ssd->sesslist, TRUE);
 		dlg_refresh(ssd->listbox, dlg);
 	    }
+#ifdef PERSOPORT
+	savedsession[0]='\0' ;
+	dlg_refresh(ssd->editbox, dlg) ;
+	sessionsaver_handler( ctrlSessionList, dlg, data, EVENT_REFRESH ) ;
+#endif
 	} else if (ctrl == ssd->okbutton) {
             if (ssd->midsession) {
                 /* In a mid-session Change Settings, Apply is always OK. */
@@ -1034,6 +1048,14 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	    //if (cfg_launchable(cfg)) { dlg_end(dlg, 1); } else { dlg_beep(dlg); }
 	}
 #endif
+	else if (!ssd->midsession && // vide le nom de la session
+		   ssd->clearbutton && ctrl == ssd->clearbutton) {
+			if( strlen(savedsession) > 0 ) {
+				savedsession[0]='\0' ;
+				dlg_refresh(ssd->editbox, dlg) ;
+				sessionsaver_handler( ctrlSessionList, dlg, data, EVENT_REFRESH ) ;
+				}
+			}
 	else if (!ssd->midsession && // creer un nouveau folder
 		   ssd->createbutton && ctrl == ssd->createbutton) {
 			if( strlen(savedsession) > 0 ) {
@@ -1745,6 +1767,14 @@ void setup_config_box(struct controlbox *b, int midsession,
 				HELPCTX(session_saved),
 				sessionsaver_handler, P(ssd), P(NULL));
     ssd->editbox->generic.column = 0;
+#ifdef PERSOPORT
+    ssd->clearbutton = ctrl_pushbutton(s, "Clear", NO_SHORTCUT,
+					  HELPCTX(session_saved),
+					  sessionsaver_handler, P(ssd));
+  
+  ssd->clearbutton->generic.column = 1;
+#endif
+
     /* Reset columns so that the buttons are alongside the list, rather
      * than alongside that edit box. */
     ctrl_columns(s, 1, 100);

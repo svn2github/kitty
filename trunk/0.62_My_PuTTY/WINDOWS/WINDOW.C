@@ -1214,7 +1214,10 @@ TrayIcone.hWnd = hwnd ;
 			}
 
 		// Lancement du rafraichissement toutes les 10 secondes (pour l'image de fond, pour pallier bug d'affichage)
-		SetTimer(hwnd, TIMER_REDRAW, (int)(10*1000), NULL) ;
+		if( ReadParameter( INIT_SECTION, "redraw", reg_buffer ) ) {
+			if( stricmp( reg_buffer, "NO" ) ) SetTimer(hwnd, TIMER_REDRAW, (int)(10*1000), NULL) ;
+			}
+		else SetTimer(hwnd, TIMER_REDRAW, (int)(10*1000), NULL) ;
 #endif
 			
 		} // fin de if( !PuttyFlag )
@@ -2638,7 +2641,7 @@ else if((UINT_PTR)wParam == TIMER_REDRAW) {  // rafraichissement automatique (bu
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
 	}
-else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (echo "\007" pour simuler)
+else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (print '\007' pour simuler)
 	static int BlinkingState = 0 ;
 	static hBlinkingIcon = NULL ; 
 
@@ -6863,11 +6866,22 @@ void do_beep(void *frontend, int mode)
     if (!term->has_focus) {
 #ifdef PERSOPORT
 	if( VisibleFlag!=VISIBLE_TRAY ) {
-		ShowWindow(hwnd, SW_RESTORE);
-		SetForegroundWindow( MainHwnd ) ;
+		if( cfg.foreground_on_bell ) {					// Tester avec   sleep 4 ; echo -e '\a'
+			if( IsIconic(hwnd) ) SwitchToThisWindow( hwnd, TRUE ) ; 
+			else SetForegroundWindow( MainHwnd ) ;
+			}
+		else { 
+			//if( IsIconic(hwnd) && (mode == BELL_VISUAL) ) 
+			if( mode == BELL_VISUAL ) {
+				if( IsIconic(hwnd) ) 
+					FlashWindow(hwnd, TRUE) ;
+				else 
+					flash_window(2) ; 
+				}
+			}
 	} else if( VisibleFlag==VISIBLE_TRAY ) {
 		if( cfg.foreground_on_bell ) { SendMessage( MainHwnd, WM_COMMAND, IDM_FROMTRAY, 0 ); }
-		else SetTimer(hwnd, TIMER_BLINKTRAYICON, (int)500, NULL) ;
+		else if(mode == BELL_VISUAL) SetTimer(hwnd, TIMER_BLINKTRAYICON, (int)500, NULL) ;
 		//SendMessage( MainHwnd, WM_COMMAND, IDM_FROMTRAY, 0 );
 		//flash_window(2);	       /* start */
 	    	//ShowWindow( MainHwnd, SW_MINIMIZE);

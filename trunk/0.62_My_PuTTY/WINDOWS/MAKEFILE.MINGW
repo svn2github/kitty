@@ -192,7 +192,7 @@ plink.exe: be_all_s_plink.o cmdline.o cproxy.o ldisc.o logging.o misc.o pgssapi.
 		wildcard.o wincons.o windefs.o wingss.o winhandl.o winmisc.o \
 		winnet.o winnoise.o winnojmp.o winpgntc.o winplink.o \
 		winproxy.o winser.o winstore.o wintime.o winx11.o x11fwd.o \
-		sc.o kitty_registry.o kitty_commun.o
+		sc.o kitty_registry.o kitty_commun.o kitty_tools.o
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,plink.map be_all_s_plink.o cmdline.o \
 		cproxy.o ldisc.o logging.o misc.o pgssapi.o pinger.o \
 		plink.res.o portfwd.o proxy.o raw.o rlogin.o settings_nohyperlink.o \
@@ -203,7 +203,7 @@ plink.exe: be_all_s_plink.o cmdline.o cproxy.o ldisc.o logging.o misc.o pgssapi.
 		wincons.o windefs.o wingss.o winhandl.o winmisc.o winnet.o \
 		winnoise.o winnojmp.o winpgntc.o winplink.o winproxy.o \
 		winser.o winstore.o wintime.o winx11.o x11fwd.o \
-		sc.o kitty_registry.o kitty_commun.o \
+		sc.o kitty_registry.o kitty_commun.o kitty_tools.o \
 		../../bcrypt.a ../../mini.a \
 		-ladvapi32 \
 		-lcomctl32 -lcomdlg32 -lgdi32 -limm32 -lole32 -lshell32 \
@@ -217,7 +217,7 @@ pscp.exe: be_none.o cmdline.o cproxy.o int64.o logging.o misc.o pgssapi.o \
 		sshzlib.o timing.o tree234.o version.o wildcard.o wincons.o \
 		windefs.o wingss.o winhandl.o winmisc.o winnet.o winnoise.o \
 		winnojmp.o winpgntc.o winproxy.o winsftp.o winstore.o \
-		wintime.o x11fwd.o kitty_commun.o \
+		wintime.o x11fwd.o kitty_commun.o kitty_tools.o \
 		sc.o kitty_registry.o kitty_commun.o
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,pscp.map be_none.o cmdline.o \
 		cproxy.o int64.o logging.o misc.o pgssapi.o pinger.o \
@@ -229,7 +229,7 @@ pscp.exe: be_none.o cmdline.o cproxy.o int64.o logging.o misc.o pgssapi.o \
 		wingss.o winhandl.o winmisc.o winnet.o winnoise.o winnojmp.o \
 		winpgntc.o winproxy.o winsftp.o winstore.o wintime.o \
 		x11fwd.o \
-		sc.o kitty_registry.o kitty_commun.o \
+		sc.o kitty_registry.o kitty_commun.o kitty_tools.o \
 		../../bcrypt.a ../../mini.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lole32 -lshell32 -luser32 -lwinmm -lwinspool
@@ -243,7 +243,7 @@ psftp.exe: be_none.o cmdline.o cproxy.o int64.o logging.o misc.o pgssapi.o \
 		windefs.o wingss.o winhandl.o winmisc.o winnet.o winnoise.o \
 		winnojmp.o winpgntc.o winproxy.o winsftp.o winstore.o \
 		wintime.o x11fwd.o \
-		sc.o kitty_registry.o kitty_commun.o
+		sc.o kitty_registry.o kitty_commun.o kitty_tools.o
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,psftp.map be_none.o cmdline.o \
 		cproxy.o int64.o logging.o misc.o pgssapi.o pinger.o \
 		portfwd.o proxy.o psftp.o psftp.res.o settings_nohyperlink.o sftp.o \
@@ -254,7 +254,7 @@ psftp.exe: be_none.o cmdline.o cproxy.o int64.o logging.o misc.o pgssapi.o \
 		windefs.o wingss.o winhandl.o winmisc.o winnet.o winnoise.o \
 		winnojmp.o winpgntc.o winproxy.o winsftp.o winstore.o \
 		wintime.o x11fwd.o -ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 \
-		sc.o kitty_registry.o kitty_commun.o \
+		sc.o kitty_registry.o kitty_commun.o kitty_tools.o \
 		../../bcrypt.a ../../mini.a \
 		-limm32 -lole32 -lshell32 -luser32 -lwinmm -lwinspool
 
@@ -1107,6 +1107,9 @@ kitty_image.o: ../../kitty_image.c
 
 kitty_launcher.o: ../../kitty_launcher.c
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_launcher.c -DNO
+
+kitty_regex.o: ../../kitty_regex.c ../../kitty_regex.h
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_regex.c
 
 kitty_registry.o: ../../kitty_registry.c ../../kitty_registry.h
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../kitty_registry.c

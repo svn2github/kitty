@@ -180,6 +180,7 @@ HMENU InitLauncherMenu( char * Key ) {
 	AppendMenu( menu, MF_POPUP, (UINT_PTR)HideMenu, "&Opened sessions" ) ;
 	AppendMenu( menu, MF_SEPARATOR, 0, 0 ) ;
 	
+	AppendMenu( menu, MF_ENABLED, IDM_LAUNCHER+7, "&Refresh" ) ;
 	AppendMenu( menu, MF_ENABLED, IDM_LAUNCHER+1, "&Configuration" ) ;
 	AppendMenu( menu, MF_ENABLED, IDM_LAUNCHER+2, "&TTY-ed" ) ;
 	AppendMenu( menu, MF_SEPARATOR, 0, 0 ) ;
@@ -764,6 +765,10 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 					break ;
 				case IDM_LAUNCHER+6:
 					IsUnique = abs( IsUnique -1 ) ;
+					RefreshMenuLauncher() ;
+					break ;
+				case IDM_LAUNCHER+7:
+					if( LauncherConfReload ) InitLauncherRegistry() ;
 					RefreshMenuLauncher() ;
 					break ;
 				case IDM_GONEXT:
