@@ -617,6 +617,7 @@ void save_open_settings(void *sesskey, Config *cfg)
     write_setting_filename(sesskey, "Scriptfile", cfg->scriptfile);
     write_setting_s(sesskey, "AntiIdle", cfg->antiidle);
     write_setting_s(sesskey, "LogTimestamp", cfg->logtimestamp);
+    write_setting_i(sesskey, "LogTimeRotation", cfg->logtimerotation) ;
     write_setting_s(sesskey, "AutocommandOut", cfg->autocommandout);
     write_setting_s(sesskey, "Autocommand", cfg->autocommand);
     write_setting_s(sesskey, "Folder", cfg->folder) ;
@@ -1047,6 +1048,7 @@ void load_open_settings(void *sesskey, Config *cfg)
     gpps(sesskey, "AutocommandOut", "", cfg->autocommandout, sizeof(cfg->autocommandout));
     gpps(sesskey, "AntiIdle", "", cfg->antiidle, sizeof(cfg->antiidle));
     gpps(sesskey, "LogTimestamp", "", cfg->logtimestamp, sizeof(cfg->logtimestamp));
+    gppi(sesskey, "LogTimeRotation", 0, &cfg->logtimerotation);
 
     gppfile(sesskey, "Scriptfile", &cfg->scriptfile);
 	

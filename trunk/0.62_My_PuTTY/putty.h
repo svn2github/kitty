@@ -538,6 +538,7 @@ struct config_tag {
 	char sessionname[128] ;
 	char antiidle[128] ;
 	char logtimestamp[128] ;
+	int logtimerotation ;
 	Filename scriptfile ;
 	int save_windowpos;
 	int xpos, ypos ;

@@ -807,7 +807,6 @@ InitWinMain();
 
 	if (loaded_session || got_host)
 	    allow_launch = TRUE;
-
 	if ((!allow_launch || !cfg_launchable(&cfg)) && !do_config()) {
 	    cleanup_exit(0);
 	}
@@ -2561,6 +2560,10 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 		SetTimer(hwnd, TIMER_AUTOCOMMAND, (int)(autocommand_delay*1000), NULL) ;
 		logevent(NULL, "Send automatic command" );
 		}
+	if( cfg.logtimerotation > 0 ) {
+		SetTimer(hwnd, TIMER_LOGROTATION, (int)(cfg.logtimerotation*1000), NULL) ;
+		logevent(NULL, "Start log rotation" );
+		}
 
 	RefreshBackground( hwnd ) ;
 	}
@@ -2660,6 +2663,9 @@ else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone d
 			BlinkingState = 0 ;
 			}
 		}
+	}
+else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
+	timestamp_change_filename() ;
 	}
 #endif
 	return 0;
@@ -3294,7 +3300,8 @@ else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone d
 #ifdef PERSOPORT
         if(!PuttyFlag) {
 	if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
-		SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ; 
+		if( back ) SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ;
+		else SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;
 		break ;
 		}
 

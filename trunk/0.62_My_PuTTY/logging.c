@@ -130,7 +130,10 @@ int log_writetimestamp( struct LogContext *ctx ) {
 	return 1;
 	}
 
-static int timestamp_switch = 1 ;
+static int timestamp_newline = 1 ;
+static int timestamp_newfile = 0 ;
+
+void timestamp_change_filename( void ) { timestamp_newfile = 1 ; timestamp_newline = 1 ; }
 #endif
 
 /*
@@ -146,6 +149,13 @@ static void logwrite(struct LogContext *ctx, void *data, int len)
      * to one of L_OPENING, L_OPEN or L_ERROR. Hence we process all of
      * those three _after_ processing L_CLOSED.
      */
+#ifdef PERSOPORT
+	if( timestamp_newfile ) {
+		if (ctx->state == L_OPEN) { logfclose(ctx);}
+		timestamp_newfile = 0 ;
+		}
+#endif
+
     if (ctx->state == L_CLOSED)
 	logfopen(ctx);
 
@@ -155,9 +165,9 @@ static void logwrite(struct LogContext *ctx, void *data, int len)
 	assert(ctx->lgfp);
 #ifdef PERSOPORT
 	if( !get_param("PUTTY") ) {
-		if( timestamp_switch ) { log_writetimestamp( ctx ) ; timestamp_switch = 0 ; }
+		if( timestamp_newline ) { log_writetimestamp( ctx ) ; timestamp_newline = 0 ; }
 		char * c = (char*)(data+len-1) ;
-		if( c[0]=='\n' ) timestamp_switch = 1 ;
+		if( c[0]=='\n' ) timestamp_newline = 1 ;
 	}
 #endif
 	if (fwrite(data, 1, len, ctx->lgfp) < (size_t)len) {

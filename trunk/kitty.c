@@ -262,6 +262,7 @@ void SetNewIcon( HWND hwnd, Config cfg, const int mode ) ;
 #define TIMER_REDRAW 12344
 #define TIMER_AUTOPASTE 12345
 #define TIMER_BLINKTRAYICON 12346
+#define TIMER_LOGROTATION 12347
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -345,6 +346,7 @@ int ResizeWinList( HWND hwnd, int width, int height ) ;
 int SendCommandAllWindows( HWND hwnd, char * cmd ) ;
 int decode64 (char *buffer) ;
 void RunCommand( HWND hwnd, char * cmd ) ;
+void timestamp_change_filename( void ) ;
 
 static char * InputBoxResult = NULL ;
 
@@ -379,6 +381,10 @@ void debug_log( const char *fmt, ...) {
 	va_end( ap ) ;
 	}
 
+// Procedure d'affichage d'un message
+void debug_msg( const char * msg ) {
+	MessageBox( NULL, msg, "Info", MB_OK ) ;
+	}
 
 #ifdef CYGTERMPORT
 void cygterm_set_flag( int flag ) ;
@@ -2689,6 +2695,7 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 			achValue[0] = '\0';
 
 			if( RegEnumValue(hKey,i,achValue,&cchValue,NULL,&lpType,lpData,&dwDataSize) == ERROR_SUCCESS ) {
+			if( strcmp(achValue,"Default Settings") || strcmp(KeyName,"Software\\9bis.com\\KiTTY\\Launcher") ) { 
 				if( ShortcutsFlag ) {
 					if( nb < 26 ) 
 						sprintf( buffer, "%s\tCtrl+Shift+%c", achValue, ('A'+nb) ) ;
@@ -2702,6 +2709,7 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 				strcpy( SpecialMenu[nb], lpData ) ;
 				nb++ ;
 				local_nb++ ;
+				}
 				}
 			}
     		}
@@ -2742,9 +2750,11 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 			nb = (*nbitem) ;
 			while( ( de = readdir(dir) ) != NULL ) { // Recherche de clé
 				if( strcmp(de->d_name,".") && strcmp(de->d_name,"..") ) {
+				if( strcmp(de->d_name,"Default%20Settings") || strcmp(KeyName,"Launcher") ) { // Default Settings ne doit pas apparître dans le Launcher
+					
 					sprintf( buffer, "%s\\%s", fullpath, de->d_name ) ;
 					if( !(GetFileAttributes( buffer ) & FILE_ATTRIBUTE_DIRECTORY) ) {
-						if( ( fp=fopen(buffer,"rb")) != NULL ){
+						if( ( fp=fopen(buffer,"rb")) != NULL ) {
 							while( fgets( buffer, 4096, fp )!=NULL ){
 								while( (buffer[strlen(buffer)-1]=='\n')
 									||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0';
@@ -2753,12 +2763,12 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 									
 									if( (p=strstr(buffer,"\\"))!=NULL ){
 										p[0]='\0';
-				AppendMenu(menu, MF_ENABLED, IDM_USERCMD+nb, buffer ) ;
-				SpecialMenu[nb]=(char*)malloc( strlen( p+1 ) + 1 ) ;
-				strcpy( SpecialMenu[nb], p+1 ) ;
-				nb++ ;
-				local_nb++ ;
-									}
+										AppendMenu(menu, MF_ENABLED, IDM_USERCMD+nb, buffer ) ;
+										SpecialMenu[nb]=(char*)malloc( strlen( p+1 ) + 1 ) ;
+										strcpy( SpecialMenu[nb], p+1 ) ;
+										nb++ ;
+										local_nb++ ;
+										}
 									}
 								}
 							fclose(fp) ;
@@ -2770,6 +2780,7 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 							
 							}
 						}*/
+					}
 					}
 				}
 			(*nbitem)=nb ;
@@ -4100,6 +4111,16 @@ void LoadParameters( void ) {
 // Initialisation de noms de fichiers de configuration kitty.ini et kitty.sav
 // APPDATA = 	C:\Documents and Settings\U502190\Application Data sur XP
 //		C:\Users\Cyril\AppData\Roaming sur Vista
+//
+// En mode base de registre on cherche le fichier de configuration
+// - kitty.ini dans le répertoire de lancement de kitty.exe s'il existe
+// - sinon putty.ini dans le répertoire de lancement de kitty.exe s'il existe
+// - sinon kitty.ini dans le répertoire %APPDATA%/KiTTY s'il existe
+//
+// En mode portable on cherche le fichier de configuration
+// - kitty.ini dans le répertoire de lancement de kitty.exe s'il existe
+// - sinon putty.ini dans le répertoire de lancement de kitty.exe s'il existe
+// 
 void InitNameConfigFile( void ) {
 	char buffer[4096] ;
 	if( KittyIniFile != NULL ) free( KittyIniFile ) ; KittyIniFile=NULL ;
@@ -4202,6 +4223,19 @@ void InitWinMain( void ) {
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( strlen( buffer ) > 0 ) strcpy( KiTTYClassName, buffer ) ; }
 	appname = KiTTYClassName ;
+#endif
+
+	// Teste l'intégrité du programme
+#ifndef NO_TRANSPARENCY
+	FILE *fp = fopen( "kitty.err.log","r" ) ;
+	if( fp==NULL ) {
+		if( !CheckMD5Integrity() ) {
+			fprintf(stderr,"La signature du programme n'est pas bonne\n");
+			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
+			exit(1);
+			}
+		}
+	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus
