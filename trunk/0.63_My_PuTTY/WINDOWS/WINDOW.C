@@ -2658,10 +2658,9 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 
 	if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ == PROT_TELNET ) {
 		if( strlen( conf_get_str(conf,CONF_username)/*cfg.username*/ ) > 0 ) {
-			strcpy( buffer, conf_get_str(conf,CONF_username)/*cfg.username*/ ) ;
+			//strcpy( buffer, conf_get_str(conf,CONF_username)/*cfg.username*/ ) ; strcat( buffer, "\\n\\p" ) ; 
 			if( strlen( conf_get_str(conf,CONF_password)/*cfg.password*/ ) > 0 ) {
-				strcat( buffer, "\\n\\p" ) ; 
-				char bufpass[256];strcpy(bufpass,conf_get_str(conf,CONF_password)) ;
+				char bufpass[256]; strcpy(bufpass,conf_get_str(conf,CONF_password)) ;
 				MASKPASS(bufpass); strcat(buffer,bufpass); memset(bufpass,0,strlen(bufpass));
 				//MASKPASS(cfg.password); strcat( buffer, cfg.password ) ; MASKPASS(cfg.password);
 				strcat( buffer, "\\n" ) ;
@@ -4455,7 +4454,11 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		}
 	    }
 	}
+#ifdef KEYMAPPINGPORT
+	if( PuttyFlag ) net_pending_errors();
+#else
 	net_pending_errors();
+#endif
 	return 0;
       case WM_INPUTLANGCHANGE:
 	/* wParam == Font number */
@@ -5612,6 +5615,13 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
     /* If a key is pressed and AltGr is not active */
     if (key_down && (keystate[VK_RMENU] & 0x80) == 0 && !compose_state) {
 	/* Okay, prepare for most alts then ... */
+#ifdef KEYMAPPINGPORT
+	if( !PuttyFlag ) {
+		if (left_alt && shift_state != 1 && !(wParam == VK_UP || wParam == VK_DOWN || wParam == VK_RIGHT || wParam == VK_LEFT))
+			*p++ = '\033';
+		}
+	else
+#endif
 	if (left_alt)
 	    *p++ = '\033';
 
@@ -5807,6 +5817,34 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 	    *p++ = 0;
 	    return -2;
 	}
+#ifdef KEYMAPPINGPORT
+	if( !PuttyFlag ) {
+		if (wParam == VK_TAB && shift_state == 2) { /* Ctrl-Tab */
+		p += sprintf((char *) p, "\x1B[27;5;9~");
+		return p - output;
+		}
+		if (wParam == VK_TAB && shift_state == 3) { /* Ctrl-Shift-Tab */
+		p += sprintf((char *) p, "\x1B[27;6;9~");
+		return p - output;
+		}
+		if (wParam == VK_UP && shift_state == 3) { /* Ctrl-Shift-Up */
+		p += sprintf((char *) p, "\x1B[1;6A");
+		return p - output;
+		}
+		if (wParam == VK_DOWN && shift_state == 3) { /* Ctrl-Shift-Down */
+		p += sprintf((char *) p, "\x1B[1;6B");
+		return p - output;
+		}
+		if (wParam == VK_RIGHT && shift_state == 3) { /* Ctrl-Shift-Right */
+		p += sprintf((char *) p, "\x1B[1;6C");
+		return p - output;
+		}
+		if (wParam == VK_LEFT && shift_state == 3) { /* Ctrl-Shift-Left */
+		p += sprintf((char *) p, "\x1B[1;6D");
+		return p - output;
+		}
+	}
+#endif
 	if (wParam == VK_TAB && shift_state == 1) {	/* Shift tab */
 #ifdef CYGTERMPORT
 	p = output; /* don't also pass escape */
@@ -6067,7 +6105,11 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 		break;
 	    }
 	    if (xkey) {
+#ifdef KEYMAPPINGPORT
+		p += format_arrow_key(p, term, xkey, shift_state, left_alt);
+#else
 		p += format_arrow_key(p, term, xkey, shift_state);
+#endif
 		return p - output;
 	    }
 	}
@@ -6321,7 +6363,6 @@ void make_title( char * res, char * fmt, char * title ) {
 
 void set_title(void *frontend, char *title) {
 	char *buffer, fmt[256]="%s" ;
-
 	if( (title[0]=='_')&&(title[1]=='_') ) { // Mode commande a distance
 		if( ManageLocalCmd( MainHwnd, title+2 ) ) return ;
 		}

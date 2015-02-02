@@ -1131,7 +1131,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 
 #endif
 #ifdef CYGTERMPORT
-    gppi(sesskey, "CygtermAltMetabit", 1, conf, CONF_alt_metabit);
+    gppi(sesskey, "CygtermAltMetabit", 0, conf, CONF_alt_metabit);
     gppi(sesskey, "CygtermAutoPath", 1, conf, CONF_cygautopath /*&cfg->cygautopath*/);
     gpps(sesskey, "CygtermCommand", "", conf, CONF_cygcmd /*cfg->cygcmd, sizeof(cfg->cygcmd)*/);
 #endif

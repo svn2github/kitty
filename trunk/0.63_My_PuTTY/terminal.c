@@ -6245,7 +6245,11 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
     term_update(term);
 }
 
+#ifdef KEYMAPPINGPORT
+int format_arrow_key(char *buf, Terminal *term, int xkey, int modifier, int alt)
+#else
 int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl)
+#endif
 {
     char *p = buf;
 
@@ -6268,6 +6272,32 @@ int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl)
 	if (!term->app_keypad_keys)
 	    app_flg = 0;
 #endif
+#ifdef KEYMAPPINGPORT
+	if( !get_param("PUTTY") ) {
+		if (modifier == 1 && alt == 1)
+		p += sprintf((char *) p, "\x1B[1;10%c", xkey); /* Alt-Shift */
+		else if (alt == 1)
+		p += sprintf((char *) p, "\x1B[1;3%c", xkey); /* Alt */
+		else if (modifier == 1)
+		p += sprintf((char *) p, "\x1B[1;2%c", xkey); /* Shift */
+		else if (modifier)
+		p += sprintf((char *) p, "\x1B[1;5%c", xkey); /* Control */
+		else if (app_flg)
+		p += sprintf((char *) p, "\x1BO%c", xkey); /* Application mode */
+		else
+		p += sprintf((char *) p, "\x1B[%c", xkey); /* Normal */
+		}
+	else {
+	/* Useful mapping of Ctrl-arrows */
+	if (modifier)
+	    app_flg = !app_flg;
+
+	if (app_flg)
+	    p += sprintf((char *) p, "\x1BO%c", xkey);
+	else
+	    p += sprintf((char *) p, "\x1B[%c", xkey);
+		}
+#else
 	/* Useful mapping of Ctrl-arrows */
 	if (ctrl)
 	    app_flg = !app_flg;
@@ -6276,6 +6306,8 @@ int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl)
 	    p += sprintf((char *) p, "\x1BO%c", xkey);
 	else
 	    p += sprintf((char *) p, "\x1B[%c", xkey);
+#endif
+
     }
 
     return p - buf;

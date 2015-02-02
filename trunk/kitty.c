@@ -419,6 +419,7 @@ int get_param( const char * val ) {
 	else if( !stricmp( val, "INIFILE" ) ) return IniFileFlag ;
 	else if( !stricmp( val, "DIRECTORYBROWSE" ) ) return DirectoryBrowseFlag ;
 	else if( !stricmp( val, "HYPERLINK" ) ) return HyperlinkFlag ;
+	else if( !stricmp( val, "TRANSPARENCY" ) )return TransparencyFlag ;
 #ifdef ZMODEMPORT
 	else if( !stricmp( val, "ZMODEM" ) ) return ZModemFlag ;
 #endif
@@ -1449,7 +1450,7 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 		buf=(char*)malloc( strlen(cmd)+30 ) ;
 		strcpy( buf, "Send automatic command" ) ;
 		if( debug_flag ) { strcat( buf, ": ") ; strcat( buf, cmd ) ; }
-		logevent(NULL, buf ) ;
+		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (à cause du password envoyé en clair)
 		free(buf);
 		if( existfile( cmd ) ) RunScriptFile( hwnd, cmd ) ;
 		else if( (toupper(cmd[0])=='C')&&(toupper(cmd[1])==':')&&(toupper(cmd[2])=='\\') ) {
@@ -2086,7 +2087,7 @@ void StartNewSession( HWND hwnd, char * directory ) ;
 cmd()
 {
 if [ $# -eq 0 ] ; then echo "Usage: cmd command" ; return 0 ; fi
-printf "\033]0;__cm:"$*"\007"
+printf "\033]0;__cm:"$@"\007"
 }
 */
 int ManageLocalCmd( HWND hwnd, char * cmd ) {
@@ -2094,27 +2095,27 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 	if( debug_flag ) { debug_logevent( "LocalCmd: %s", cmd ) ;  }
 	if( cmd == NULL ) return 0 ; if( (cmd[2] != ':')&&(cmd[2] != '\0') ) return 0 ;
 	if( (cmd[2] == ':')&&( strlen( cmd ) <= 3 ) ) return 0 ;
-	if( (cmd[0]=='p')&&(cmd[1]=='w')&&(cmd[2]==':') ) { // nouveau remote directory
+	if( (cmd[0]=='p')&&(cmd[1]=='w')&&(cmd[2]==':') ) { // __pw: nouveau remote directory
 		if( RemotePath!= NULL ) free( RemotePath ) ;
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
 		return 1 ;
 		}
-	else if( (cmd[0]=='r')&&(cmd[1]=='v')&&(cmd[2]==':') ) { // Reception d'un fichiers
+	else if( (cmd[0]=='r')&&(cmd[1]=='v')&&(cmd[2]==':') ) { // __rv: Reception d'un fichiers
 		GetOneFile( hwnd, RemotePath, cmd+3 ) ;
 		return 1 ;
 		}
-	else if( (cmd[0]=='t')&&(cmd[1]=='i')&&(cmd[2]=='\0') ) { // Récupération du titre de la fenêtres
+	else if( (cmd[0]=='t')&&(cmd[1]=='i')&&(cmd[2]=='\0') ) { // __ti: Récupération du titre de la fenêtres
 		GetWindowText( hwnd, buffer, 1024 ) ;
 		sprintf( title, "printf \"\\033]0;%s\\007\"\n", buffer ) ;
 		SendStrToTerminal( title, strlen(title) ) ;
 		return 1 ;
 		}
-	else if( (cmd[0]=='i')&&(cmd[1]=='n')&&(cmd[2]==':') ) { // Affiche d'information dans le log
+	else if( (cmd[0]=='i')&&(cmd[1]=='n')&&(cmd[2]==':') ) { // __in: Affiche d'information dans le log
 		logevent(NULL,cmd+3);
 		return 1 ;
 		}
-	else if( (cmd[0]=='w')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // Lance WinSCP dans un repertoire donne
+	else if( (cmd[0]=='w')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // __ws: Lance WinSCP dans un repertoire donne
 		if( RemotePath!= NULL ) free( RemotePath ) ;
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
@@ -2122,7 +2123,13 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		free( RemotePath ) ;
 		return 1 ;
 		}
-	else if( (cmd[0]=='d')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // Lance une session dupliquée dans le même répertoire
+	else if( (cmd[0]=='i')&&(cmd[1]=='e')&&(cmd[2]==':') ) { // __ie: Lance un navigateur sur le lien
+		if( strlen(cmd+3)>0 ) {
+			urlhack_launch_url(!conf_get_int(conf,CONF_url_defbrowser)?conf_get_filename(conf,CONF_url_browser)->path:NULL, cmd+3, 1);
+			return 1;
+			}
+		}
+	else if( (cmd[0]=='d')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // __ds: Lance une session dupliquée dans le même répertoire
 		if( RemotePath!= NULL ) free( RemotePath ) ;
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
@@ -2130,7 +2137,7 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		free( RemotePath ) ;
 		return 1 ;
 		}
-	else if( (cmd[0]=='c')&&(cmd[1]=='m')&&(cmd[2]==':') ) { // Execute une commande externe
+	else if( (cmd[0]=='c')&&(cmd[1]=='m')&&(cmd[2]==':') ) { // __cm: Execute une commande externe
 		RunCommand( hwnd, cmd+3 ) ;
 		return 1 ;
 		}
@@ -3573,9 +3580,9 @@ void ManageInitScript( const char * input_str, const int len ) {
 	}
 	
 void ReadInitScript( const char * filename ) {
-	char * pst, buffer[4096], *name=NULL ;
+	char * pst, *buffer=NULL, *name=NULL ;
 	FILE *fp ;
-	int l ; 
+	long l ; 
 
 	if( filename != NULL )
 		if( strlen( filename ) > 0 ) {
@@ -3592,6 +3599,9 @@ void ReadInitScript( const char * filename ) {
 
 	if( name != NULL ) {
 	if( existfile( name ) ) {
+		l=filesize(name) ;
+		//if(l<4096){ l=4096; }
+		buffer=(char*)malloc(5*l);
 		if( ( fp = fopen( name,"rb") ) != NULL ) {
 			if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
 			l = 0 ;
@@ -3615,13 +3625,17 @@ void ReadInitScript( const char * filename ) {
 				WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
 				}
 			}
+		if( buffer!=NULL ) { free(buffer); buffer=NULL; }
 		}
 	else {
-		strcpy( buffer, name ) ;
-		l = decryptstring( buffer, MASTER_PASSWORD ) ;
-		if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
-		ScriptFileContent = (char*) malloc( l + 1 ) ;
-		memcpy( ScriptFileContent, buffer, l ) ;
+		if( buffer=(char*)malloc(strlen(name)+1) ){
+			strcpy( buffer, name ) ;
+			l = decryptstring( buffer, MASTER_PASSWORD ) ;
+			if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
+			ScriptFileContent = (char*) malloc( l + 1 ) ;
+			memcpy( ScriptFileContent, buffer, l ) ;
+			free(buffer);buffer=NULL;
+			}
 		}
 		}
 	}
@@ -4400,6 +4414,19 @@ void InitWinMain( void ) {
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( strlen( buffer ) > 0 ) strcpy( KiTTYClassName, buffer ) ; }
 	appname = KiTTYClassName ;
+#endif
+
+	// Teste l'intégrité du programme
+#ifndef NO_TRANSPARENCY
+	FILE *fp = fopen( "kitty.err.log","r" ) ;
+	if( fp==NULL ) {
+		if( !CheckMD5Integrity() ) {
+			fprintf(stderr,"La signature du programme n'est pas bonne\n");
+			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
+			exit(1);
+			}
+		}
+	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus

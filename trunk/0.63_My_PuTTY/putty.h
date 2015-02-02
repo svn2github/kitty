@@ -1105,7 +1105,11 @@ char *term_get_ttymode(Terminal *term, const char *mode);
 int term_get_userpass_input(Terminal *term, prompts_t *p,
 			    unsigned char *in, int inlen);
 
+#ifdef KEYMAPPINGPORT
+int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl, int alt);
+#else
 int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl);
+#endif
 
 /*
  * Exports from logging.c.

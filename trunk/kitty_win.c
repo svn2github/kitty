@@ -302,9 +302,13 @@ void RunCommand( HWND hwnd, char * cmd ) {
 //MessageBox(hwnd,cmd,"Info",MB_OK);
 
 	if( !CreateProcess(NULL,(CHAR*)cmd,NULL,NULL,FALSE,NORMAL_PRIORITY_CLASS,NULL,NULL,&StartUpInfo,&ProcessInformation) ) {
-		ShellExecute(hwnd, "open", cmd,0, 0, SW_SHOWDEFAULT);
+		ShellExecute(hwnd, "open", cmd ,0 , 0, SW_SHOWDEFAULT);
 		}
-	else { WaitForInputIdle(ProcessInformation.hProcess, INFINITE ); }
+	else { 
+		WaitForInputIdle(ProcessInformation.hProcess, INFINITE ); 
+		CloseHandle( &StartUpInfo );
+		CloseHandle( &ProcessInformation );
+		}
 	}
 
 void RunPuttyEd( HWND hwnd ) {

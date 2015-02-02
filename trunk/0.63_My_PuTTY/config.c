@@ -2448,7 +2448,7 @@ void setup_config_box(struct controlbox *b, int midsession,
       }
 #endif 
 #ifdef PERSOPORT
-	if( !get_param("PUTTY") ) {
+	if( !get_param("PUTTY") && get_param("TRANSPARENCY") ) {
     s = ctrl_getset(b, "Window/Background", "bg_transparency",
             "Transparency setting");
     ctrl_editbox(s, "Transparency:", NO_SHORTCUT, 20,
