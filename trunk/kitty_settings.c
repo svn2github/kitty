@@ -6,8 +6,8 @@ A partir du fichier SETTINGS.C
 - remplacer les write_setting_s( par des write_setting_s_forced(
 - remplacer les write_setting_fontspec( par des write_setting_fontspec_forced(
 - remplacer les write_setting_filename( par des write_setting_filename_forced(
-- remplacer les wmap_forced( par des wmap_forced_forced(
-- remplacer les wprefs_forced( par des wprefs_forced(
+- remplacer les wmap( par des wmap_forced(
+- remplacer les wprefs( par des wprefs_forced(
 
 LES REMPLACEMENTS DOIVENT SE FAIRE SUR LA SELECTION ENTRE LES COMMENTAIRES UNIQUEMENT !
 
@@ -32,7 +32,7 @@ void write_setting_i_forced(void *handle, const char *key, int value) ;
 void write_setting_s_forced(void *handle, const char *key, const char *value) ;
 void write_setting_filename_forced(void *handle, const char *key, Filename *value) ;
 void write_setting_fontspec_forced(void *handle, const char *key, FontSpec *font) ;
-void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary) ;
+void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,int include_values) ;
 void wprefs_forced(void *sesskey, char *name,const struct keyvalwhere *mapping, int nvals,Conf *conf, int primary) ;
 
 int read_setting_i_forced(void *handle, const char *key, int defvalue) ;
@@ -83,7 +83,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "TCPKeepalives", conf_get_int(conf, CONF_tcp_keepalives));
     write_setting_s_forced(sesskey, "TerminalType", conf_get_str(conf, CONF_termtype));
     write_setting_s_forced(sesskey, "TerminalSpeed", conf_get_str(conf, CONF_termspeed));
-    wmap_forced(sesskey, "TerminalModes", conf, CONF_ttymodes);
+    wmap_forced(sesskey, "TerminalModes", conf, CONF_ttymodes, TRUE);
 
     /* Address family selection */
     write_setting_i_forced(sesskey, "AddressFamily", conf_get_int(conf, CONF_addressfamily));
@@ -98,7 +98,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_s_forced(sesskey, "ProxyUsername", conf_get_str(conf, CONF_proxy_username));
     write_setting_s_forced(sesskey, "ProxyPassword", conf_get_str(conf, CONF_proxy_password));
     write_setting_s_forced(sesskey, "ProxyTelnetCommand", conf_get_str(conf, CONF_proxy_telnet_command));
-    wmap_forced(sesskey, "Environment", conf, CONF_environmt);
+    wmap_forced(sesskey, "Environment", conf, CONF_environmt, TRUE);
     write_setting_s_forced(sesskey, "UserName", conf_get_str(conf, CONF_username));
     write_setting_i_forced(sesskey, "UserNameFromEnvironment", conf_get_int(conf, CONF_username_from_env));
     write_setting_s_forced(sesskey, "LocalUserName", conf_get_str(conf, CONF_localusername));
@@ -252,7 +252,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_filename_forced(sesskey, "X11AuthFile", conf_get_filename(conf, CONF_xauthfile));
     write_setting_i_forced(sesskey, "LocalPortAcceptAll", conf_get_int(conf, CONF_lport_acceptall));
     write_setting_i_forced(sesskey, "RemotePortAcceptAll", conf_get_int(conf, CONF_rport_acceptall));
-    wmap_forced(sesskey, "PortForwardings", conf, CONF_portfwd);
+    wmap_forced(sesskey, "PortForwardings", conf, CONF_portfwd, TRUE);
     write_setting_i_forced(sesskey, "BugIgnore1", 2-conf_get_int(conf, CONF_sshbug_ignore1));
     write_setting_i_forced(sesskey, "BugPlainPW1", 2-conf_get_int(conf, CONF_sshbug_plainpw1));
     write_setting_i_forced(sesskey, "BugRSA1", 2-conf_get_int(conf, CONF_sshbug_rsa1));
@@ -264,6 +264,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "BugRekey2", 2-conf_get_int(conf, CONF_sshbug_rekey2));
     write_setting_i_forced(sesskey, "BugMaxPkt2", 2-conf_get_int(conf, CONF_sshbug_maxpkt2));
     write_setting_i_forced(sesskey, "BugWinadj", 2-conf_get_int(conf, CONF_sshbug_winadj));
+    write_setting_i_forced(sesskey, "BugChanReq", 2-conf_get_int(conf, CONF_sshbug_chanreq));
     write_setting_i_forced(sesskey, "StampUtmp", conf_get_int(conf, CONF_stamp_utmp));
     write_setting_i_forced(sesskey, "LoginShell", conf_get_int(conf, CONF_login_shell));
     write_setting_i_forced(sesskey, "ScrollbarOnLeft", conf_get_int(conf, CONF_scrollbar_on_left));
@@ -279,6 +280,11 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "SerialParity", conf_get_int(conf, CONF_serparity));
     write_setting_i_forced(sesskey, "SerialFlowControl", conf_get_int(conf, CONF_serflow));
     write_setting_s_forced(sesskey, "WindowClass", conf_get_str(conf, CONF_winclass));
+    write_setting_i_forced(sesskey, "ConnectionSharing", conf_get_int(conf, CONF_ssh_connection_sharing));
+    write_setting_i_forced(sesskey, "ConnectionSharingUpstream", conf_get_int(conf, CONF_ssh_connection_sharing_upstream));
+    write_setting_i_forced(sesskey, "ConnectionSharingDownstream", conf_get_int(conf, CONF_ssh_connection_sharing_downstream));
+    wmap_forced(sesskey, "SSHManualHostKeys", conf, CONF_ssh_manual_hostkeys, FALSE);
+
 #ifdef SCPORT
     write_setting_i_forced(sesskey, "PKCS11SysLog", conf_get_int(conf,CONF_try_write_syslog) );
     write_setting_i_forced(sesskey, "AuthPKCS11", conf_get_int(conf,CONF_try_pkcs11_auth) /*cfg->try_pkcs11_auth*/);
@@ -403,6 +409,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     
     write_setting_i_forced(sesskey, "CtrlTabSwitch", conf_get_int(conf, CONF_ctrl_tab_switch));
     write_setting_s_forced(sesskey, "Comment", conf_get_str(conf, CONF_comment) );
+    write_setting_i_forced(sesskey, "ACSinUTF", conf_get_int(conf, CONF_acs_in_utf));
 #endif
 #ifdef PORTKNOCKINGPORT
 	write_setting_s_forced(sesskey, "PortKnocking", conf_get_str(conf, CONF_portknockingoptions) );
@@ -473,12 +480,12 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     {
 	/* This is two values for backward compatibility with 0.50/0.51 */
 	int pingmin, pingsec;
-	pingmin = gppi_raw_forced(sesskey, "PingInterval", 0);
-	pingsec = gppi_raw_forced(sesskey, "PingIntervalSecs", 0);
+	pingmin = gppi_raw_forced(sesskey, "PingInterval", conf_get_int(confDef, CONF_ping_interval) / 60 );
+	pingsec = gppi_raw_forced(sesskey, "PingIntervalSecs", conf_get_int(confDef, CONF_ping_interval) % 60 );
 	conf_set_int(conf, CONF_ping_interval, pingmin * 60 + pingsec);
     }
-    gppi_forced(sesskey, "TCPNoDelay", 1, conf, CONF_tcp_nodelay);
-    gppi_forced(sesskey, "TCPKeepalives", 0, conf, CONF_tcp_keepalives);
+    gppi_forced(sesskey, "TCPNoDelay", conf_get_int(confDef, CONF_tcp_nodelay), conf, CONF_tcp_nodelay);
+    gppi_forced(sesskey, "TCPKeepalives", conf_get_int(confDef, CONF_tcp_keepalives), conf, CONF_tcp_keepalives);
     gpps_forced(sesskey, "TerminalType", "xterm", conf, CONF_termtype);
     gpps_forced(sesskey, "TerminalSpeed", "38400,38400", conf, CONF_termspeed);
     if (!gppmap_forced(sesskey, "TerminalModes", conf, CONF_ttymodes)) {
@@ -546,7 +553,8 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     }
     gppi_forced(sesskey, "RekeyTime", 60, conf, CONF_ssh_rekey_time);
     gpps_forced(sesskey, "RekeyBytes", "1G", conf, CONF_ssh_rekey_data);
-    gppi_forced(sesskey, "SshProt", 2, conf, CONF_sshprot);
+    /* SSH-2 only by default */
+    gppi_forced(sesskey, "SshProt", 3, conf, CONF_sshprot);
     gpps_forced(sesskey, "LogHost", "", conf, CONF_loghost);
     gppi_forced(sesskey, "SSH2DES", 0, conf, CONF_ssh2_des_cbc);
     gppi_forced(sesskey, "SshNoAuth", 0, conf, CONF_ssh_no_userauth);
@@ -669,7 +677,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "TryPalette", 0, conf, CONF_try_palette);
     gppi_forced(sesskey, "ANSIColour", 1, conf, CONF_ansi_colour);
     gppi_forced(sesskey, "Xterm256Colour", 1, conf, CONF_xterm_256_colour);
-    i = gppi_raw_forced(sesskey, "BoldAsColour", 0); conf_set_int(conf, CONF_bold_style, i+1);
+    i = gppi_raw_forced(sesskey, "BoldAsColour", 1); conf_set_int(conf, CONF_bold_style, i+1);
 #ifdef TUTTYPORT
     gppi_forced(sesskey, "WindowClosable", 1, conf, CONF_window_closable);
     gppi_forced(sesskey, "WindowMinimizable", 1, conf, CONF_window_minimizable);
@@ -784,6 +792,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     i = gppi_raw_forced(sesskey, "BugRekey2", 0); conf_set_int(conf, CONF_sshbug_rekey2, 2-i);
     i = gppi_raw_forced(sesskey, "BugMaxPkt2", 0); conf_set_int(conf, CONF_sshbug_maxpkt2, 2-i);
     i = gppi_raw_forced(sesskey, "BugWinadj", 0); conf_set_int(conf, CONF_sshbug_winadj, 2-i);
+    i = gppi_raw_forced(sesskey, "BugChanReq", 0); conf_set_int(conf, CONF_sshbug_chanreq, 2-i);
     conf_set_int(conf, CONF_ssh_simple, FALSE);
     gppi_forced(sesskey, "StampUtmp", 1, conf, CONF_stamp_utmp);
     gppi_forced(sesskey, "LoginShell", 1, conf, CONF_login_shell);
@@ -800,6 +809,10 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "SerialParity", SER_PAR_NONE, conf, CONF_serparity);
     gppi_forced(sesskey, "SerialFlowControl", SER_FLOW_XONXOFF, conf, CONF_serflow);
     gpps_forced(sesskey, "WindowClass", "", conf, CONF_winclass);
+    gppi_forced(sesskey, "ConnectionSharing", 0, conf, CONF_ssh_connection_sharing);
+    gppi_forced(sesskey, "ConnectionSharingUpstream", 1, conf, CONF_ssh_connection_sharing_upstream);
+    gppi_forced(sesskey, "ConnectionSharingDownstream", 1, conf, CONF_ssh_connection_sharing_downstream);
+    gppmap_forced(sesskey, "SSHManualHostKeys", conf, CONF_ssh_manual_hostkeys);
 #ifdef SCPORT
     gppi_forced(sesskey, "PKCS11SysLog", 0, conf, CONF_try_write_syslog );
     gppi_forced(sesskey, "AuthPKCS11", 0, conf, CONF_try_pkcs11_auth /*&cfg->try_pkcs11_auth*/);
@@ -949,6 +962,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     memset(pst,0,strlen(pst));
     gppi_forced(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps_forced(sesskey, "Comment", "", conf, CONF_comment );
+    gppi_forced(sesskey, "ACSinUTF", 0, conf, CONF_acs_in_utf);
 #endif
 #ifdef PORTKNOCKINGPORT
 	gpps_forced(sesskey, "PortKnocking", "", conf, CONF_portknockingoptions );
@@ -1024,7 +1038,9 @@ void write_setting_fontspec_forced(void *handle, const char *name, FontSpec *fon
     sfree(settingname);
 }
 
-void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary) {
+void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,
+                 int include_values)
+{
     char *buf, *p, *q, *key, *realkey, *val;
     int len;
 

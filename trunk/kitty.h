@@ -418,6 +418,10 @@ int getpid(void) ;
 #ifndef TIMER_LOGROTATION
 #define TIMER_LOGROTATION 8707
 #endif
+#ifndef TIMER_ANTIIDLE
+#define TIMER_ANTIIDLE 8708
+#endif
+
 
 
 #ifndef VISIBLE_NO

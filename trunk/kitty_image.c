@@ -1,6 +1,7 @@
 // Probleme du bug de consommation memoire avec le shrink => 
 //	- voir 0/1 dans la fonction RedrawBackground
 //	- voir dans le fichier WINDOW.C le  if((UINT_PTR)wParam == TIMER_REDRAW)
+// Le probleme est dans load_file_jpeg => il manquait un GlobalFree
 
 
 // Essai de compilation séparé
@@ -43,30 +44,24 @@ COLORREF return_colours258(void) ;
 
 #endif
 
-static BOOL (WINAPI * pAlphaBlend)(HDC,int,int,int,int,HDC,int,int,int,int,BLENDFUNCTION) = 0 ;
+static BOOL (WINAPI * pAlphaBlend)( HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION ) = 0 ;
 
 //static HWND hwnd;
 #include "kitty_image.h"
 
- HDC textdc = NULL ;
- HBITMAP textbm = NULL ;
- COLORREF colorinpixel;
- HDC colorinpixeldc = NULL ;
- HBITMAP colorinpixelbm = NULL;
- HDC backgrounddc = NULL ;
- HBITMAP backgroundbm = NULL ;
- HDC backgroundblenddc = NULL ;
- HBITMAP backgroundblendbm = NULL;
- BOOL bBgRelToTerm;
+HDC textdc = NULL ;
+HBITMAP textbm = NULL ;
+COLORREF colorinpixel;
+HDC colorinpixeldc = NULL ;
+HBITMAP colorinpixelbm = NULL;
+HDC backgrounddc = NULL ;
+HBITMAP backgroundbm = NULL ;
+HDC backgroundblenddc = NULL ;
+HBITMAP backgroundblendbm = NULL;
+BOOL bBgRelToTerm;
+int resizing;
+RECT size_before;
 
- int resizing;
- RECT size_before;
-
-
-#define Alloc(p,t) (t *)malloc((p)*sizeof(t))
-#define For(i,n) for ((i)=0;(i)<(n);(i)++)
-#define iFor(n) For (i,n)
-#define jFor(n) For (j,n)
 
 #ifdef DLL
 #define TARGET extern __declspec(dllexport)
@@ -75,175 +70,200 @@ static BOOL (WINAPI * pAlphaBlend)(HDC,int,int,int,int,HDC,int,int,int,int,BLEND
 #endif
 
 static int ShrinkBitmapEnable = 1 ;
-void SetShrinkBitmapEnable(int v) {
+void SetShrinkBitmapEnable( int v ) {
 	if( v ) ShrinkBitmapEnable = 1 ;
 	else ShrinkBitmapEnable = 0 ;
-	}
+}
+	
+
+//
+// Fonctions de shrink de bitmap
+//
+#define Alloc(p,t) (t *)malloc((p)*sizeof(t))
+#define For(i,n) for ((i)=0;(i)<(n);(i)++)
+#define iFor(n) For (i,n)
+#define jFor(n) For (j,n)
 
 typedef struct {
- WORD x,y;  // dimensions
- WORD l;    // bytes per scan-line (32-bit allignment)
- BYTE *b;   // bits of bitmap,3 bytes/pixel, BGR
-} tWorkBMP;  // 24-bit working bitmap
+	WORD x, y ;	// dimensions
+	WORD l ;	// bytes per scan-line (32-bit allignment)
+	BYTE *b ;	// bits of bitmap,3 bytes/pixel, BGR
+} tWorkBMP ;		// 24-bit working bitmap
 
-void CreateWorkingBitmap (WORD dx,WORD dy,tWorkBMP *w)
-{
- w->x=dx;
- w->y=dy;
- w->l=(dx+1)*3&0xfffc;
- w->b=Alloc(w->l*dy,BYTE);
+void CreateWorkingBitmap( WORD dx, WORD dy, tWorkBMP *w ) {
+	w->x=dx ;
+	w->y=dy ;
+	w->l=(dx+1)*3&0xfffc ;
+	w->b=Alloc( w->l*dy, BYTE ) ;
 }
 
-HBITMAP CreateEmptyBitmap (WORD dx,WORD dy)
-{
- HDC h=GetDC(NULL);
- HBITMAP b=CreateCompatibleBitmap(h,dx,dy);
- ReleaseDC (NULL,h);
-
- return (b);
+HBITMAP CreateEmptyBitmap( WORD dx, WORD dy ) {
+	HDC h = GetDC( NULL ) ;
+	HBITMAP b = CreateCompatibleBitmap( h, dx, dy ) ;
+	ReleaseDC( NULL, h ) ;
+	return(b) ;
 }
 
-void SetBMIHeader (BITMAPINFO *b,short dx,short dy)
-{
- b->bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
- b->bmiHeader.biWidth=dx;
- b->bmiHeader.biHeight=-dy;
- b->bmiHeader.biPlanes=1;
- b->bmiHeader.biBitCount=24;
- b->bmiHeader.biCompression=BI_RGB;
- b->bmiHeader.biSizeImage=0;
- b->bmiHeader.biXPelsPerMeter=1;
- b->bmiHeader.biYPelsPerMeter=1;
- b->bmiHeader.biClrUsed=0;
- b->bmiHeader.biClrImportant=0;
+void SetBMIHeader( BITMAPINFO *b, short dx, short dy ) {
+	b->bmiHeader.biSize = sizeof(BITMAPINFOHEADER) ;
+	b->bmiHeader.biWidth = dx ;
+	b->bmiHeader.biHeight = -dy ;
+	b->bmiHeader.biPlanes = 1 ;
+	b->bmiHeader.biBitCount = 24 ;
+	b->bmiHeader.biCompression = BI_RGB ;
+	b->bmiHeader.biSizeImage = 0 ;
+	b->bmiHeader.biXPelsPerMeter = 1 ;
+	b->bmiHeader.biYPelsPerMeter = 1 ;
+	b->bmiHeader.biClrUsed = 0 ;
+	b->bmiHeader.biClrImportant = 0 ;
 }
 
-
-POINT GetBitmapSize (HBITMAP h)
-{
-POINT p;
-BITMAP o;
-GetObject (h,sizeof(o),&o);
-p.x=o.bmWidth;
-p.y=o.bmHeight;
-return (p);
+POINT GetBitmapSize( HBITMAP h ) {
+	POINT p ;
+	BITMAP o ;
+	GetObject( h, sizeof(o), &o ) ;
+	p.x = o.bmWidth ;
+	p.y = o.bmHeight ;
+	return(p) ;
 }
 
-void OpenBitmapForWork (HBITMAP b,tWorkBMP *w)
-{
-BITMAPINFO s;
-HDC h=GetDC(NULL);
-POINT v=GetBitmapSize(b);
-CreateWorkingBitmap (v.x,v.y,w);
-SetBMIHeader (&s,w->x,w->y);
-GetDIBits (h,b,0,w->y,w->b,&s,DIB_RGB_COLORS);
-ReleaseDC (NULL,h);
+void OpenBitmapForWork( HBITMAP b, tWorkBMP *w ) {
+	BITMAPINFO s ;
+	HDC h = GetDC( NULL ) ;
+	POINT v = GetBitmapSize( b ) ;
+	CreateWorkingBitmap( v.x, v.y, w ) ;
+	SetBMIHeader( &s,w->x, w->y ) ;
+	GetDIBits( h, b, 0, w->y, w->b, &s, DIB_RGB_COLORS ) ;
+	ReleaseDC( NULL, h ) ;
 }
 
-void SaveWorkingBitmap (tWorkBMP *w,HBITMAP b)
-{
- BITMAPINFO s;
- HDC h=GetDC(NULL);
- SetBMIHeader (&s,w->x,w->y);
- SetDIBits (h,b,0,w->y,w->b,&s,DIB_RGB_COLORS);
- ReleaseDC (NULL,h);
+void SaveWorkingBitmap( tWorkBMP *w, HBITMAP b ) {
+	BITMAPINFO s ;
+	HDC h = GetDC( NULL ) ;
+	SetBMIHeader( &s, w->x, w->y ) ;
+	SetDIBits( h, b, 0, w->y, w->b, &s, DIB_RGB_COLORS ) ;
+	ReleaseDC( NULL, h ) ;
 }
 
-void ShrinkWorkingBitmap (tWorkBMP *a,tWorkBMP *b,WORD bx,WORD by)
-{
- BYTE *uy=a->b,*ux,i;
- WORD x,y,nx,ny=0;
- DWORD df=3*bx,nf=df*by,j;
- float k,qx[2],qy[2],q[4],*f=Alloc(nf,float);
+void ShrinkWorkingBitmap( tWorkBMP *a, tWorkBMP *b, WORD bx, WORD by ) {
+	BYTE *uy = a->b, *ux, i ;
+	WORD x, y, nx, ny = 0 ;
+	DWORD df = 3*bx, nf = df*by, j ;
+	float k, qx[2], qy[2], q[4], *f = Alloc( nf, float ) ;
 
- CreateWorkingBitmap (bx,by,b);
+	CreateWorkingBitmap( bx, by, b) ;
 
- jFor (nf) f[j]=0;
- j=0;
+	jFor (nf) f[j]=0;
+	j=0;
 
- For (y,a->y) {
-  ux=uy;
-  uy+=a->l;
-  nx=0;
-  ny+=by;
+	For( y, a->y ) {
+		ux=uy;
+		uy+=a->l;
+		nx=0;
+		ny+=by;
+		if (ny>a->y) {
+			qy[0]=1-(qy[1]=(ny-a->y)/(float)by);
+			For (x,a->x) {
+				nx+=bx;
+				if (nx>a->x) {
+					qx[0]=1-(qx[1]=(nx-a->x)/(float)bx);
+					iFor (4) q[i]=qx[i&1]*qy[i>>1];
+					iFor (3) {
+						f[j]+=(*ux)*q[0];
+						f[j+3]+=(*ux)*q[1];
+						f[j+df]+=(*ux)*q[2];
+						f[(j++)+df+3]+=(*(ux++))*q[3];
+					}
+				} else iFor (3) {
+					f[j+i]+=(*ux)*qy[0];
+					f[j+df+i]+=(*(ux++))*qy[1];
+				}
+				if (nx>=a->x) nx-=a->x;
+				if (!nx) j+=3;
+			}
+		} else {
+			For (x,a->x) {
+				nx+=bx;
+				if (nx>a->x) {
+					qx[0]=1-(qx[1]=(nx-a->x)/(float)bx);
+					iFor (3) {
+						f[j]+=(*ux)*qx[0];
+						f[(j++)+3]+=(*(ux++))*qx[1];
+					}
+				}
+				else iFor (3) f[j+i]+=*(ux++);
+				if (nx>=a->x) nx-=a->x;
+				if (!nx) j+=3;
+			}
+			if (ny<a->y) j-=df;
+		}
+		if (ny>=a->y) ny-=a->y;
+	}
 
-  if (ny>a->y) {
+	nf=0;
+	k=bx*by/(float)(a->x*a->y);
+	uy=b->b;
 
-   qy[0]=1-(qy[1]=(ny-a->y)/(float)by);
+	For (y,by) {
+		jFor (df) uy[j]=(unsigned char)(f[nf++]*k+.5);
+		uy+=b->l;
+	}
 
-   For (x,a->x) {
-
-    nx+=bx;
-
-    if (nx>a->x) {
-     qx[0]=1-(qx[1]=(nx-a->x)/(float)bx);
-
-     iFor (4) q[i]=qx[i&1]*qy[i>>1];
-
-     iFor (3) {
-      f[j]+=(*ux)*q[0];
-      f[j+3]+=(*ux)*q[1];
-      f[j+df]+=(*ux)*q[2];
-      f[(j++)+df+3]+=(*(ux++))*q[3];
-     }
-    }
-    else iFor (3) {
-     f[j+i]+=(*ux)*qy[0];
-     f[j+df+i]+=(*(ux++))*qy[1];
-    }
-    if (nx>=a->x) nx-=a->x;
-     if (!nx) j+=3;
-   }
-  }
-  else {
-   For (x,a->x) {
-
-    nx+=bx;
-
-    if (nx>a->x) {
-     qx[0]=1-(qx[1]=(nx-a->x)/(float)bx);
-     iFor (3) {
-      f[j]+=(*ux)*qx[0];
-      f[(j++)+3]+=(*(ux++))*qx[1];
-     }
-    }
-    else iFor (3) f[j+i]+=*(ux++);
-
-    if (nx>=a->x) nx-=a->x;
-     if (!nx) j+=3;
-   }
-   if (ny<a->y) j-=df;
-  }
-  if (ny>=a->y) ny-=a->y;
- }
-
- nf=0;
- k=bx*by/(float)(a->x*a->y);
- uy=b->b;
-
- For (y,by) {
-  jFor (df) uy[j]=(unsigned char)(f[nf++]*k+.5);
-  uy+=b->l;
- }
-
- free (f);
+	free (f);
 }
 
-TARGET HBITMAP ShrinkBitmap (HBITMAP a,WORD bx,WORD by)
+TARGET HBITMAP ShrinkBitmap( HBITMAP a, WORD bx, WORD by )
 // creates and returns new bitmap with dimensions of
 // [bx,by] by shrinking bitmap a both [bx,by] must be less or equal
 // than the dims of a, unless the result is nonsense
 {
- tWorkBMP in,out;
- HBITMAP b=CreateEmptyBitmap(bx,by);
- OpenBitmapForWork (a,&in);
- ShrinkWorkingBitmap (&in,&out,bx,by);
- free (in.b);
- SaveWorkingBitmap (&out,b);
- free (out.b);
- return (b);
+	tWorkBMP in, out ;
+	HBITMAP b=CreateEmptyBitmap( bx, by ) ;
+	OpenBitmapForWork( a, &in ) ;
+	ShrinkWorkingBitmap( &in, &out, bx, by ) ;
+	free( in.b ) ;
+	SaveWorkingBitmap( &out, b ) ;
+	free( out.b ) ;
+	return( b ) ;
 }
 
+
+
+
+
+
+HBITMAP ResizeBmp( HBITMAP hBmpSrc, WORD bx, WORD by ) {
+	SIZE newSize ;
+	newSize.cx = bx;
+	newSize.cy = by;
+	// taille actuelle
+	BITMAP bmpInfo;
+	GetObject(hBmpSrc, sizeof(BITMAP), &bmpInfo);
+	SIZE oldSize;
+	oldSize.cx = bmpInfo.bmWidth;
+	oldSize.cy = bmpInfo.bmHeight;
+
+	// selection source ds un DC
+	HDC hdc = GetDC(NULL);
+	HDC hDCSrc = CreateCompatibleDC(hdc);
+	HBITMAP hOldBmpSrc = (HBITMAP)SelectObject(hDCSrc, hBmpSrc);
+
+	// création bitmap dest et sélection ds un DC
+	HDC hDCDst = CreateCompatibleDC(hdc);
+	HBITMAP hBmpDst = CreateCompatibleBitmap(hdc, newSize.cx, newSize.cy);
+	HBITMAP hOldBmpDst = (HBITMAP)SelectObject(hDCDst, hBmpDst);
+
+	// resize
+	StretchBlt(hDCDst, 0, 0, newSize.cx, newSize.cy, hDCSrc, 0, 0, oldSize.cx, oldSize.cy, SRCCOPY);
+	
+	// libération ressources
+	SelectObject(hDCSrc, hOldBmpSrc);
+	SelectObject(hDCDst, hOldBmpDst);
+	DeleteDC(hDCSrc);
+	DeleteDC(hDCDst);
+	ReleaseDC(NULL, hdc);
+	return hBmpDst;
+}
 
 static void fill_dc(HDC dc, int width, int height, COLORREF color)
 {
@@ -387,8 +407,7 @@ HBITMAP CreateHBitmap(int w, int h, LPVOID *lpBits)
 }
 
 //  LOADJPEGIMAGE  --  Load JPEG image into memory
-HBITMAP loadJPEGimage(FILE *input_file, HGLOBAL *LimageBitmap,
-				   int *LsizeX, int *LsizeY)
+HBITMAP loadJPEGimage(FILE *input_file, HGLOBAL *LimageBitmap, int *LsizeX, int *LsizeY)
 {
 	int i;
 	LPBITMAPINFOHEADER bh;
@@ -561,9 +580,9 @@ while (cinfo.output_scanline < cinfo.output_height) {
 
 
 static BOOL load_file_jpeg(HBITMAP* rawImage, int* style, int* x, int* y) {
-    *x = conf_get_int( conf, CONF_bg_image_abs_x); // cfg.bg_image_abs_x;
-    *y = conf_get_int( conf, CONF_bg_image_abs_y); // cfg.bg_image_abs_y;
-    *style = conf_get_int( conf, CONF_bg_image_style); // cfg.bg_image_style;
+    *x = conf_get_int( conf, CONF_bg_image_abs_x ); // cfg.bg_image_abs_x;
+    *y = conf_get_int( conf, CONF_bg_image_abs_y ); // cfg.bg_image_abs_y;
+    *style = conf_get_int( conf, CONF_bg_image_style ); // cfg.bg_image_style;
     int res=TRUE, LsizeX, LsizeY ;
     FILE *fp ;
     HGLOBAL LimageBitmap = NULL ;
@@ -576,6 +595,8 @@ static BOOL load_file_jpeg(HBITMAP* rawImage, int* style, int* x, int* y) {
 if( rawImage == NULL ) res =FALSE ;    
      fclose( fp ) ;
 
+    GlobalFree(LimageBitmap);
+    
     return res;
 }
 
@@ -1185,6 +1206,7 @@ BOOL load_bg_bmp()
 		if( (ShrinkBitmapEnable)&&(clientWidth<rawImageInfo.bmWidth)&&(clientHeight<rawImageInfo.bmHeight) ) {
 			HBITMAP newhbmpBMP ;
 			if( (newhbmpBMP = ShrinkBitmap( rawImage,clientWidth,clientHeight)) != NULL ) {
+			//if( (newhbmpBMP = ResizeBmp( rawImage,clientWidth,clientHeight)) != NULL ) {
 				DeleteDC(bmpdc) ;
 				bmpdc = CreateCompatibleDC(0) ;
 				DeleteDC(backgrounddc); backgrounddc = GetDC(hwnd);
@@ -1453,7 +1475,7 @@ void clean_bg(void) {
 
 void RedrawBackground( HWND hwnd ) {
 	if(
-		0 && // On inhibe cette fonction a cause du probleme de fuite memoire due a l'image de fond !!!  , mais probleme de rafraichissement ?
+		1 && // On inhibe cette fonction a cause du probleme de fuite memoire due a l'image de fond !!!  , mais probleme de rafraichissement ?
 		(get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(conf_get_int(conf,CONF_bg_type)/*cfg.bg_type*/ != 0) ) 
 			{
 			clean_bg() ;
@@ -1491,3 +1513,4 @@ void BackgroundImagePatch( int num ) {
 #endif
 
 #endif
+

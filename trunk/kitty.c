@@ -31,7 +31,7 @@
 #include "kitty_tools.h"
 #include "kitty_win.h"
 #include "kitty_launcher.h"
-#include "../../MD5check.h"
+#include "MD5check.h"
 /*************************************************
 ** FIN DE LA DEFINITION DES INCLUDES
 *************************************************/
@@ -391,6 +391,7 @@ NOTIFYICONDATA TrayIcone ;
 #define TIMER_AUTOPASTE 8705
 #define TIMER_BLINKTRAYICON 8706
 #define TIMER_LOGROTATION 8707
+#define TIMER_ANTIIDLE 8708
 
 /*
 #define TIMER_INIT 12341
@@ -1935,7 +1936,7 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	*/
 
 	if( ReadParameter( INIT_SECTION, "uploaddir", dir ) ) {
-		if( chdir( dir ) == -1 ) 
+		if( !existdirectory( dir ) ) 
 			strcpy( dir, InitialDirectory ) ;
 		}
 	if (strlen( dir ) == 0) strcpy( dir, InitialDirectory ) ;
@@ -2080,7 +2081,7 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 	*/
 
 	if( ReadParameter( INIT_SECTION, "downloaddir", dir ) ) {
-		if(chdir( dir ) == -1)
+		if( !existdirectory( dir ) )
 			strcpy( dir, InitialDirectory ) ;
 		}
 	if(strlen( dir ) == 0) strcpy( dir, InitialDirectory ) ;
@@ -2096,6 +2097,10 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 		strcat( buffer, "-P " ) ;
 		strcat( buffer, pscpport ) ;
 		strcat( buffer, " " ) ;
+		}
+	else {
+		sprintf( b1, "-P %d ", conf_get_int(conf, CONF_port)/*cfg.port*/ ) ;
+		strcat( buffer, b1 ) ;
 		}
 	
 	if( conf_get_int(conf,CONF_sshprot)/*cfg.sshprot*/ == 2 ) {
@@ -2173,11 +2178,11 @@ void GetFile( HWND hwnd ) {
 				strcpy( buffer, "" ) ;
 				if( strlen( pst ) > 0 ) {
 				if( ReadParameter( INIT_SECTION, "downloaddir", dir ) ) {
-					if( chdir( dir ) == -1 )
+					if( !existdirectory( dir ) )
 					strcpy( dir, InitialDirectory ) ;
 					}
 				else if( OpenDirName( hwnd, dir ) ) {
-					if( chdir( dir ) == -1 ) { GlobalUnlock( hglb ) ; CloseClipboard(); return ; }
+					if( !existdirectory( dir ) ) { GlobalUnlock( hglb ) ; CloseClipboard(); return ; }
 					//strcpy( dir, InitialDirectory ) ;
 					}
 				else { return ; }
@@ -4255,6 +4260,18 @@ int DefineShortcuts( char * buf ) {
 	else if( strstr( pst, "{DECIMAL}" )==pst ) { key = key + VK_DECIMAL ; pst += 9 ; }
 	else if( strstr( pst, "{DIVIDE}" )==pst ) { key = key + VK_DIVIDE ; pst += 8 ; }
 	else if( strstr( pst, "{ATTN}" )==pst ) { key = key + VK_ATTN ; pst += 6 ; }
+	
+	else if( strstr( pst, "{OEM_PLUS}" )==pst ) { key = key + VK_OEM_PLUS  ; pst += 10 ; } // +
+	else if( strstr( pst, "{OEM_COMMA}" )==pst ) { key = key + VK_OEM_COMMA  ; pst += 11 ; } // ,
+	else if( strstr( pst, "{OEM_MINUS}" )==pst ) { key = key + VK_OEM_MINUS  ; pst += 11 ; } // -
+	else if( strstr( pst, "{OEM_PERIOD}" )==pst ) { key = key + VK_OEM_PERIOD  ; pst += 12 ; } // .
+	
+/* Pour changer automatiqueent la , en .
+[Shortcuts]
+list={OEM_COMMA}
+{OEM_COMMA}=.\
+*/
+	
 	else if( pst[0] == '{' ) {key = 0 ; }
 	else { key = key + toupper(pst[0]) ; }
 	
@@ -4645,6 +4662,7 @@ void LoadParameters( void ) {
 #ifdef CYGTERMPORT
 	if( ReadParameter( INIT_SECTION, "cygterm", buffer ) ) {
 		if( !stricmp( buffer, "YES" ) ) cygterm_set_flag( 1 ) ; 
+		if( !stricmp( buffer, "NO" ) ) cygterm_set_flag( 0 ) ; 
 		}
 #endif
 #ifdef ZMODEMPORT

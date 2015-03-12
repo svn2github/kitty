@@ -1,9 +1,3 @@
-/*
--- putty-0.59/windows/cygterm.c	1969-12-31 17:00:00.000000000 -0700
-++ putty-0.59-cygterm/windows/cygterm.c	2007-02-06 16:35:57.000000000 -0700
-@ -0,0 +1,543 @@
-*/
-
 #ifdef CYGTERMPORT
 
 #include <stdio.h> /* sprintf */
@@ -42,7 +36,7 @@ typedef struct cygterm_backend_data {
 	Socket s;
 	PROCESS_INFORMATION pi;
 	HANDLE ctl;
-	Conf * conf;/*Config cfg;*/
+	Conf * conf;
 	int bufsize;
 	int editing, echoing;
 	int exitcode;
@@ -124,24 +118,25 @@ cygterm_sent(Plug plug, int bufsize)
 static void
 cygterm_size(void *handle, int width, int height);
 
+
+Socket sk_tcp_accept(accept_ctx_t ctx, Plug plug);
 static int
-cygterm_accepting(Plug plug, OSSocket sock)
+cygterm_accepting(Plug plug, accept_fn_t constructor, accept_ctx_t ctx)
 {
 	Local local = (Local)plug;
 	cygterm_debug("top");
-	local->s = sk_register(sock, plug);
+	local->s = constructor(ctx, plug);
 	sk_set_frozen(local->s, 0);
-	/* Reset terminal size */
-	cygterm_size(local, conf_get_int(local->conf,CONF_width), conf_get_int(local->conf,CONF_height));/*cygterm_size(local, local->cfg.width, local->cfg.height);*/
+	// Reset terminal size
+	cygterm_size(local, conf_get_int(local->conf,CONF_width), conf_get_int(local->conf,CONF_height));
 	cygterm_debug("OK");
 	return 0;
 }
 
 
-//static char *getCygwinBin(void);
 static char *getCygwinBin(int use64);
 void appendPath(const char *append);
-static size_t makeAttributes(char *buf, Conf *conf/*Config *cfg*/);
+static size_t makeAttributes(char *buf, Conf *conf);
 static const char *spawnChild(char *cmd, Conf *conf, LPPROCESS_INFORMATION ppi, PHANDLE pin);
 
 /* Backend functions for the cygterm backend */
@@ -149,7 +144,7 @@ void RunCommand( HWND hwnd, char * cmd ) ;
 	
 static const char *
 cygterm_init(void *frontend_handle, void **backend_handle,
-             Conf *conf,/*Config *cfg,*/
+             Conf *conf,
              char *unused_host, int unused_port,
              char **realhost, int nodelay, int keepalive)
 {
@@ -178,7 +173,7 @@ cygterm_init(void *frontend_handle, void **backend_handle,
 	local->fn = &fn_table;
 	local->a = NULL;
 	local->s = NULL;
-	local->conf = conf;/*local->cfg = *cfg;*/
+	local->conf = conf;
 	local->editing = 0;
 	local->echoing = 0;
 	local->exitcode = 0;
@@ -203,7 +198,7 @@ cygterm_init(void *frontend_handle, void **backend_handle,
 		goto fail_close;
 	}
 
-	if (strchr(conf_get_str(local->conf,CONF_termtype)/*local->cfg.termtype*/, ' ')) {
+	if (strchr(conf_get_str(local->conf,CONF_termtype), ' ')) {
 		err = "term type contains spaces";
 		goto fail_close;
 	}
@@ -211,9 +206,9 @@ cygterm_init(void *frontend_handle, void **backend_handle,
 	/*  Build cthelper command line */
 char * CTHELPER_PATH = getenv( "CTHELPER_PATH" ) ;
 	if( CTHELPER_PATH==NULL ) { SearchCtHelper() ; CTHELPER_PATH = getenv( "CTHELPER_PATH" ) ; }
-if( CTHELPER_PATH!=NULL ) cmdlinelen = sprintf(cmdline, "\"%s\" %u %s ", CTHELPER_PATH, cport, conf_get_str(local->conf,CONF_termtype)/*local->cfg.termtype*/);
+if( CTHELPER_PATH!=NULL ) cmdlinelen = sprintf(cmdline, "\"%s\" %u %s ", CTHELPER_PATH, cport, conf_get_str(local->conf,CONF_termtype));
 else {
-	//cmdlinelen = sprintf(cmdline, CTHELPER" %u %s ", cport,conf_get_str(local->conf,CONF_termtype)/*local->cfg.termtype*/);
+	//cmdlinelen = sprintf(cmdline, CTHELPER" %u %s ", cport,conf_get_str(local->conf,CONF_termtype));
 	if(conf_get_int(conf, CONF_cygterm64)) {
 		cmdlinelen = sprintf(cmdline, CTHELPER64" %u %s ", cport, conf_get_str(local->conf, CONF_termtype));
 		}
@@ -221,9 +216,9 @@ else {
 		cmdlinelen = sprintf(cmdline, CTHELPER" %u %s ", cport, conf_get_str(local->conf, CONF_termtype));
 		}
 	}
-	cmdlinelen += makeAttributes(cmdline + cmdlinelen, local->conf/*&local->cfg*/);
+	cmdlinelen += makeAttributes(cmdline + cmdlinelen, local->conf);
 
-	command = conf_get_str(conf,CONF_cygcmd);/*cfg->cygcmd;*/
+	command = conf_get_str(conf,CONF_cygcmd);
 	
 	if( command[0]=='?' ) {
 		RunCommand(NULL,(char*)(command+1));
@@ -244,8 +239,7 @@ else {
 	}
 
 	/* Add the Cygwin /bin path to the PATH. */
-	if (conf_get_int(conf,CONF_cygautopath)/*cfg->cygautopath*/) {
-		//char *cygwinBinPath = getCygwinBin();
+	if (conf_get_int(conf,CONF_cygautopath)) {
 		char *cygwinBinPath = getCygwinBin(conf_get_int(conf, CONF_cygterm64));
 		if (!cygwinBinPath) {
 			/* we'll try anyway */
@@ -257,7 +251,6 @@ else {
 			sfree(cygwinBinPath);
 		}
 	}
-// MessageBox( NULL, cmdline, "Command", MB_OK);
 	
 	cygterm_debug("starting cthelper: %s", cmdline);
 	{ char buffer[1024] ; sprintf( buffer,"starting cthelper: %s", cmdline ) ; logevent( NULL,buffer ) ; }
@@ -289,11 +282,11 @@ cygterm_free(void *handle)
 }
 
 static void
-cygterm_reconfig(void *handle, Conf *conf /* Config *cfg*/)
+cygterm_reconfig(void *handle, Conf *conf)
 {
 	Local local = handle;
 	cygterm_debug("top");
-	local->conf = conf;/*local->cfg = *cfg;*/
+	local->conf = conf;
 }
 
 static int
@@ -334,8 +327,8 @@ cygterm_size(void *handle, int width, int height)
 	cygterm_debug("top");
 	cygterm_debug("size=%d,%d (last=%d,%d)",
 	              width, height, local->cfg.width, local->cfg.height);
-	conf_set_int(local->conf,CONF_width,width);/*local->cfg.width = width;*/
-	conf_set_int(local->conf,CONF_height,height);/*local->cfg.height = height;*/
+	conf_set_int(local->conf,CONF_width,width);
+	conf_set_int(local->conf,CONF_height,height);
 	if (local->s) {
 		DWORD n;
 		Message m;
@@ -442,8 +435,8 @@ Backend cygterm_backend = {
 	cygterm_provide_logctx,
 	cygterm_unthrottle,
 	cygterm_cfg_info,
-	"cygterm",			// Ajout version 20100914
-	PROT_CYGTERM,			// Ajout version 20100914
+	"cygterm",
+	PROT_CYGTERM,
 	1
 };
 
@@ -458,16 +451,16 @@ strecpy(char *d,const char *s)
 
 /* Make cthelper attribute string from PuTTY Config */
 static size_t
-makeAttributes(char *buf, Conf *conf/*Config *cfg*/)
+makeAttributes(char *buf, Conf *conf)
 {
 	char *e = buf;
 
-	if (conf_get_int(conf,CONF_bksp_is_delete)/*cfg->bksp_is_delete*/)
+	if (conf_get_int(conf,CONF_bksp_is_delete))
 		e = strecpy(e, ":erase=^?");
 	else
 		e = strecpy(e, ":erase=^H");
 
-	e += sprintf(e, ":size=%d,%d", conf_get_int(conf,CONF_height)/*cfg->height*/, conf_get_int(conf,CONF_width)/*cfg->width*/);
+	e += sprintf(e, ":size=%d,%d", conf_get_int(conf,CONF_height), conf_get_int(conf,CONF_width));
 
 	/* TODO: other options? localedit? localecho? */
 
@@ -483,13 +476,11 @@ makeAttributes(char *buf, Conf *conf/*Config *cfg*/)
 
 /* Utility functions for spawning cthelper process */
 static BOOL
-//getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const char *valueName)
 getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const char *valueName, int use64)
 {
 	HKEY k;
 	LONG ret;
 
-	//if (ERROR_SUCCESS != (ret = RegOpenKey(key, subKey, &k)))
 	if (ERROR_SUCCESS != (ret = RegOpenKeyEx(key, subKey, 0, KEY_READ | (use64 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY), &k )))
 		return ret;
 
@@ -521,7 +512,6 @@ getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const 
 	"rootdir"
 
 static char *
-//getCygwinBin(void)
 getCygwinBin(int use64)
 {
 	char *dir;
@@ -530,12 +520,10 @@ getCygwinBin(int use64)
 	dir = smalloc(size);
 	dir[0] = '\0';
 
-	//if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_U_SETUP_ROOTDIR) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_S_SETUP_ROOTDIR))
 	if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_U_SETUP_ROOTDIR, use64) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_S_SETUP_ROOTDIR, use64))
 	{
 		strcat(dir, "\\bin");
 	}
-	//else if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_SYS_ROOT_MOUNT) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_USER_ROOT_MOUNT))
 	else if (ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_SYS_ROOT_MOUNT, use64) || ERROR_SUCCESS == getRegistry(dir, &size, CYGWIN_USER_ROOT_MOUNT, use64))
 	{
 		strcat(dir, "\\bin");
@@ -590,8 +578,7 @@ spawnChild(char *cmd, Conf *conf, LPPROCESS_INFORMATION ppi, PHANDLE pin)
 
 	/* Add the Cygwin /bin path to the PATH env var. */
     if (!getenv("NOCYGWIN")) {
-        //char *cygwinBinPath = getCygwinBin();
-	char *cygwinBinPath = getCygwinBin(conf_get_int(conf, CONF_cygterm64));
+        char *cygwinBinPath = getCygwinBin(conf_get_int(conf, CONF_cygterm64));
         if (!cygwinBinPath) {
             /* we'll try anyway */
             cygterm_debug("cygwin bin directory not found");
@@ -628,5 +615,4 @@ spawnChild(char *cmd, Conf *conf, LPPROCESS_INFORMATION ppi, PHANDLE pin)
 
 	return 0;
 }
-
 #endif
