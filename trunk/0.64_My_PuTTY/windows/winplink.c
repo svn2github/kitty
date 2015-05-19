@@ -396,7 +396,7 @@ int plink_main(int argc, char **argv)
     int use_subsystem = 0;
     unsigned long now, next, then;
 	
-    IsPortableMode() ;
+    LoadParametersLight() ;
 #else
 
 int main(int argc, char **argv)

@@ -772,6 +772,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "Icone", conf_get_int(conf, CONF_icone) /*cfg->icone*/);
     //write_setting_s(sesskey, "IconeFile", conf_get_str(conf, CONF_iconefile) /*cfg->iconefile*/);
     write_setting_filename(sesskey, "IconeFile", conf_get_filename(conf, CONF_iconefile) /*cfg->iconefile*/);
+    write_setting_s(sesskey, "SFTPConnect", conf_get_str(conf, CONF_sftpconnect) );
     Filename * fn = filename_from_str( "" ) ;
     conf_set_filename(conf,CONF_scriptfile,fn);
     write_setting_filename(sesskey, "Scriptfile", conf_get_filename(conf, CONF_scriptfile) /*cfg->scriptfile*/);  // C'est le contenu uniquement qui est important a sauvegarder
@@ -790,7 +791,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "ForegroundOnBell", conf_get_int(conf, CONF_foreground_on_bell) /*cfg->foreground_on_bell*/);
 
     sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host)/*cfg->host*/, conf_get_str(conf, CONF_termtype)/*cfg->termtype*/ ) ;
-    char pst[128] ;
+    char pst[1024] ;
     strcpy( pst, conf_get_str(conf, CONF_password ) );
     MASKPASS(pst);
     cryptstring( pst, PassKey ) ;
@@ -1311,6 +1312,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "Icone", 1, conf, CONF_icone /*&cfg->icone*/);
     //gpps(sesskey, "IconeFile", "", conf, CONF_iconefile /*cfg->iconefile, sizeof(cfg->iconefile)*/);
     gppfile(sesskey, "IconeFile", conf, CONF_iconefile /*cfg->iconefile, sizeof(cfg->iconefile)*/);
+    gpps(sesskey, "SFTPConnect", "", conf, CONF_sftpconnect );
     gppfile(sesskey, "Scriptfile", conf, CONF_scriptfile /*&cfg->scriptfile*/);
     Filename * fn = filename_from_str( "" ) ;
     conf_set_filename(conf,CONF_scriptfile,fn);
@@ -1332,7 +1334,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     char PassKey[1024] = "" ;
     sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
     gpps(sesskey, "Password", "", conf, CONF_password );
-    char pst[128] ;
+    char pst[1024] ;
     strcpy( pst, conf_get_str( conf, CONF_password ) ) ;
     decryptstring( pst, PassKey ) ;
     

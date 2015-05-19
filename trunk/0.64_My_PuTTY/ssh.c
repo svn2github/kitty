@@ -4593,7 +4593,7 @@ static int do_ssh1_login(Ssh ssh, unsigned char *in, int inlen,
 #ifdef PERSOPORT
 		ret=0;
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[128] ;
+			char bufpass[1024] ;
 			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 			MASKPASS(bufpass);
 			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
@@ -9914,7 +9914,7 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 			int ret; /* not live over crReturn */
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[128] ;
+			char bufpass[1024] ;
 			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 			MASKPASS(bufpass);
     			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
@@ -10053,7 +10053,7 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 		ssh2_pkt_addbool(s->pktout, FALSE);
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[128] ;
+			char bufpass[1024] ;
 			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) );
 			MASKPASS(bufpass); 
 			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 

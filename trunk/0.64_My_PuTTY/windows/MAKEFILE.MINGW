@@ -178,7 +178,7 @@ pageant.exe: conf.o misc.o pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o \
 		sshmd5.o sshpubk.o sshrsa.o sshsh256.o sshsh512.o sshsha.o \
 		tree234.o version.o winhelp.o winmisc.o winpgnt.o winpgntc.o \
 		winsecur.o winutils.o \
-		wincapi.o kitty_commun.o
+		wincapi.o kitty_commun.o kitty_registry.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,pageant.map conf.o misc.o \
 		pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o sshmd5.o \
 		sshpubk.o sshrsa.o sshsh256.o sshsh512.o sshsha.o tree234.o \
@@ -186,7 +186,7 @@ pageant.exe: conf.o misc.o pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o \
 		winsecur.o winutils.o -ladvapi32 -lcomctl32 -lcomdlg32 \
 		-lgdi32 -limm32 -lole32 -lshell32 -luser32 -lwinmm \
 		-lwinspool \
-		kitty_commun.o wincapi.o \
+		kitty_commun.o kitty_registry.o wincapi.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-lcrypt32
 

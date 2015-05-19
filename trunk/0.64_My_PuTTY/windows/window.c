@@ -630,8 +630,13 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			SetAutoStoreSSHKeyFlag( 1 ) ;
 		} else if( !strcmp(p, "-cmd") ) {
 			i++ ;
-			conf_set_str( conf, CONF_autocommand, argv[i] ) ; //strcpy( cfg.autocommand, argv[i] ) ;
-			//cfg.remote_cmd_ptr=argv[i] ;
+			conf_set_str( conf, CONF_autocommand, argv[i] ) ;
+		} else if( !strcmp(p, "-rcmd") ) {
+			i++ ;
+			conf_set_str( conf, CONF_remote_cmd, argv[i] ) ;
+		} else if( !strcmp(p, "-sftpconnect") ) {
+			i++ ;
+			conf_set_str( conf, CONF_sftpconnect, argv[i] ) ;
 		} else if( !strcmp(p, "-debug") ) {
 			debug_flag = 1 ;
 		} else if( !strcmp(p, "-fullscreen") ) {
@@ -1534,14 +1539,35 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 	} else
 	    sfree(handles);
 
-	if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 	    if (msg.message == WM_QUIT)
 		goto finished;	       /* two-level break */
 
 	    if (!(IsWindow(logbox) && IsDialogMessage(logbox, &msg)))
 		DispatchMessage(&msg);
-	}
-
+            /*
+             * WM_NETEVENT messages seem to jump ahead of others in
+             * the message queue. I'm not sure why; the docs for
+             * PeekMessage mention that messages are prioritised in
+             * some way, but I'm unclear on which priorities go where.
+             *
+             * Anyway, in practice I observe that WM_NETEVENT seems to
+             * jump to the head of the queue, which means that if we
+             * were to only process one message every time round this
+             * loop, we'd get nothing but NETEVENTs if the server
+             * flooded us with data, and stop responding to any other
+             * kind of window message. So instead, we keep on round
+             * this loop until we've consumed at least one message
+             * that _isn't_ a NETEVENT, or run out of messages
+             * completely (whichever comes first). And we don't go to
+             * run_toplevel_callbacks (which is where the netevents
+             * are actually processed, causing fresh NETEVENT messages
+             * to appear) until we've done this.
+             */
+            if (msg.message != WM_NETEVENT)
+                break;
+        }
+	
         run_toplevel_callbacks();
     }
 
@@ -2774,6 +2800,7 @@ static BOOL CALLBACK CtrlTabWindowProc(HWND hwnd, LPARAM lParam) {
 	DWORD hwnd_hi_date_time = GetWindowLong(hwnd, wndExtra - 8);
 	DWORD hwnd_lo_date_time = GetWindowLong(hwnd, wndExtra - 4);
 	int hwnd_self, hwnd_next;
+
 	hwnd_self = hwnd_hi_date_time - info->self_hi_date_time;
 	if (hwnd_self == 0) 
 	    hwnd_self = hwnd_lo_date_time - info->self_lo_date_time;
@@ -2877,7 +2904,7 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	if( conf_get_int(conf,CONF_protocol) == PROT_TELNET ) {
 		if( strlen( conf_get_str(conf,CONF_username) ) > 0 ) {
 			if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
-				char bufpass[256]; strcpy(bufpass,conf_get_str(conf,CONF_password)) ;
+				char bufpass[1024]; strcpy(bufpass,conf_get_str(conf,CONF_password)) ;
 				MASKPASS(bufpass); strcat(buffer,bufpass); memset(bufpass,0,strlen(bufpass));
 				strcat( buffer, "\\n" ) ;
 				}
@@ -4594,7 +4621,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	 */
 	case WM_KEYDOWN:
 		if( PuttyFlag || !HyperlinkFlag ) goto KEY_END;
-		if(wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/) {
+		if(wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)) {
 			GetCursorPos(&cursor_pt);
 			ScreenToClient(hwnd, &cursor_pt);
 
@@ -4607,29 +4634,31 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 
 	case WM_KEYUP:
 		if( PuttyFlag || !HyperlinkFlag ) goto KEY_END;
-		if (wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)/*term->cfg.url_ctrl_click*/) {
+		if (wParam == VK_CONTROL && conf_get_int(term->conf,CONF_url_ctrl_click)) {
 			SetCursor(LoadCursor(NULL, IDC_IBEAM));
 			term_update(term);
 			goto KEY_END;
 		}
+#ifdef PERSOPORT
+          //if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
+	if( (message==WM_KEYUP) && (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
+		struct ctrl_tab_info info = {
+			(GetKeyState(VK_SHIFT) & 0x8000) ? 1 : -1,
+			hwnd,
+		} ;
+	     
+		info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
+		info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
+		EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
+		if (info.next != NULL) 
+			if( info.next != hwnd )
+				SetForegroundWindow(info.next);
+		return 0;
+	}
+#endif
 	KEY_END:
 
 	case WM_SYSKEYUP:
-#ifdef PERSOPORT
-          if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
-             struct ctrl_tab_info info = {
-                  GetKeyState(VK_SHIFT) < 0 ? 1 : -1,
-                  hwnd,
-             };
-             info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
-             info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
-             EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
-             if (info.next != NULL) 
-		if( info.next != hwnd )
-		   SetForegroundWindow(info.next);
-             return 0;
-         }
-#endif
 	case WM_SYSKEYDOWN:
 	/* HACK: PuttyTray / Nutty : END */
 #else
@@ -4646,12 +4675,14 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		if( debug_flag ) addkeypressed( message, wParam, lParam, GetKeyState(VK_SHIFT)&0x8000, GetKeyState(VK_CONTROL)&0x8000, (GetKeyState(VK_MENU)&0x8000)||(GetKeyState(VK_LMENU)&0x8000),GetKeyState(VK_RMENU)&0x8000, (GetKeyState(VK_RWIN)&0x8000)||(GetKeyState(VK_LWIN)&0x8000 ) );
 #endif
 
+#if (defined IMAGEPORT) && (!defined FDJ)
 		if( (wParam==VK_SNAPSHOT)&&(GetKeyState(VK_CONTROL)&0x8000) ) {
 			char screenShotFile[1024] ;
 			sprintf( screenShotFile, "%s\\screenshot-%d-%ld.jpg", InitialDirectory, getpid(), time(0) );
 			screenCaptureClientRect( hwnd, screenShotFile, 100 ) ;
 		}
-		
+#endif
+
 		if((wParam==VK_TAB)&&(message==WM_KEYDOWN)&&(GetKeyState(VK_CONTROL)&0x8000)&&(GetKeyState(VK_SHIFT)&0x8000)) 
 			{ SetShortcutsFlag( abs(GetShortcutsFlag()-1) ) ; return 0 ; }
       
@@ -6668,23 +6699,24 @@ void set_title_internal(void *frontend, char *title) {
 	%%P: le protocole
 	%%s: nom de la session (vide sinon)
 	%%u: le user
+	%%w: la list des port forward locaux
 Ex: %%P://%%u@%%h:%%p
 Ex: %%f / %%s
 */
 void make_title( char * res, char * fmt, char * title ) {
 	int p;
-	char b[256] ;
+	char b[1024] ;
 	int port ;
 	
 	sprintf( res, fmt, title ) ;
 
-	while( (p=poss( "%%s", res)) > 0 ) { del(res,p,3); if(strlen(conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/)>0) insert(res,conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/,p); }
-	while( (p=poss( "%%h", res)) > 0 ) { del(res,p,3); insert(res,conf_get_str(conf,CONF_host)/*cfg.host*/,p); }
-	while( (p=poss( "%%u", res)) > 0 ) { del(res,p,3); insert(res,conf_get_str(conf,CONF_username)/*cfg.username*/,p); }
-	while( (p=poss( "%%f", res)) > 0 ) { del(res,p,3); if(strlen(conf_get_str(conf,CONF_folder)/*cfg.folder*/)>0) insert(res,conf_get_str(conf,CONF_folder)/*cfg.folder*/,p); }
+	while( (p=poss( "%%s", res)) > 0 ) { del(res,p,3); if(strlen(conf_get_str(conf,CONF_sessionname))>0) insert(res,conf_get_str(conf,CONF_sessionname),p); }
+	while( (p=poss( "%%h", res)) > 0 ) { del(res,p,3); insert(res,conf_get_str(conf,CONF_host),p); }
+	while( (p=poss( "%%u", res)) > 0 ) { del(res,p,3); insert(res,conf_get_str(conf,CONF_username),p); }
+	while( (p=poss( "%%f", res)) > 0 ) { del(res,p,3); if(strlen(conf_get_str(conf,CONF_folder))>0) insert(res,conf_get_str(conf,CONF_folder),p); }
 	
-	port = conf_get_int(conf,CONF_port)/*cfg.port*/ ; 
-	switch(conf_get_int(conf,CONF_protocol)/*cfg.protocol*/) {
+	port = conf_get_int(conf,CONF_port); 
+	switch(conf_get_int(conf,CONF_protocol)) {
 		case PROT_RAW: strcpy(b,"raw"); break;
 		case PROT_TELNET: strcpy(b,"telnet"); if(port==-1) port=23 ; break;
 		case PROT_RLOGIN: strcpy(b,"rlogin"); break;
@@ -6701,6 +6733,23 @@ void make_title( char * res, char * fmt, char * title ) {
 	
 	sprintf(b,"%ld", GetCurrentProcessId() ) ; 
 	while( (p=poss( "%%i", res)) > 0 ) { del(res,p,3); insert(res,b,p); }
+	
+	while( (p=poss( "%%w", res)) > 0 ) { // forward port locaux
+		char *key, *val;
+		int nb=0 ;
+		del(res,p,3) ;
+		b[0]='\0';
+		for (val = conf_get_str_strs(conf, CONF_portfwd, NULL, &key);
+		val != NULL;
+		val = conf_get_str_strs(conf, CONF_portfwd, key, &key)) {
+			if ( key[0]=='L' ) {
+				if(nb!=0) {strcat(b,"|");}
+				strcat(b,key+1);
+				nb++;
+			}
+		}
+		insert(res,b,p) ;
+		}
 	}
 
 void set_title(void *frontend, char *title) {
@@ -6715,25 +6764,25 @@ void set_title(void *frontend, char *title) {
 		{ title[strlen(title)-12]='\0' ; }
 
 #if (defined IMAGEPORT) && (!defined FDJ)
-	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)/*cfg.host*/ ) + strlen( conf_get_filename(conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path ) + 40 ) ; 
-	if( BackgroundImageFlag && GetImageViewerFlag() && (!PuttyFlag) ) {sprintf( buffer, "%s", conf_get_filename(conf,CONF_bg_image_filename)/*cfg.bg_image_filename.*/->path ) ; }
+	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)) + strlen( conf_get_filename(conf,CONF_bg_image_filename)->path ) + 40 ) ; 
+	if( BackgroundImageFlag && GetImageViewerFlag() && (!PuttyFlag) ) {sprintf( buffer, "%s", conf_get_filename(conf,CONF_bg_image_filename)->path ) ; }
 	else 
 #else
-	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)/*cfg.host*/ ) + 40 ) ; 
+	buffer = (char*) malloc( strlen( title ) + strlen( conf_get_str(conf,CONF_host)) + 40 ) ; 
 #endif
 	if( GetSizeFlag() && (!IsZoomed( MainHwnd )) ) {
 		if( strlen( title ) > 0 ) {
 			if( title[strlen(title)-1] == ']' ) make_title( buffer, "%s", title ) ;
 			else { 
-				sprintf( fmt, "%%s [%dx%d]", conf_get_int(conf,CONF_height)/*cfg.height*/, conf_get_int(conf,CONF_width)/*cfg.width*/ ) ;
+				sprintf( fmt, "%%s [%dx%d]", conf_get_int(conf,CONF_height)/*cfg.height*/, conf_get_int(conf,CONF_width)) ;
 				make_title( buffer, fmt, title ) ;
 				}
 			}
-		else sprintf( buffer, "%s [%dx%d] - %s", conf_get_str(conf,CONF_host)/*cfg.host*/, conf_get_int(conf,CONF_height)/*cfg.height*/, conf_get_int(conf,CONF_width)/*cfg.width*/, appname ) ;
+		else sprintf( buffer, "%s [%dx%d] - %s", conf_get_str(conf,CONF_host), conf_get_int(conf,CONF_height), conf_get_int(conf,CONF_width), appname ) ;
 		}
 	else {
 		if( strlen( title ) > 0 ) make_title( buffer, "%s", title ) ;
-		else sprintf( buffer, "%s - %s", conf_get_str(conf,CONF_host)/*cfg.host*/, appname ) ;
+		else sprintf( buffer, "%s - %s", conf_get_str(conf,CONF_host), appname ) ;
 		}
 	
 	if( GetProtectFlag() ) if( strstr(buffer, " (PROTECTED)")==NULL ) strcat( buffer, " (PROTECTED)" ) ;

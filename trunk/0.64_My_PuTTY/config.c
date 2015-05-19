@@ -1065,8 +1065,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 				    || (!strcmp(CurrentFolder,folder)) ) {
 					if( (!strcmp( ssd->savedsession, "" )) 
 					|| ( strlen(ssd->savedsession)<=1 )
-					|| (stristr(host,ssd->savedsession)!=NULL)
-//					|| (!strcmp(host,""))
+					|| (stristr(host,ssd->savedsession)!=NULL)			/* Filtre sur le nom du host */
 					|| (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) )
 						dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]) ;
 					}
@@ -1118,10 +1117,22 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 #ifdef PERSOPORT
 	     if (load_selected_session(ssd, dlg, conf, &mbl) &&
 		(mbl && ctrl == ssd->listbox && conf_launchable(conf))) {
-		if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) MASKPASS( conf_get_str( conf, CONF_password) );
+		if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) {
+		     char buffer[1024] ;
+		     strcpy( buffer, conf_get_str( conf, CONF_password) ) ;
+		     MASKPASS( buffer ) ;
+		     conf_set_str( conf, CONF_password, buffer ) ;
+		     memset( buffer, 0, strlen(buffer) ) ;
+		     }	
 		dlg_end(dlg, 1);       /* it's all over, and succeeded */
 	    }
-	if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) MASKPASS( conf_get_str( conf, CONF_password) );
+	if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) { 
+		     char buffer[1024] ;
+		     strcpy( buffer, conf_get_str( conf, CONF_password) ) ;
+		     MASKPASS( buffer ) ;
+		     conf_set_str( conf, CONF_password, buffer ) ;
+		     memset( buffer, 0, strlen(buffer) ) ;
+		}
 #else
 	     if (load_selected_session(ssd, dlg, conf, &mbl) &&
 		(mbl && ctrl == ssd->listbox && conf_launchable(conf))) {
@@ -1145,9 +1156,21 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
             {
 #ifdef PERSOPORT
 		conf_set_str( conf, CONF_folder, CurrentFolder ) ;
-		if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) MASKPASS( conf_get_str( conf, CONF_password) );
+		if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) {
+		     char buffer[1024] ;
+		     strcpy( buffer, conf_get_str( conf, CONF_password) ) ;
+		     MASKPASS( buffer ) ;
+		     conf_set_str( conf, CONF_password, buffer ) ;
+		     memset( buffer, 0, strlen(buffer) ) ;
+		     }
 		char *errmsg = save_settings(ssd->savedsession, conf);
-		if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) MASKPASS( conf_get_str( conf, CONF_password) );
+		if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) {
+		     char buffer[1024] ;
+		     strcpy( buffer, conf_get_str( conf, CONF_password) ) ;
+		     MASKPASS( buffer ) ;
+		     conf_set_str( conf, CONF_password, buffer ) ;
+		     memset( buffer, 0, strlen(buffer) ) ;
+	            }
 #else
                 char *errmsg = save_settings(ssd->savedsession, conf);
 #endif
@@ -1193,7 +1216,13 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
                 return;
             }
 #ifdef PERSOPORT
-	if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) MASKPASS( conf_get_str( conf, CONF_password) );
+	if( conf_get_int(conf, CONF_protocol) != PROT_SERIAL ) {
+		     char buffer[1024] ;
+		     strcpy( buffer, conf_get_str( conf, CONF_password) ) ;
+		     MASKPASS( buffer ) ;
+		     conf_set_str( conf, CONF_password, buffer ) ;
+		     memset( buffer, 0, strlen(buffer) ) ;
+		}
 #endif
 	    /*
 	     * Annoying special case. If the `Open' button is
@@ -3812,6 +3841,10 @@ void setup_config_box(struct controlbox *b, int midsession,
 		ctrl_editbox(s, "Comment", NO_SHORTCUT, 100,
 		 HELPCTX(no_help),
 		 conf_editbox_handler, I(CONF_comment),
+		 I(1));
+		ctrl_editbox(s, "SFTP connect", NO_SHORTCUT, 100,
+		 HELPCTX(no_help),
+		 conf_editbox_handler, I(CONF_sftpconnect),
 		 I(1));
 		}
 #endif

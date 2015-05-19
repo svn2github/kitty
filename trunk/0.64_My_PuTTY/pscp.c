@@ -52,6 +52,8 @@ static void source(char *src);
 static void rsource(char *src);
 static void sink(char *targ, char *src);
 
+#ifdef PERSOPORT
+void SetAutoStoreSSHKey( void ) ;
 #if (defined PERSOPORT) && (!defined FDJ)
 char *appname = "PSCP";
 #else
@@ -59,6 +61,7 @@ const char *const appname = "PSCP";
 #endif
 #ifdef PORTKNOCKINGPORT
 int ManagePortKnocking( char* host, char *portstr ) ;
+#endif
 #endif
 
 /*
@@ -2284,6 +2287,10 @@ static void usage(void)
     printf
 	("  -gui hWnd GUI mode with the windows handle for receiving messages\n");
 #endif
+#ifdef PERSOPORT
+    printf("  -auto_store_sshkey\n");
+    printf("            store automatically the servers ssh keys\n");
+#endif
     cleanup_exit(1);
 }
 
@@ -2373,6 +2380,10 @@ int psftp_main(int argc, char *argv[])
 	    try_scp = 0; try_sftp = 1;
 	} else if (strcmp(argv[i], "-scp") == 0) {
 	    try_scp = 1; try_sftp = 0;
+#ifdef PERSOPORT
+    } else if (strcmp(argv[i], "-auto_store_sshkey") == 0) {
+	SetAutoStoreSSHKey();
+#endif
 	} else if (strcmp(argv[i], "--") == 0) {
 	    i++;
 	    break;

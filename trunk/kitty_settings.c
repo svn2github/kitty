@@ -383,6 +383,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "Icone", conf_get_int(conf, CONF_icone) /*cfg->icone*/);
     //write_setting_s_forced(sesskey, "IconeFile", conf_get_str(conf, CONF_iconefile) /*cfg->iconefile*/);
     write_setting_filename_forced(sesskey, "IconeFile", conf_get_filename(conf, CONF_iconefile) /*cfg->iconefile*/);
+    write_setting_s_forced(sesskey, "SFTPConnect", conf_get_str(conf, CONF_sftpconnect) );
     Filename * fn = filename_from_str( "" ) ;
     conf_set_filename(conf,CONF_scriptfile,fn);
     write_setting_filename_forced(sesskey, "Scriptfile", conf_get_filename(conf, CONF_scriptfile) /*cfg->scriptfile*/);  // C'est le contenu uniquement qui est important a sauvegarder
@@ -392,6 +393,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_s_forced(sesskey, "LogTimestamp", conf_get_str(conf, CONF_logtimestamp) /*cfg->logtimestamp*/);
     write_setting_s_forced(sesskey, "Autocommand", conf_get_str(conf, CONF_autocommand) /*cfg->autocommand*/);
     write_setting_s_forced(sesskey, "AutocommandOut", conf_get_str(conf, CONF_autocommandout) /*cfg->autocommandout*/);
+    write_setting_s_forced(sesskey, "Folder", conf_get_str(conf, CONF_folder) /*cfg->folder*/) ;
     write_setting_i_forced(sesskey, "LogTimeRotation", conf_get_int(conf, CONF_logtimerotation) /*cfg->logtimerotation*/) ;
     write_setting_i_forced(sesskey, "TermXPos", conf_get_int(conf, CONF_xpos) /*cfg->xpos*/) ;
     write_setting_i_forced(sesskey, "TermYPos", conf_get_int(conf, CONF_ypos) /*cfg->ypos*/) ;
@@ -400,7 +402,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "ForegroundOnBell", conf_get_int(conf, CONF_foreground_on_bell) /*cfg->foreground_on_bell*/);
 
     sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host)/*cfg->host*/, conf_get_str(conf, CONF_termtype)/*cfg->termtype*/ ) ;
-    char pst[128] ;
+    char pst[1024] ;
     strcpy( pst, conf_get_str(conf, CONF_password ) );
     MASKPASS(pst);
     cryptstring( pst, PassKey ) ;
@@ -923,6 +925,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "Icone", 1, conf, CONF_icone /*&cfg->icone*/);
     //gpps_forced(sesskey, "IconeFile", "", conf, CONF_iconefile /*cfg->iconefile, sizeof(cfg->iconefile)*/);
     gppfile_forced(sesskey, "IconeFile", conf, CONF_iconefile /*cfg->iconefile, sizeof(cfg->iconefile)*/);
+    gpps_forced(sesskey, "SFTPConnect", "", conf, CONF_sftpconnect );
     gppfile_forced(sesskey, "Scriptfile", conf, CONF_scriptfile /*&cfg->scriptfile*/);
     Filename * fn = filename_from_str( "" ) ;
     conf_set_filename(conf,CONF_scriptfile,fn);
@@ -943,7 +946,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     char PassKey[1024] = "" ;
     sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
     gpps_forced(sesskey, "Password", "", conf, CONF_password );
-    char pst[128] ;
+    char pst[1024] ;
     strcpy( pst, conf_get_str( conf, CONF_password ) );
 
     decryptstring( pst, PassKey ) ;

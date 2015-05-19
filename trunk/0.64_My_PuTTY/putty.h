@@ -951,6 +951,7 @@ void cleanup_exit(int);
 	X(INT, NONE, saveonexit) \
 	X(INT, NONE, icone) \
 	X(FILENAME, NONE, iconefile) \
+	X(STR, NONE, sftpconnect) \
 	X(STR, NONE, folder) \
 	X(STR, NONE, password) \
 	X(STR, NONE, autocommand) \

@@ -776,7 +776,7 @@ int main(int argc, char *argv[])
 #ifdef PERSOPORT
 	IniFileFlag = 0 ;
 	DirectoryBrowseFlag = 0 ;
-	IsPortableMode() ;
+	LoadParametersLight() ;
 #endif
     ret = psftp_main(argc, argv);
 

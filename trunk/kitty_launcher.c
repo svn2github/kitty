@@ -384,7 +384,7 @@ void RunConfig( Conf * conf ) {
 		PROCESS_INFORMATION pi;
 		HANDLE filemap = NULL;
 
-		char bufpass[256] ;
+		char bufpass[1024] ;
 		strcpy( bufpass, conf_get_str(conf,CONF_password));
 		MASKPASS(bufpass);
 		    /*
@@ -412,7 +412,7 @@ void RunConfig( Conf * conf ) {
 		    inherit_handles = TRUE;
 		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
 		    cl = c;
-		memset(bufpass,0,strlen(bufpass));//MASKPASS(cfg->password);
+		memset(bufpass,0,strlen(bufpass));
 		    
 		GetModuleFileName(NULL, b, sizeof(b) - 1);
 		si.cb = sizeof(si);

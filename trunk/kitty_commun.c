@@ -86,38 +86,32 @@ void DelDir( const char * directory ) {
 		}
 	}
 
+// Lit un parametre soit dans le fichier de configuration, soit dans le registre
+char  * IniFile = NULL ;
+char INIT_SECTION[10];
+int ReadParameterLight( const char * key, const char * name, char * value ) {
+	char buffer[1024] ;
+	strcpy( buffer, "" ) ;
+
+	if( GetValueData( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), name, buffer ) == NULL ) {
+		if( !readINI( IniFile, key, name, buffer ) ) {
+			strcpy( buffer, "" ) ;
+			}
+		}
+	strcpy( value, buffer ) ;
+	return strcmp( buffer, "" ) ;
+	}
 
 /* test if we are in portable mode by looking for putty.ini or kitty.ini in running directory */
-int IsPortableMode( void ) {
+int LoadParametersLight( void ) {
 	FILE * fp = NULL ;
 	int ret = 0 ;
 	char buffer[256] ;
 
-	if( (fp = fopen( "putty.ini", "r" )) != NULL ) {
-		fclose(fp ) ;
-		if( readINI( "putty.ini", "PuTTY", "savemode", buffer ) ) {
-			while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')
-				||(buffer[strlen(buffer)-1]==' ')
-				||(buffer[strlen(buffer)-1]=='\t') ) buffer[strlen(buffer)-1]='\0';
-			if( !stricmp( buffer, "registry" ) ) IniFileFlag = SAVEMODE_REG ;
-			else if( !stricmp( buffer, "file" ) ) IniFileFlag = SAVEMODE_FILE ;
-			else if( !stricmp( buffer, "dir" ) ) { IniFileFlag = SAVEMODE_DIR ; DirectoryBrowseFlag = 1 ; ret = 1 ; }
-			}
-		if(  IniFileFlag == SAVEMODE_DIR ) {
-			if( readINI( "putty.ini", "PuTTY", "browsedirectory", buffer ) ) {
-				if( !stricmp( buffer, "NO" )&&(IniFileFlag==SAVEMODE_DIR) ) DirectoryBrowseFlag = 0 ; 
-				else DirectoryBrowseFlag = 1 ;
-				}
-			if( readINI( "putty.ini", "PuTTY", "configdir", buffer ) ) { 
-				if( strlen( buffer ) > 0 ) { 
-					ConfigDirectory = (char*)malloc( strlen(buffer) + 1 ) ;
-					strcpy( ConfigDirectory, buffer ) ;
-					}
-				}
-			}
-		else  DirectoryBrowseFlag = 0 ;
-		}
-	else if( (fp = fopen( "kitty.ini", "r" )) != NULL ) {
+#ifndef FDJ
+	if( (fp = fopen( "kitty.ini", "r" )) != NULL ) {
+		IniFile = (char*)malloc(11) ; strcpy(IniFile,"kitty.ini");
+		strcpy(INIT_SECTION,"KiTTY");
 		fclose(fp ) ;
 		if( readINI( "kitty.ini", "KiTTY", "savemode", buffer ) ) {
 			while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')
@@ -141,7 +135,55 @@ int IsPortableMode( void ) {
 			}
 		else  DirectoryBrowseFlag = 0 ;
 		}
-	//else { printf( "No ini file\n" ) ; }
+	else 
+#endif
+	if( (fp = fopen( "putty.ini", "r" )) != NULL ) {
+		IniFile = (char*)malloc(11) ; strcpy(IniFile,"putty.ini");
+		strcpy(INIT_SECTION,"PuTTY");
+		fclose(fp ) ;
+		if( readINI( "putty.ini", "PuTTY", "savemode", buffer ) ) {
+			while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')
+				||(buffer[strlen(buffer)-1]==' ')
+				||(buffer[strlen(buffer)-1]=='\t') ) buffer[strlen(buffer)-1]='\0';
+			if( !stricmp( buffer, "registry" ) ) IniFileFlag = SAVEMODE_REG ;
+			else if( !stricmp( buffer, "file" ) ) IniFileFlag = SAVEMODE_FILE ;
+			else if( !stricmp( buffer, "dir" ) ) { IniFileFlag = SAVEMODE_DIR ; DirectoryBrowseFlag = 1 ; ret = 1 ; }
+			}
+		if(  IniFileFlag == SAVEMODE_DIR ) {
+			if( readINI( "putty.ini", "PuTTY", "browsedirectory", buffer ) ) {
+				if( !stricmp( buffer, "NO" )&&(IniFileFlag==SAVEMODE_DIR) ) DirectoryBrowseFlag = 0 ; 
+				else DirectoryBrowseFlag = 1 ;
+				}
+			if( readINI( "putty.ini", "PuTTY", "configdir", buffer ) ) { 
+				if( strlen( buffer ) > 0 ) { 
+					ConfigDirectory = (char*)malloc( strlen(buffer) + 1 ) ;
+					strcpy( ConfigDirectory, buffer ) ;
+					}
+				}
+			}
+		else  DirectoryBrowseFlag = 0 ;
+		}
+	else {
+		char buffer[4096] ;
+#ifndef FDJ		
+			sprintf( buffer, "%s/KiTTY/kitty.ini", getenv("APPDATA") );
+			if( (fp = fopen( buffer, "r" )) != NULL ) {
+				IniFile = (char*)malloc(strlen(buffer)+1) ; strcpy(IniFile,buffer);
+				strcpy(INIT_SECTION,"KiTTY");
+				fclose(fp);
+			}
+	else {
+#endif
+		sprintf( buffer, "%s/PuTTY/putty.ini", getenv("APPDATA") );
+		if( (fp = fopen( buffer, "r" )) != NULL ) {
+			IniFile = (char*)malloc(strlen(buffer)+1) ; strcpy(IniFile,buffer);
+			strcpy(INIT_SECTION,"PuTTY");
+			fclose(fp);
+		} 
+	}
+	}
+	
+	if( ReadParameterLight( INIT_SECTION, "autostoresshkey", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SetAutoStoreSSHKeyFlag( 1 ) ; }
 	return ret ;
 	}
 

@@ -2267,8 +2267,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	debug_flag=0;
 	IniFileFlag = 0 ;
 	DirectoryBrowseFlag = 0 ;
-	IsPortableMode() ;
-	//if( IsPortableMode() ) { printf( "Portable mode on\n" ) ; }
+	LoadParametersLight() ;
 #endif
 #ifdef SCPORT
     HKEY hkey;

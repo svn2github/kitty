@@ -16,6 +16,8 @@
 #include "sftp.h"
 #include "int64.h"
 
+#ifdef PERSOPORT
+void SetAutoStoreSSHKey( void ) ;
 #if (defined PERSOPORT) && (!defined FDJ)
 char *appname = "PSFTP";
 #else
@@ -24,6 +26,8 @@ const char *const appname = "PSFTP";
 #ifdef PORTKNOCKINGPORT
 int ManagePortKnocking( char* host, char *portstr ) ;
 #endif
+#endif
+
 
 /*
  * Since SFTP is a request-response oriented protocol, it requires
@@ -2686,6 +2690,10 @@ static void usage(void)
     printf("  -hostkey aa:bb:cc:...\n");
     printf("            manually specify a host key (may be repeated)\n");
     printf("  -batch    disable all interactive prompts\n");
+#ifdef PERSOPORT
+    printf("  -auto_store_sshkey\n");
+    printf("            store automatically the servers ssh keys\n");
+#endif
     cleanup_exit(1);
 }
 

@@ -260,10 +260,12 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "transparencynumber=%d\n", 	conf_get_int(conf,CONF_transparencynumber) ) ;
 	fprintf( fp, "sendtotray=%d\n",			conf_get_int(conf,CONF_sendtotray) ) ;
 	fprintf( fp, "maximize=%d\n",			conf_get_int(conf,CONF_maximize) ) ;
-	fprintf( fp, "icone =%d\n",			conf_get_int(conf,CONF_icone) ) ;
+	fprintf( fp, "icone=%d\n",			conf_get_int(conf,CONF_icone) ) ;
+	fprintf( fp, "iconefile=%s\n",			conf_get_filename(conf,CONF_iconefile)->path ) ;
 	fprintf( fp, "folder=%s\n", 			conf_get_str(conf,CONF_folder) ) ;
+	fprintf( fp, "sftpconnect=%s\n", 		conf_get_str(conf,CONF_sftpconnect) ) ;
 
-	char bufpass[256] ; 
+	char bufpass[1024] ; 
 	strcpy( bufpass, conf_get_str(conf,CONF_password) ) ;
 	MASKPASS(bufpass);
 	fprintf( fp, "password=%s\n",			bufpass ) ;
@@ -562,6 +564,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "AntiIdleStr=%s\nInitialDirectory=%s\nConfigDirectory=%s\nBuildVersionTime=%s\n",AntiIdleStr,InitialDirectory,ConfigDirectory,BuildVersionTime);
 	if( WinSCPPath!= NULL ) fprintf( fp, "WinSCPPath=%s\n", WinSCPPath ) ;
 	if( PSCPPath!= NULL ) fprintf( fp, "PSCPPath=%s\n", PSCPPath ) ;
+	if( PlinkPath!= NULL ) fprintf( fp, "PlinkPath=%s\n", PlinkPath ) ;
 	if( KittyIniFile!= NULL ) fprintf( fp, "KittyIniFile=%s\n", KittyIniFile ) ;
 	if( KittySavFile!= NULL ) fprintf( fp, "KittySavFile=%s\n", KittySavFile ) ;
 	if( CtHelperPath!= NULL ) fprintf( fp, "CtHelperPath=%s\n", CtHelperPath ) ;
@@ -729,6 +732,6 @@ void SaveDump( void ) {
 
 		sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;
 		sprintf( buffer2, "%s\\%s", InitialDirectory, "kitty.dmp.bcr" ) ;
-		bcrypt_file_base64( buffer, buffer2, MASTER_PASSWORD, 80 ) ; unlink( buffer ) ; rename( buffer2, buffer ) ;
+		bcrypt_file_base64( buffer, buffer2, "9bis", 80 ) ; unlink( buffer ) ; rename( buffer2, buffer ) ;
 		}
 	}
