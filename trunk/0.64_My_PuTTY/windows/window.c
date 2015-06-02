@@ -1545,6 +1545,10 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 
 	    if (!(IsWindow(logbox) && IsDialogMessage(logbox, &msg)))
 		DispatchMessage(&msg);
+#ifdef ZMODEMPORT
+	    	    if( GetZModemFlag() && xyz_Process(back, backhandle, term))
+		    continue;
+#endif
             /*
              * WM_NETEVENT messages seem to jump ahead of others in
              * the message queue. I'm not sure why; the docs for

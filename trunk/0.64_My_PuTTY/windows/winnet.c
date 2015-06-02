@@ -55,7 +55,7 @@ struct Socket_tag {
     Plug plug;
     bufchain output_data;
     int connected;
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	int closing; /* used when closing the connection, while we flush the remaining items */
 #endif
     int writable;
@@ -126,7 +126,7 @@ static tree234 *sktree;
 #ifdef PERSOPORT
 int get_param( const char * val ) ;
 #endif
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 static int curpass;
 #endif
 
@@ -325,7 +325,7 @@ void sk_init(void)
     }
 
     sktree = newtree234(cmpfortree);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
     if(get_param("ZMODEM"))
 	curpass = 1;
 #endif
@@ -911,7 +911,7 @@ Socket sk_register(void *sock, Plug plug)
     ret->error = NULL;
     ret->plug = plug;
     bufchain_init(&ret->output_data);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if(get_param("ZMODEM")) 
 		ret->closing = 0;
 #endif
@@ -978,7 +978,7 @@ static Socket sk_tcp_accept(accept_ctx_t ctx, Plug plug)
     ret->error = NULL;
     ret->plug = plug;
     bufchain_init(&ret->output_data);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if(get_param("ZMODEM")) 
 		ret->closing = 0;
 #endif
@@ -1032,7 +1032,7 @@ static DWORD try_connect(Actual_Socket sock)
         p_closesocket(sock->s);
     }
     
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if(!get_param("ZMODEM") || !sock->closing) plug_log(sock->plug, 0, sock->addr, sock->port, NULL, 0);
 #else
     plug_log(sock->plug, 0, sock->addr, sock->port, NULL, 0);
@@ -1203,7 +1203,7 @@ static DWORD try_connect(Actual_Socket sock)
      */
     add234(sktree, sock);
 
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
     if( get_param("ZMODEM") ){
 	if( err && !sock->closing)
 		plug_log(sock->plug, 1, sock->addr, sock->port, sock->error, err);
@@ -1244,7 +1244,7 @@ Socket sk_new(SockAddr addr, int port, int privport, int oobinline,
     ret->plug = plug;
     bufchain_init(&ret->output_data);
     ret->connected = 0;		       /* to start with */
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if(get_param("ZMODEM")) 
 		ret->closing = 0;
 #endif
@@ -1309,7 +1309,7 @@ Socket sk_newlistener(char *srcaddr, int port, Plug plug, int local_host_only,
     ret->error = NULL;
     ret->plug = plug;
     bufchain_init(&ret->output_data);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if(get_param("ZMODEM")) 
 		ret->closing = 0;
 #endif
@@ -1500,7 +1500,7 @@ int sk_getport(Socket sock)
     return p_ntohs(a.sin_port);
 }
 #endif
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 static void sk_tcp_really_close(Actual_Socket s)
 {
     extern char *do_select(SOCKET skt, int startup);
@@ -1738,7 +1738,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	 * plug.
 	 */
 	if (s->addr) {
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if( get_param("ZMODEM") ) {
 	if (!s->closing) 
 	    plug_log(s->plug, 1, s->addr, s->port,
@@ -1756,7 +1756,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 		err = try_connect(s);
 	    }
 	}
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if( get_param("ZMODEM") ) {
 	if (err != 0 && !s->closing)
 		return plug_closing(s->plug, winsock_error_string(err), err, 0);
@@ -1826,7 +1826,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 		break;
 	    }
 	}
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if( get_param("ZMODEM") &&0) {
 	if( !s->closing ) {
 	if (ret < 0) {
@@ -1866,7 +1866,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	     * that the frontend handle is unnecessary. */
 	    logevent(NULL, str);
 	    fatalbox("%s", str);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	} else if ( get_param("ZMODEM") && s->closing) {
 		return 1;
 #endif
@@ -1881,7 +1881,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	    bufsize_before = s->sending_oob + bufchain_size(&s->output_data);
 	    try_send(s);
 	    bufsize_after = s->sending_oob + bufchain_size(&s->output_data);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	if( get_param("ZMODEM") ) {
 	if (bufsize_after < bufsize_before && !s->closing)
 		plug_sent(s->plug, bufsize_after);
@@ -1901,13 +1901,13 @@ int select_result(WPARAM wParam, LPARAM lParam)
 		err = p_WSAGetLastError();
 		if (err == WSAEWOULDBLOCK)
 		    break;
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 		if (get_param("ZMODEM") && s->closing)
 			return 1;
 #endif
 		return plug_closing(s->plug, winsock_error_string(err),
 				    err, 0);
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 		} else if (get_param("ZMODEM") && s->closing) {
 			open = 1;
 #endif
@@ -1951,7 +1951,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 #endif
 	    {
 		p_closesocket(t);      /* dodgy WinSock let nonlocal through */
-#if (defined ZMODEMPORT) && (defined WITH_ZMODEM)
+#ifdef ZMODEMPORT
 	    } 
 		if(get_param("ZMODEM")) {
 			if (!s->closing && plug_accepting(s->plug, sk_tcp_accept, actx)) {

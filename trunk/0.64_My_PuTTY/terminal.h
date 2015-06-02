@@ -280,6 +280,7 @@ struct terminal_tag {
     int wcFromTo_size;
     struct bidi_cache_entry *pre_bidi_cache, *post_bidi_cache;
     int bidi_cache_size;
+
     /*
      * We copy a bunch of stuff out of the Conf structure into local
      * fields in the Terminal structure, to avoid the repeated

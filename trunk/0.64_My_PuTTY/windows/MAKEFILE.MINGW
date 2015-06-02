@@ -1342,7 +1342,7 @@ winnet_zmodem.o: ../windows/winnet.c ../putty.h ../network.h ../tree234.h \
 		../puttyps.h ../misc.h ../windows/winstuff.h ../macosx/osx.h \
 		../unix/unix.h ../puttymem.h ../windows/winhelp.h \
 		../charset/charset.h
-	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o winnet_zmodem.o -c ../windows/winnet.c -DWITH_ZMODEM
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o winnet_zmodem.o -c ../windows/winnet.c
 
 kitty_dll.res.o: ../../kitty_dll.rc
 	windres ../../kitty_dll.rc kitty_dll.res.o

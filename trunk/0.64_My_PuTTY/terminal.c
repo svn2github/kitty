@@ -1317,7 +1317,9 @@ static void power_on(Terminal *term, int clear)
 void term_update(Terminal *term)
 {
     Context ctx;
+
     term->window_update_pending = FALSE;
+
     ctx = get_ctx(term->frontend);
     if (ctx) {
 	int need_sbar_update = term->seen_disp_event;
@@ -1326,6 +1328,7 @@ void term_update(Terminal *term)
 	    term->seen_disp_event = 0;
 	    need_sbar_update = TRUE;
 	}
+
 	if (need_sbar_update)
 	    update_sbar(term);
 	do_paint(term, ctx, TRUE);
@@ -2618,7 +2621,7 @@ static void toggle_mode(Terminal *term, int mode, int query, int state)
 	    deselect(term);
 	    swap_screen(term, term->no_alt_screen ? 0 : state, FALSE, FALSE);
             if (term->scroll_on_disp)
-	    term->disptop = 0;
+                term->disptop = 0;
 	    break;
 	  case 1000:		       /* xterm mouse 1 (normal) */
 	    term->xterm_mouse = state ? 1 : 0;
@@ -6126,6 +6129,7 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 #else
     unlineptr(ldata);
 #endif
+
     /*
      * If we're in the middle of a selection operation, we ignore raw
      * mouse mode until it's done (we must have been not in raw mouse
@@ -6255,6 +6259,7 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 #endif
 	return;
     }
+
     /*
      * Set the selection type (rectangular or normal) at the start
      * of a selection attempt, from the state of Alt.
@@ -6267,6 +6272,7 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
     if (term->selstate == NO_SELECTION) {
 	term->seltype = default_seltype;
     }
+
     if (bcooked == MBT_SELECT && a == MA_CLICK) {
 	deselect(term);
 	term->selstate = ABOUT_TO;
@@ -6327,7 +6333,6 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	}
 	/* HACK: PuttyTray / Nutty : END */
 #endif
-
     } else if (bcooked == MBT_SELECT && (a == MA_2CLK || a == MA_3CLK)) {
 	deselect(term);
 	term->selmode = (a == MA_2CLK ? SM_WORD : SM_LINE);
@@ -6512,7 +6517,6 @@ int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl)
 	else
 	    p += sprintf((char *) p, "\x1B[%c", xkey);
 #endif
-
     }
 
     return p - buf;
@@ -6558,13 +6562,13 @@ int term_ldisc(Terminal *term, int option)
 
 int term_data(Terminal *term, int is_stderr, const char *data, int len)
 {
-
 #ifdef ZMODEMPORT
 	if ( get_param( "ZMODEM" ) && term->xyz_transfering && !is_stderr)
 		{ return xyz_ReceiveData(term, (const u_char *) data, len) ; }
 	else
 	{
 #endif
+
     bufchain_add(&term->inbuf, data, len);
 
     if (!term->in_term_out) {
@@ -6780,22 +6784,3 @@ int term_get_userpass_input(Terminal *term, prompts_t *p,
 	return +1; /* all done */
     }
 }
-
-
-
-
-/*
-WINDOW.C  3848
-
-term_mouse(term, b, translate_button(b), MA_DRAG,
-		       TO_CHR_X(X_POS(lParam)),
-		       TO_CHR_Y(Y_POS(lParam)), wParam & MK_SHIFT,
-		       wParam & MK_CONTROL, is_alt_pressed());
-
-
-Fonction term_mouse dans TERMINAL.C
-Ligne 1298:     A priori le problème est dans term_update(term) ;  
-
-Fonction term_update dans TERMINAL.C
-Ligne 1297: 		do_paint(term, ctx, TRUE);
-*/

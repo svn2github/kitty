@@ -1,4 +1,4 @@
-#ifdef ZMODEMPORT
+//#ifdef ZMODEMPORT
 
 #include "putty.h"
 #include "terminal.h"
@@ -153,8 +153,10 @@ static int xyz_Check(Backend *back, void *backhandle, Terminal *term, int outerr
 
 void xyz_ReceiveInit(Terminal *term)
 {
-	if (xyz_SpawnProcess(term, conf_get_filename(term->conf,CONF_rzcommand)->path/*term->cfg.rzcommand*/, conf_get_str(term->conf,CONF_rzoptions)/*term->cfg.rzoptions*/) == 0) {
+	if (xyz_SpawnProcess(term, conf_get_filename(term->conf,CONF_rzcommand)->path, conf_get_str(term->conf,CONF_rzoptions)) == 0) {
 		term->xyz_transfering = 1;
+	} else {
+		MessageBox(NULL,"Unable to start receiving !", "Error", MB_OK|MB_ICONERROR);
 	}
 }
 
@@ -183,7 +185,7 @@ void xyz_StartSending(Terminal *term)
 		curparams = sz_full_params;
 		sz_full_params[0] = 0;
 
-		curparams += sprintf(curparams, "%s", conf_get_str(term->conf,CONF_szoptions)/*term->cfg.szoptions*/);
+		curparams += sprintf(curparams, "%s", conf_get_str(term->conf,CONF_szoptions));
 
 		if (*(p+strlen(filenames)+1)==0) {
 			sprintf(curparams, " \"%s\"", filenames);
@@ -196,9 +198,11 @@ void xyz_StartSending(Terminal *term)
 			}
 		}
 
-		if (xyz_SpawnProcess(term, conf_get_filename(term->conf,CONF_szcommand)->path/*term->cfg.szcommand*/, sz_full_params) == 0) {
+		if (xyz_SpawnProcess(term, conf_get_filename(term->conf,CONF_szcommand)->path, sz_full_params) == 0) {
 			term->xyz_transfering = 1;
 
+		} else {
+			MessageBox(NULL,"Unable to start sending !", "Error", MB_OK|MB_ICONERROR);
 		}
 	}
 }
@@ -214,11 +218,22 @@ static int xyz_SpawnProcess(Terminal *term, const char *incommand, const char *i
 	SECURITY_ATTRIBUTES sa;
 	SECURITY_DESCRIPTOR sd;               //security information for pipes
 	
+	
+	
+	/*   Essai en bypassant le process spawn 
+	GetStartupInfo(&si);      
+	term->xyz_Internals = (struct zModemInternals *)smalloc(sizeof(struct zModemInternals));
+	memset(term->xyz_Internals, 0, sizeof(struct zModemInternals));
+	
+	term->xyz_Internals->write_stdin = si.hStdInput ;
+	term->xyz_Internals->read_stdout = si.hStdOutput ;
+	term->xyz_Internals->read_stderr = si.hStdError ;
+	
+	return 0;
+	*/
+	
 	HANDLE read_stdout, read_stderr, write_stdin, newstdin, newstdout, newstderr; //pipe handles
 
-	
-	
-	
 	term->xyz_Internals = (struct zModemInternals *)smalloc(sizeof(struct zModemInternals));
 	memset(term->xyz_Internals, 0, sizeof(struct zModemInternals));
 
@@ -231,7 +246,7 @@ static int xyz_SpawnProcess(Terminal *term, const char *incommand, const char *i
 	else sa.lpSecurityDescriptor = NULL;
 	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
 	sa.bInheritHandle = TRUE;         //allow inheritable handles
-	
+
 	if (!CreatePipe(&newstdin,&write_stdin,&sa,PIPE_SIZE))   //create stdin pipe
 	{
 		return 1;
@@ -250,7 +265,6 @@ static int xyz_SpawnProcess(Terminal *term, const char *incommand, const char *i
 		CloseHandle(read_stdout);
 		return 1;
 	}
-
 	
 	GetStartupInfo(&si);      //set startupinfo for the spawned process
 				  /*
@@ -264,7 +278,6 @@ static int xyz_SpawnProcess(Terminal *term, const char *incommand, const char *i
 	si.hStdError = newstderr;     //set the new handles for the child process
 	si.hStdInput = newstdin;
 
-	
 	//system
 	if (!DuplicateHandle(GetCurrentProcess(), read_stdout, GetCurrentProcess(), &term->xyz_Internals->read_stdout, 0, FALSE, DUPLICATE_SAME_ACCESS))
 	{
@@ -304,7 +317,7 @@ static int xyz_SpawnProcess(Terminal *term, const char *incommand, const char *i
 	}
 
 	CloseHandle(write_stdin);
-	
+
 	//spawn the child process
 	{
 		char params[1204];
@@ -320,10 +333,10 @@ static int xyz_SpawnProcess(Terminal *term, const char *incommand, const char *i
 		}
 		sprintf(params, "%s %s", p, inparams);
 
-		if (!CreateProcess(incommand,params,NULL, NULL,TRUE,CREATE_NEW_CONSOLE, NULL,conf_get_str(term->conf,CONF_zdownloaddir)/*term->cfg.zdownloaddir*/,&si,&term->xyz_Internals->pi))
+		if (!CreateProcess(incommand,params,NULL, NULL,TRUE,CREATE_NEW_CONSOLE, NULL,conf_get_str(term->conf,CONF_zdownloaddir),&si,&term->xyz_Internals->pi))
 		{
 			//DWORD err = GetLastError();
-	//		ErrorMessage("CreateProcess");
+			//ErrorMessage("CreateProcess");
 			CloseHandle(newstdin);
 			CloseHandle(term->xyz_Internals->write_stdin);
 			CloseHandle(newstdout);
@@ -371,9 +384,13 @@ int xyz_ReceiveData(Terminal *term, const u_char *buffer, int len)
 		OutputDebugString(debugbuff);
 	}
 #endif
-	WriteFile(term->xyz_Internals->write_stdin,buffer,len,&written,NULL);
+	
+	//if( !
+		WriteFile(term->xyz_Internals->write_stdin,buffer,len,&written,NULL)
+	;
+	//) { char buf[1024]; sprintf(buf, "Unable to write %d characters", len); MessageBox(NULL,buf,"Error",MB_OK|MB_ICONERROR); }
 
 	return 0 ;
 }
 
-#endif
+//#endif

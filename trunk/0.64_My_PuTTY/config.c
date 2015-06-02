@@ -958,6 +958,22 @@ static int load_selected_session(struct sessionsaver_data *ssd,
     return 1;
 }
 
+#ifdef PERSOPORT
+int search_for_host_in_reg( sessionname, folder, savedsession ) {
+	char buffer[4092] ;
+	if( stristr( savedsession, "host:" ) != savedsession ) return 0 ;
+	if( strlen(savedsession+5)==0 ) return 0 ;
+
+	GetSessionField( sessionname, "", "HostName", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
+	GetSessionField( sessionname, "", "SFTPConnect", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
+	GetSessionField( sessionname, "", "RemoteCommand", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
+	GetSessionField( sessionname, "", "PortForwardings", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
+	GetSessionField( sessionname, "", "WinTitle", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
+
+	return 0 ;
+}
+#endif
+
 static void sessionsaver_handler(union control *ctrl, void *dlg,
 				 void *data, int event)
 {
@@ -1028,15 +1044,15 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 
 		for (i = 0; i < ssd->sesslist.nsessions; i++) {
 			char folder[1024] ;
-			char host[1024] ;
+//			char host[1024] ;
 			strcpy( folder, "" ) ;
 			if( (get_param("INIFILE")==SAVEMODE_REG) || ((get_param("INIFILE")==SAVEMODE_DIR) && !get_param("DIRECTORYBROWSE")) ) {
 				GetSessionFolderName( ssd->sesslist.sessions[i], folder ) ;
 				}
-			strcpy( host, "" ) ;
-			if(get_param("INIFILE")==SAVEMODE_REG) {
-				GetSessionField( ssd->sesslist.sessions[i], folder, "HostName", host ) ;
-				}
+//			strcpy( host, "" ) ;
+//			if(get_param("INIFILE")==SAVEMODE_REG) {
+//				GetSessionField( ssd->sesslist.sessions[i], folder, "HostName", host ) ;
+//				}
 			if( get_param("PUTTY") )
 				dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
 			else if( (get_param("INIFILE")==SAVEMODE_DIR) && get_param("DIRECTORYBROWSE") )	{
@@ -1065,7 +1081,8 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 				    || (!strcmp(CurrentFolder,folder)) ) {
 					if( (!strcmp( ssd->savedsession, "" )) 
 					|| ( strlen(ssd->savedsession)<=1 )
-					|| (stristr(host,ssd->savedsession)!=NULL)			/* Filtre sur le nom du host */
+					|| ( search_for_host_in_reg( ssd->sesslist.sessions[i], folder, ssd->savedsession ) )	/* Filtre sur le nom du host */
+					//|| (stristr(host,ssd->savedsession)!=NULL)			/* Filtre sur le nom du host */
 					|| (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) )
 						dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]) ;
 					}
@@ -2794,6 +2811,7 @@ void setup_config_box(struct controlbox *b, int midsession,
       ctrl_text(s, "     %%P: protocol name", HELPCTX(appearance_title));
       ctrl_text(s, "     %%s: session name", HELPCTX(appearance_title));
       ctrl_text(s, "     %%u: username", HELPCTX(appearance_title));
+      ctrl_text(s, "     %%w: forwarded ports list", HELPCTX(appearance_title));
 #endif
     ctrl_checkbox(s, "Separate window and icon titles", 'i',
 		  HELPCTX(appearance_title),
@@ -3784,21 +3802,12 @@ void setup_config_box(struct controlbox *b, int midsession,
      if( (!get_param("PUTTY"))&&get_param("ZMODEM") ) {
     ctrl_settitle(b, "Connection/ZModem",
 		      "Options controlling Z Modem transfers");
-
    s = ctrl_getset(b, "Connection/ZModem", "download",
 			"Download folder");
-
-/*   --- Le controle de recherche de repertoire ne fonctionne plus > 2013/06/27 (peut être a cause du type "char*" de zdownloaddir) ==> champ texte libre
-    ctrl_directorysel(s, "Location:", NO_SHORTCUT,
-		 "Select location for downloading files",
-		 HELPCTX(no_help),
-		 conf_directorysel_handler, I(CONF_zdownloaddir)); //dlg_stddirectorysel_handler, I(offsetof(Config, zdownloaddir)));
-*/
     ctrl_editbox(s, "Location:",  NO_SHORTCUT, 100,
 		 HELPCTX(no_help),
 		 conf_editbox_handler, I(CONF_zdownloaddir), I(1));
-    
-
+ 
     ctrl_settitle(b, "Connection/ZModem/rz",
 		  "rz path and options");
 
@@ -3808,12 +3817,12 @@ void setup_config_box(struct controlbox *b, int midsession,
     ctrl_filesel(s, "Command rz:", NO_SHORTCUT,
 		 FILTER_EXE_FILES, FALSE, "Select command to receive zmodem data",
 		 HELPCTX(no_help),
-		 conf_filesel_handler, I(CONF_rzcommand) ) ; //dlg_stdfilesel_handler, I(offsetof(Config, rzcommand)));
+		 conf_filesel_handler, I(CONF_rzcommand) ) ; 
 
     ctrl_editbox(s, "Options", NO_SHORTCUT, 
 		     50,
 		     HELPCTX(no_help),
-		     conf_editbox_handler, I(CONF_rzoptions), I(1)); // dlg_stdeditbox_handler, I(offsetof(Config,rzoptions)),I(sizeof(((Config *)0)->rzoptions)));
+		     conf_editbox_handler, I(CONF_rzoptions), I(1)); 
 
     ctrl_settitle(b, "Connection/ZModem/sz",
 		  "sz path and options");
@@ -3824,12 +3833,12 @@ void setup_config_box(struct controlbox *b, int midsession,
     ctrl_filesel(s, "Command sz:", NO_SHORTCUT,
 		 FILTER_EXE_FILES, FALSE, "Select command to send zmodem data",
 		 HELPCTX(no_help),
-		 conf_filesel_handler, I(CONF_szcommand) ) ; //dlg_stdfilesel_handler, I(offsetof(Config, szcommand)));
+		 conf_filesel_handler, I(CONF_szcommand) ) ; 
 
     ctrl_editbox(s, "Options", NO_SHORTCUT, 
 		     50,
 		     HELPCTX(no_help),
-		     conf_editbox_handler, I(CONF_szoptions), I(1)); // dlg_stdeditbox_handler, I(offsetof(Config,szoptions)),I(sizeof(((Config *)0)->szoptions)));
+		     conf_editbox_handler, I(CONF_szoptions), I(1)); 
 /**/
 	}
 #endif
