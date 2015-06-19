@@ -22,6 +22,9 @@
 
 #include <commctrl.h>
 
+#ifdef PERSOPORT
+#include "kitty.h"
+#endif
 #ifdef ZMODEMPORT
 #include <shlobj.h>
 #endif
@@ -1636,7 +1639,7 @@ void winctrl_layout(struct dlgparam *dp, struct winctrls *wc,
 	    editbutton(&pos, escaped, base_id, base_id+1,
 		       "Bro&wse...", base_id+2);
 #if (defined PERSOPORT) && (!defined ZMODEMPORT)
-	    if(get_param( "ZMODEM" )) shortcuts[nshortcuts++] = 'w';
+	    if(GetZModemFlag()) { shortcuts[nshortcuts++] = 'w'; }
 #endif
 	    shortcuts[nshortcuts++] = 'w';
 	    sfree(escaped);

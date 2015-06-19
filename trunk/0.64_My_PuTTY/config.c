@@ -21,6 +21,7 @@ int cygterm_get_flag( void ) ;
 #include "kitty.h"
 union control * ctrlHostnameEdit = NULL ;
 void MASKPASS( char * password ) ;
+int stricmp(const char *s1, const char *s2) ;
 #endif
 
 #define PRINTER_DISABLED_STRING "None (printing disabled)"
@@ -959,17 +960,39 @@ static int load_selected_session(struct sessionsaver_data *ssd,
 }
 
 #ifdef PERSOPORT
-int search_for_host_in_reg( sessionname, folder, savedsession ) {
+int filter_sessionname( const char * pattern, const char * sessionname, const char * folder, const char * savedsession ) {
 	char buffer[4092] ;
-	if( stristr( savedsession, "host:" ) != savedsession ) return 0 ;
-	if( strlen(savedsession+5)==0 ) return 0 ;
+	int lenpattern = strlen(pattern) ;
+	const char * searchpattern = savedsession+lenpattern ;
+	while( ((searchpattern[0]==' ')||(searchpattern[0]=='	'))&&(searchpattern[0]!='\0') ) searchpattern++ ;
+	if( stristr( savedsession, pattern ) != savedsession ) return 0 ;
+	if( strlen(searchpattern)==0 ) return 0 ;
 
-	GetSessionField( sessionname, "", "HostName", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
-	GetSessionField( sessionname, "", "SFTPConnect", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
-	GetSessionField( sessionname, "", "RemoteCommand", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
-	GetSessionField( sessionname, "", "PortForwardings", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
-	GetSessionField( sessionname, "", "WinTitle", buffer ) ; if( stristr( buffer, savedsession+5 )!=NULL ) return 1 ;
-
+	if( stristr( savedsession, "host:" ) == savedsession ) {
+		GetSessionField( sessionname, "", "HostName", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "SFTPConnect", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "RemoteCommand", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "PortForwardings", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "WinTitle", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+	}
+	if( stristr( savedsession, "user:" ) == savedsession ) {
+		GetSessionField( sessionname, "", "HostName", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "UserName", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "LocalUserName", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		GetSessionField( sessionname, "", "SFTPConnect", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+	}
+	if( stristr( savedsession, "comment:" ) == savedsession ) {
+		GetSessionField( sessionname, "", "Comment", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		
+	}
+	if( stristr( savedsession, "title:" ) == savedsession ) {
+		GetSessionField( sessionname, "", "WinTitle", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		
+	}
+	if( stristr( savedsession, "class:" ) == savedsession ) {
+		GetSessionField( sessionname, "", "WindowClass", buffer ) ; if( stristr( buffer, searchpattern )!=NULL ) return 1 ;
+		
+	}
 	return 0 ;
 }
 #endif
@@ -1081,7 +1104,11 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 				    || (!strcmp(CurrentFolder,folder)) ) {
 					if( (!strcmp( ssd->savedsession, "" )) 
 					|| ( strlen(ssd->savedsession)<=1 )
-					|| ( search_for_host_in_reg( ssd->sesslist.sessions[i], folder, ssd->savedsession ) )	/* Filtre sur le nom du host */
+					|| ( filter_sessionname( "host:", ssd->sesslist.sessions[i], folder, ssd->savedsession ) )	/* Filtre sur le nom du host */
+					|| ( filter_sessionname( "user:", ssd->sesslist.sessions[i], folder, ssd->savedsession ) )
+					|| ( filter_sessionname( "comment:", ssd->sesslist.sessions[i], folder, ssd->savedsession ) )
+					|| ( filter_sessionname( "title:", ssd->sesslist.sessions[i], folder, ssd->savedsession ) )
+					|| ( filter_sessionname( "class:", ssd->sesslist.sessions[i], folder, ssd->savedsession ) )
 					//|| (stristr(host,ssd->savedsession)!=NULL)			/* Filtre sur le nom du host */
 					|| (stristr(ssd->sesslist.sessions[i],ssd->savedsession)!=NULL) )
 						dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]) ;

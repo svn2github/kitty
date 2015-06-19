@@ -4,7 +4,7 @@
  * For the IPv6 code in here I am indebted to Jeroen Massar and
  * unfix.org.
  */
-
+ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -124,7 +124,7 @@ struct SockAddr_tag {
 static tree234 *sktree;
 
 #ifdef PERSOPORT
-int get_param( const char * val ) ;
+#include "kitty.h"
 #endif
 #ifdef ZMODEMPORT
 static int curpass;
@@ -326,8 +326,9 @@ void sk_init(void)
 
     sktree = newtree234(cmpfortree);
 #ifdef ZMODEMPORT
-    if(get_param("ZMODEM"))
+    if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 	curpass = 1;
+    }
 #endif
 }
 
@@ -912,8 +913,9 @@ Socket sk_register(void *sock, Plug plug)
     ret->plug = plug;
     bufchain_init(&ret->output_data);
 #ifdef ZMODEMPORT
-	if(get_param("ZMODEM")) 
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 		ret->closing = 0;
+	}
 #endif
     ret->writable = 1;		       /* to start with */
     ret->sending_oob = 0;
@@ -979,8 +981,9 @@ static Socket sk_tcp_accept(accept_ctx_t ctx, Plug plug)
     ret->plug = plug;
     bufchain_init(&ret->output_data);
 #ifdef ZMODEMPORT
-	if(get_param("ZMODEM")) 
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 		ret->closing = 0;
+	}
 #endif
     ret->writable = 1;		       /* to start with */
     ret->sending_oob = 0;
@@ -1204,7 +1207,7 @@ static DWORD try_connect(Actual_Socket sock)
     add234(sktree, sock);
 
 #ifdef ZMODEMPORT
-    if( get_param("ZMODEM") ){
+    if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 	if( err && !sock->closing)
 		plug_log(sock->plug, 1, sock->addr, sock->port, sock->error, err);
 	}
@@ -1245,8 +1248,9 @@ Socket sk_new(SockAddr addr, int port, int privport, int oobinline,
     bufchain_init(&ret->output_data);
     ret->connected = 0;		       /* to start with */
 #ifdef ZMODEMPORT
-	if(get_param("ZMODEM")) 
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 		ret->closing = 0;
+	}
 #endif
     ret->writable = 0;		       /* to start with */
     ret->sending_oob = 0;
@@ -1310,8 +1314,9 @@ Socket sk_newlistener(char *srcaddr, int port, Plug plug, int local_host_only,
     ret->plug = plug;
     bufchain_init(&ret->output_data);
 #ifdef ZMODEMPORT
-	if(get_param("ZMODEM")) 
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 		ret->closing = 0;
+	}
 #endif
     ret->writable = 0;		       /* to start with */
     ret->sending_oob = 0;
@@ -1500,7 +1505,7 @@ int sk_getport(Socket sock)
     return p_ntohs(a.sin_port);
 }
 #endif
-#ifdef ZMODEMPORT
+#ifdef NO_ZMODEMPORT  /* A partir de 0.64.0.3 on prend le code normal */
 static void sk_tcp_really_close(Actual_Socket s)
 {
     extern char *do_select(SOCKET skt, int startup);
@@ -1739,10 +1744,10 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	 */
 	if (s->addr) {
 #ifdef ZMODEMPORT
-	if( get_param("ZMODEM") ) {
-	if (!s->closing) 
-	    plug_log(s->plug, 1, s->addr, s->port,
-		     winsock_error_string(err), err);
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
+		if (!s->closing) 
+			plug_log(s->plug, 1, s->addr, s->port,
+				winsock_error_string(err), err);
 	}
 	else {
 	    plug_log(s->plug, 1, s->addr, s->port,
@@ -1757,11 +1762,11 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	    }
 	}
 #ifdef ZMODEMPORT
-	if( get_param("ZMODEM") ) {
-	if (err != 0 && !s->closing)
-		return plug_closing(s->plug, winsock_error_string(err), err, 0);
-	else
-	    return 1;
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
+		if (err != 0 && !s->closing)
+			return plug_closing(s->plug, winsock_error_string(err), err, 0);
+		else
+			return 1;
 	}
 	else {
 	if (err != 0)
@@ -1827,7 +1832,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	    }
 	}
 #ifdef ZMODEMPORT
-	if( get_param("ZMODEM") &&0) {
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") &&0 ) {
 	if( !s->closing ) {
 	if (ret < 0) {
 	    return plug_closing(s->plug, winsock_error_string(err), err,
@@ -1867,7 +1872,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	    logevent(NULL, str);
 	    fatalbox("%s", str);
 #ifdef ZMODEMPORT
-	} else if ( get_param("ZMODEM") && s->closing) {
+	} else if( (!get_param("PUTTY")) && get_param("ZMODEM") && s->closing) {
 		return 1;
 #endif
 	} else {
@@ -1882,7 +1887,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 	    try_send(s);
 	    bufsize_after = s->sending_oob + bufchain_size(&s->output_data);
 #ifdef ZMODEMPORT
-	if( get_param("ZMODEM") ) {
+	if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 	if (bufsize_after < bufsize_before && !s->closing)
 		plug_sent(s->plug, bufsize_after);
 	}
@@ -1902,13 +1907,13 @@ int select_result(WPARAM wParam, LPARAM lParam)
 		if (err == WSAEWOULDBLOCK)
 		    break;
 #ifdef ZMODEMPORT
-		if (get_param("ZMODEM") && s->closing)
+		if( (!get_param("PUTTY")) && get_param("ZMODEM") && s->closing )
 			return 1;
 #endif
 		return plug_closing(s->plug, winsock_error_string(err),
 				    err, 0);
 #ifdef ZMODEMPORT
-		} else if (get_param("ZMODEM") && s->closing) {
+		} else if( (!get_param("PUTTY")) && get_param("ZMODEM") && s->closing) {
 			open = 1;
 #endif
 	    } else {
@@ -1953,7 +1958,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 		p_closesocket(t);      /* dodgy WinSock let nonlocal through */
 #ifdef ZMODEMPORT
 	    } 
-		if(get_param("ZMODEM")) {
+		if( (!get_param("PUTTY")) && get_param("ZMODEM") ) {
 			if (!s->closing && plug_accepting(s->plug, sk_tcp_accept, actx)) {
 			p_closesocket(t);      /* denied or error */
 		}

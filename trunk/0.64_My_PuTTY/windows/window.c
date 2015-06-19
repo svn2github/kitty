@@ -436,7 +436,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     HRESULT hr;
     int guess_width, guess_height;
 #ifdef ZMODEMPORT
-	struct netscheduler_tag *netsc;
+	struct netscheduler_tag *netsc = NULL ;
 #endif
 
     hinst = inst;
@@ -1491,7 +1491,9 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
     term_set_focus(term, GetForegroundWindow() == hwnd);
     UpdateWindow(hwnd);
 #ifdef ZMODEMPORT
-	netsc = netscheduler_new();
+	if( (!PuttyFlag) && GetZModemFlag() ) {
+		netsc = netscheduler_new();
+	}
 #endif
 
     while (1) {
@@ -1534,7 +1536,7 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 	    handle_got_event(handles[n - WAIT_OBJECT_0]);
 	    sfree(handles);
 #ifdef ZMODEMPORT
-	     if( GetZModemFlag() ) continue;
+	     if( (!PuttyFlag) && GetZModemFlag() ) { continue ; }
 #endif
 	} else
 	    sfree(handles);
@@ -1546,7 +1548,7 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 	    if (!(IsWindow(logbox) && IsDialogMessage(logbox, &msg)))
 		DispatchMessage(&msg);
 #ifdef ZMODEMPORT
-	    	    if( GetZModemFlag() && xyz_Process(back, backhandle, term))
+	    	    if( (!PuttyFlag) && GetZModemFlag() && xyz_Process(back, backhandle, term))
 		    continue;
 #endif
             /*
@@ -1577,7 +1579,9 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 
     finished:
 #ifdef ZMODEMPORT
-	netscheduler_free(netsc);
+	if( (!PuttyFlag) && GetZModemFlag() ) {
+		netscheduler_free(netsc);
+	}
 #endif
     cleanup_exit(msg.wParam);	       /* this doesn't return... */
     return msg.wParam;		       /* ... but optimiser doesn't know */
@@ -3678,13 +3682,13 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    break;
 #ifdef ZMODEMPORT
 	case IDM_XYZSTART:
-		if( GetZModemFlag() ) {
+		if( (!PuttyFlag) && GetZModemFlag() ) {
 		xyz_ReceiveInit(term);
 		xyz_updateMenuItems(term);
 		}
 		break;
 	case IDM_XYZUPLOAD:
-		if( GetZModemFlag() ) {
+		if( (!PuttyFlag) && GetZModemFlag() ) {
 		xyz_StartSending(term);
 		xyz_updateMenuItems(term);
 		}
@@ -4644,19 +4648,19 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			goto KEY_END;
 		}
 #ifdef PERSOPORT
-          //if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
-	if( (message==WM_KEYUP) && (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
-		struct ctrl_tab_info info = {
-			(GetKeyState(VK_SHIFT) & 0x8000) ? 1 : -1,
-			hwnd,
-		} ;
+	//if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
+	//if( (message==WM_KEYUP) && (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
+	if( (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
+		if( message==WM_KEYUP ) {
+			struct ctrl_tab_info info = { (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : -1, hwnd, } ;
 	     
-		info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
-		info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
-		EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
-		if (info.next != NULL) 
-			if( info.next != hwnd )
-				SetForegroundWindow(info.next);
+			info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
+			info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
+			EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
+			if (info.next != NULL) 
+				if( info.next != hwnd )
+					SetForegroundWindow(info.next);
+		}
 		return 0;
 	}
 #endif

@@ -504,7 +504,7 @@ static int SaneDialogBox(HINSTANCE hinst,
     int ret;
     int gm;
 
-    wc.style = CS_DBLCLKS | CS_SAVEBITS | CS_BYTEALIGNWINDOW;
+    wc.style = CS_DBLCLKS | CS_SAVEBITS | CS_BYTEALIGNWINDOW ;
     wc.lpfnWndProc = DefDlgProc;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = DLGWINDOWEXTRA + 2*sizeof(LONG_PTR);
@@ -800,6 +800,10 @@ static int CALLBACK GenericMainDlgProc(HWND hwnd, UINT msg,
 	}
 
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, 1);
+#ifdef PERSOPORT
+	ShowWindow(hwnd,SW_HIDE);
+	ShowWindow(hwnd,SW_SHOW);
+#endif
 	return 0;
       case WM_LBUTTONUP:
 	/*
