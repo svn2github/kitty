@@ -263,6 +263,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "BugPKSessID2", 2-conf_get_int(conf, CONF_sshbug_pksessid2));
     write_setting_i_forced(sesskey, "BugRekey2", 2-conf_get_int(conf, CONF_sshbug_rekey2));
     write_setting_i_forced(sesskey, "BugMaxPkt2", 2-conf_get_int(conf, CONF_sshbug_maxpkt2));
+    write_setting_i_forced(sesskey, "BugOldGex2", 2-conf_get_int(conf, CONF_sshbug_oldgex2));
     write_setting_i_forced(sesskey, "BugWinadj", 2-conf_get_int(conf, CONF_sshbug_winadj));
     write_setting_i_forced(sesskey, "BugChanReq", 2-conf_get_int(conf, CONF_sshbug_chanreq));
     write_setting_i_forced(sesskey, "StampUtmp", conf_get_int(conf, CONF_stamp_utmp));
@@ -759,6 +760,10 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "CJKAmbigWide", 0, conf, CONF_cjk_ambig_wide);
     gppi_forced(sesskey, "UTF8Override", 1, conf, CONF_utf8_override);
     gpps_forced(sesskey, "Printer", "", conf, CONF_printer);
+#ifdef PRINTCLIPPORT
+    if( !strcmp( conf_get_str(conf,CONF_printer),PRINT_TO_CLIPBOARD_STRING) ) { conf_set_int(conf,CONF_printclip,1) ; }
+    else { conf_set_int(conf,CONF_printclip,0); }
+#endif
     gppi_forced(sesskey, "CapsLockCyr", 0, conf, CONF_xlat_capslockcyr);
     gppi_forced(sesskey, "ScrollBar", 1, conf, CONF_scrollbar);
     gppi_forced(sesskey, "ScrollBarFullScreen", 0, conf, CONF_scrollbar_in_fullscreen);
@@ -793,6 +798,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     i = gppi_raw_forced(sesskey, "BugPKSessID2", 0); conf_set_int(conf, CONF_sshbug_pksessid2, 2-i);
     i = gppi_raw_forced(sesskey, "BugRekey2", 0); conf_set_int(conf, CONF_sshbug_rekey2, 2-i);
     i = gppi_raw_forced(sesskey, "BugMaxPkt2", 0); conf_set_int(conf, CONF_sshbug_maxpkt2, 2-i);
+    i = gppi_raw_forced(sesskey, "BugOldGex2", 0); conf_set_int(conf, CONF_sshbug_oldgex2, 2-i);
     i = gppi_raw_forced(sesskey, "BugWinadj", 0); conf_set_int(conf, CONF_sshbug_winadj, 2-i);
     i = gppi_raw_forced(sesskey, "BugChanReq", 0); conf_set_int(conf, CONF_sshbug_chanreq, 2-i);
     conf_set_int(conf, CONF_ssh_simple, FALSE);

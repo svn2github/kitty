@@ -180,6 +180,9 @@ extern char * ConfigDirectory ;
 // Positionne un flag permettant de determiner si on est connecte
 extern int backend_connected ;
 
+/* Flag pour interdire l'ouverture de boite configuration */
+extern int force_reconf ; 
+
 // Compteur pour l'envoi de anti-idle
 extern int AntiIdleCount ;
 extern int AntiIdleCountMax ;
@@ -339,6 +342,11 @@ void addkeypressed( UINT message, WPARAM wParam, LPARAM lParam, int shift_flag, 
 
 char * get_param_str( const char * val ) ;
 
+
+void NegativeColours(HWND hwnd) ;
+void BlackOnWhiteColours(HWND hwnd) ;
+void ChangeFontSize(HWND hwnd, int dec) ;
+
 #ifdef LAUNCHERPORT
 void InitLauncherRegistry( void ) ;
 #endif
@@ -421,8 +429,13 @@ int getpid(void) ;
 #ifndef TIMER_ANTIIDLE
 #define TIMER_ANTIIDLE 8708
 #endif
+#ifndef TIMER_RECONNECT
+#define TIMER_RECONNECT 8709
+#endif
 
-
+#ifdef RECONNECTPORT
+extern int backend_first_connected ; /* Variable permettant de savoir qu'on a deja ete connecte */
+#endif
 
 #ifndef VISIBLE_NO
 #define VISIBLE_NO 0
@@ -497,6 +510,19 @@ int getpid(void) ;
 #endif
 #ifndef IDM_EXPORTSETTINGS
 #define IDM_EXPORTSETTINGS 0x0390
+#endif
+
+#ifndef IDM_FONTUP
+#define IDM_FONTUP 0x0400
+#endif
+#ifndef IDM_FONTDOWN
+#define IDM_FONTDOWN 0x0410
+#endif
+#ifndef IDM_FONTBLACKANDWHITE
+#define IDM_FONTBLACKANDWHITE 0x0420
+#endif
+#ifndef IDM_FONTNEGATIVE
+#define IDM_FONTNEGATIVE 0x0430
 #endif
 
 // Doit etre le dernier

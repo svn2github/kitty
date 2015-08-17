@@ -77,6 +77,9 @@ void PrintWindowSettings( FILE * fp ) {
 	RECT r ;
 	char buffer[MAX_VALUE_NAME] ;
 	
+	GetOSInfo( buffer ) ;
+	fprintf( fp, "OSVersion=%s\n", buffer ) ;
+	
 	ret = GetWindowText( MainHwnd, buffer, MAX_VALUE_NAME ) ; buffer[ret]='\0';
 	ret = GetWindowTextLength( MainHwnd ) ;
 	fprintf( fp, "Title (length)=%s (%d)\n", buffer, ret ) ;
@@ -340,7 +343,6 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "serparity=%d\n",			conf_get_int(conf,CONF_serparity) ) ;
 	fprintf( fp, "serflow=%d\n",			conf_get_int(conf,CONF_serflow) ) ;
 #ifdef IVPORT
-	fprintf( fp, "ctrl_tab_switch=%d\n", 		conf_get_int(conf, CONF_ctrl_tab_switch));
 	/* Background */
 	fprintf( fp, "bg_wallpaper=%d\n", 		conf_get_int(conf, CONF_bg_wallpaper));
 	fprintf( fp, "bg_effect=%d\n", 			conf_get_int(conf, CONF_bg_effect));
@@ -438,6 +440,9 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "answerback=%s\n",			conf_get_str(conf,CONF_answerback) ) ;
 	fprintf( fp, "printer=%s\n",			conf_get_str(conf,CONF_printer) ) ;
 	fprintf( fp, "arabicshaping=%d\n",		conf_get_int(conf,CONF_arabicshaping) ) ;
+#ifdef PRINTCLIPPORT
+	fprintf( fp, "printclip=%d\n",			conf_get_int(conf,CONF_printclip) ) ;
+#endif
 	fprintf( fp, "bidi=%d\n",			conf_get_int(conf,CONF_bidi) ) ;
 	/* Colour options */
 	fprintf( fp, "ansi_colour=%d\n",		conf_get_int(conf,CONF_ansi_colour) ) ;
@@ -489,7 +494,9 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "scrollbar_on_left=%d\n",		conf_get_int(conf,CONF_scrollbar_on_left) ) ;
 	fprintf( fp, "shadowbold=%d\n",			conf_get_int(conf,CONF_shadowbold) ) ;
 	fprintf( fp, "shadowboldoffset=%d\n",		conf_get_int(conf,CONF_shadowboldoffset) ) ;
+	fprintf( fp, "ctrl_tab_switch=%d\n", 		conf_get_int(conf, CONF_ctrl_tab_switch));
 	fprintf( fp, "comment=%s\n",			conf_get_str(conf,CONF_comment) ) ;
+	fprintf( fp, "acs_in_utf=%d\n", 		conf_get_int(conf, CONF_acs_in_utf));		
 #ifdef RECONNECTPORT
 	fprintf( fp, "wakeup_reconnect=%d\n",		conf_get_int(conf,CONF_wakeup_reconnect) ) ;
 	fprintf( fp, "failure_reconnect=%d\n",		conf_get_int(conf,CONF_failure_reconnect) ) ;
@@ -567,6 +574,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	if( PlinkPath!= NULL ) fprintf( fp, "PlinkPath=%s\n", PlinkPath ) ;
 	if( KittyIniFile!= NULL ) fprintf( fp, "KittyIniFile=%s\n", KittyIniFile ) ;
 	if( KittySavFile!= NULL ) fprintf( fp, "KittySavFile=%s\n", KittySavFile ) ;
+	if( KiTTYClassName != NULL ) fprintf( fp, "KiTTYClassName=%s\n", KiTTYClassName ) ;
 	if( CtHelperPath!= NULL ) fprintf( fp, "CtHelperPath=%s\n", CtHelperPath ) ;
 	if( strlen(ManagePassPhrase(NULL))>0 ) fprintf( fp, "PassPhrase=%s\n", ManagePassPhrase(NULL)) ;
 	}
@@ -627,6 +635,22 @@ void SaveScreenShot( FILE *fp ) {
 	unlink( "screenshot.jpg.bcr" ) ;
 }
 #endif
+	
+// Exporte la configuration courante
+void SaveCurrentConfig( FILE *fp, Conf * conf ) {
+	char buf[1028] ;
+	FILE *fp2 ;
+	save_open_settings_forced( "current.ktx", conf ) ;
+	bcrypt_file_base64( "current.ktx", "current.ktx.bcr", MASTER_PASSWORD, 80 ) ;
+	unlink( "current.ktx" ) ;
+	if( (fp2=fopen("current.ktx.bcr","r"))!=NULL ) {
+		while( fgets( buf, 1028, fp2 ) ) {
+			fprintf( fp, "%s", buf ) ;
+		}
+		fclose(fp2);
+	}
+	unlink( "current.ktx.bcr" );
+}
 	
 // recupere toute la configuration en un seul fichier
 void SaveDump( void ) {
@@ -706,6 +730,9 @@ void SaveDump( void ) {
 		fputs( "\n@ RunningConfig @\n\n", fpout ) ;
 		SaveDumpConfig( fpout, conf ) ; fflush( fpout ) ;
 
+		fputs( "\n@ RunningConfig in KTX file format @\n\n", fpout ) ;
+		SaveCurrentConfig( fpout, conf ) ; fputs( "\n", fpout ) ; fflush( fpout ) ;
+				
 		if( IniFileFlag==SAVEMODE_DIR ) {
 			fputs( "\n@ RunningPortableConfig @\n\n", fpout ) ;
 			SaveDumpPortableConfig( fpout ) ;

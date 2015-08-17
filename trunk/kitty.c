@@ -43,8 +43,6 @@
 // La structure de configuration est instanciee dans window.c
 extern Conf *conf ;
 
-
-
 /*************************************************
 ** DEFINITION DES DEFINES
 *************************************************/
@@ -314,6 +312,7 @@ int PuttyFlag = 0 ;
 static int ReconnectDelay = 5 ;
 int GetReconnectDelay(void) { return ReconnectDelay ; }
 void SetReconnectDelay( const int flag ) { ReconnectDelay = flag ; }
+int backend_first_connected = 0 ; 
 #endif
 
 // Flag pour afficher l'image de fond
@@ -1195,7 +1194,6 @@ return ;
 		}
 	}
 
-
 int license_make_with_first( char * license, int length, int modulo, int result ) ;
 void license_form( char * license, char sep, int size ) ;
 int license_test( char * license, char sep, int modulo, int result ) ;
@@ -1874,7 +1872,20 @@ void SetNewIcon( HWND hwnd, char * iconefile, int icone, const int mode ) {
 		TrayIcone.hIcon = hIcon ;
 		}
 	}
+	Shell_NotifyIcon(NIM_MODIFY, &TrayIcone);
 	}
+
+// Modification de l'icone pour mettre l'icone de perte de connexion
+void SetConnBreakIcon( void ) {
+	HICON hIcon = NULL ;
+	hIcon = LoadIcon( hInstIcons, MAKEINTRESOURCE(IDI_NOCON) ) ;
+	SendMessage( hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon );	
+	SendMessage( hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon );
+	TrayIcone.hIcon = hIcon ;
+	Shell_NotifyIcon(NIM_MODIFY, &TrayIcone);
+//Pour remettre
+//SetNewIcon( hwnd, conf_get_filename(conf,CONF_iconefile)->path, 0, SI_INIT ) ;
+}
 
 // Envoi d'un fichier de script local
 void RunScriptFile( HWND hwnd, const char * filename ) {
@@ -2082,6 +2093,7 @@ void SendFile( HWND hwnd ) {
 /* ALIAS UNIX A DEFINIR POUR EXECUTER LA COMMANDE
 run() { printf "\033]0;__pl:$*\007" ; }
 */
+int SearchPlink( void ) ;
 void RunExternPlink( HWND hwnd, char * cmd ) {
 	char buffer[4096], plinkpath[4096]="", b1[256] ;
 	
@@ -4320,6 +4332,73 @@ int Convert2Reg( const char * Directory ) {
 	return 0 ;
 	}
 
+#ifndef IDM_RECONF    
+#define IDM_RECONF    0x0050
+#endif
+void NegativeColours(HWND hwnd) {
+	int i ;
+#ifdef TUTTYPORT
+    for (i = 0; i < NCFGCOLOURS; i++) {
+#else
+    for (i = 0; i < 22; i++) {
+#endif
+	conf_set_int_int(conf, CONF_colours, i*3+0, 256-conf_get_int_int(conf, CONF_colours, i*3+0));
+	conf_set_int_int(conf, CONF_colours, i*3+1, 256-conf_get_int_int(conf, CONF_colours, i*3+1));
+	conf_set_int_int(conf, CONF_colours, i*3+2, 256-conf_get_int_int(conf, CONF_colours, i*3+2));
+    }
+    force_reconf=0;
+    SendMessage(hwnd,WM_COMMAND,IDM_RECONF,0);
+    RefreshBackground(hwnd);
+}
+static int * BlackOnWhiteColoursSave = NULL ;
+void BlackOnWhiteColours(HWND hwnd) {
+	if( BlackOnWhiteColoursSave==NULL ) {
+		BlackOnWhiteColoursSave = (int*) malloc( 6*sizeof(int) ) ;
+		BlackOnWhiteColoursSave[0]=conf_get_int_int(conf, CONF_colours, 0); conf_set_int_int(conf, CONF_colours, 0, 0);
+		BlackOnWhiteColoursSave[1]=conf_get_int_int(conf, CONF_colours, 1); conf_set_int_int(conf, CONF_colours, 1, 0);
+		BlackOnWhiteColoursSave[2]=conf_get_int_int(conf, CONF_colours, 2); conf_set_int_int(conf, CONF_colours, 2, 0);
+		BlackOnWhiteColoursSave[3]=conf_get_int_int(conf, CONF_colours, 6); conf_set_int_int(conf, CONF_colours, 6, 255);
+		BlackOnWhiteColoursSave[4]=conf_get_int_int(conf, CONF_colours, 7); conf_set_int_int(conf, CONF_colours, 7, 255);
+		BlackOnWhiteColoursSave[5]=conf_get_int_int(conf, CONF_colours, 8); conf_set_int_int(conf, CONF_colours, 8, 255);
+	} else {
+		if(conf_get_int_int(conf, CONF_colours, 0)==0) {
+			conf_set_int_int(conf, CONF_colours, 0, 255);
+			conf_set_int_int(conf, CONF_colours, 1, 255);
+			conf_set_int_int(conf, CONF_colours, 2, 255);
+			conf_set_int_int(conf, CONF_colours, 6, 0);
+			conf_set_int_int(conf, CONF_colours, 7, 0);
+			conf_set_int_int(conf, CONF_colours, 8, 0);
+		} else {
+			conf_set_int_int(conf, CONF_colours, 0, BlackOnWhiteColoursSave[0]) ;
+			conf_set_int_int(conf, CONF_colours, 1, BlackOnWhiteColoursSave[1]) ;
+			conf_set_int_int(conf, CONF_colours, 2, BlackOnWhiteColoursSave[2]) ;
+			conf_set_int_int(conf, CONF_colours, 6, BlackOnWhiteColoursSave[3]) ;
+			conf_set_int_int(conf, CONF_colours, 7, BlackOnWhiteColoursSave[4]) ;
+			conf_set_int_int(conf, CONF_colours, 8, BlackOnWhiteColoursSave[5]) ;
+			free(BlackOnWhiteColoursSave); BlackOnWhiteColoursSave=NULL;
+		}
+	}
+	force_reconf=0;
+	SendMessage(hwnd,WM_COMMAND,IDM_RECONF,0);
+	RefreshBackground(hwnd);
+}
+void ChangeFontSize(HWND hwnd, int dec) {
+	FontSpec *fontspec = conf_get_fontspec(conf, CONF_font);
+	fontspec->height = fontspec->height + dec ;
+	if(fontspec->height <=0 ) fontspec->height = 1;
+	conf_set_fontspec(conf, CONF_font, fontspec);
+        fontspec_free(fontspec);
+	force_reconf=0;
+	SendMessage( hwnd,WM_COMMAND,IDM_RECONF,0);
+	RefreshBackground(hwnd);
+}
+void ChangeSettings(HWND hwnd) {
+	//NegativeColours(hwnd);
+	//BlackOnWhiteColours(hwnd);
+	ChangeFontSize(hwnd,1);
+	//ChangeFontSize(hwnd,-1);
+}
+	
 #if (defined IMAGEPORT) && (!defined FDJ)
 // Gestion de l'image viewer
 int ManageViewer( HWND hwnd, WORD wParam ) { // Gestion du mode image
@@ -4645,7 +4724,11 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		{ if( NextBgImage( hwnd ) ) InvalidateRect(hwnd, NULL, TRUE) ; return 1 ; }
 #endif
 
-	if( control_flag ) {
+	if( control_flag && shift_flag ) {
+		if(key_num == VK_UP) { SendMessage( hwnd, WM_COMMAND, IDM_FONTUP, 0 ) ; return 1 ; }
+		if(key_num == VK_DOWN) { SendMessage( hwnd, WM_COMMAND, IDM_FONTDOWN, 0 ) ; return 1 ; }
+	}
+	if( control_flag && !shift_flag ) {
 		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&((key_num == VK_ADD)||(key_num == VK_UP)) ) // Augmenter l'opacite (diminuer la transparence)
 			{ SendMessage( hwnd, WM_COMMAND, IDM_TRANSPARUP, 0 ) ; return 1 ; }
 		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&((key_num == VK_SUBTRACT)||(key_num == VK_DOWN)) ) // Diminuer l'opacite (augmenter la transparence)
