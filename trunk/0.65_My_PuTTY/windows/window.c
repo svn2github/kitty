@@ -3096,7 +3096,7 @@ else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone d
 #ifdef RECONNECTPORT
 else if((UINT_PTR)wParam == TIMER_RECONNECT) {
 	KillTimer( hwnd, TIMER_RECONNECT ) ;
-	if( backend_connected ) { 
+	if( !backend_connected ) { 
 		logevent(NULL, "Lost connection, reconnecting...") ;
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; 
 		}
@@ -4724,13 +4724,20 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_SYSKEYUP:
 #endif
 #ifdef PERSOPORT
+      
+      if( !back ) { 
+	logevent(NULL, "Lost connection, trying to reconnect...") ; 
+	PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
+	break ;
+      }
+      
 	//if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
 	//if( (message==WM_KEYUP) && (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
 	if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) & 0x8000) && conf_get_int(conf, CONF_ctrl_tab_switch) ) {
 		if( message==WM_KEYUP ) {
 			struct ctrl_tab_info info = { (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : -1, hwnd, } ;
 
-			info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
+info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
 			info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
 			EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
 			if (info.next != NULL) 

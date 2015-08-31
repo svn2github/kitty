@@ -573,10 +573,10 @@ static void printerbox_handler(union control *ctrl, void *dlg,
 	char *printer = dlg_editbox_get(ctrl, dlg);
 #ifdef PRINTCLIPPORT
 	if (!strcmp(printer, PRINTER_DISABLED_STRING)) {
-		printer[0] = '\0';
+		//printer[0] = '\0';
  		conf_set_int(conf,CONF_printclip,0);
  	} else if (!strcmp( printer, PRINT_TO_CLIPBOARD_STRING)) {
-		printer[0] = '\0';
+		//printer[0] = '\0';
 		conf_set_int(conf,CONF_printclip,1);
  	}
 	conf_set_str(conf, CONF_printer, printer);
@@ -725,7 +725,7 @@ static void folder_handler(union control *ctrl, void *dlg,
 			i = AUTO;
 		else
 			i = dlg_listbox_getid(ctrl, dlg, i);
-		*(int *)ATOFFSET(data, ctrl->listbox.context.i) = i;
+		//*(int *)ATOFFSET(data, ctrl->listbox.context.i) = i;    // Code supprimé en 0.65.0.2 car problèmes de crash dans la selection d'un folder ... mais peut-être aur-t-on un pb par la suite.
 
 		//dlg_editbox_get( ctrlSessionEdit, dlg, buffer, 1024 ) ;
 		strcpy( buffer, dlg_editbox_get( ctrlSessionEdit, dlg ) ) ;
@@ -2817,7 +2817,7 @@ void setup_config_box(struct controlbox *b, int midsession,
       }
 #endif 
 #ifdef PERSOPORT
-        static char transTitle[256]="Window/Tranparency" ;
+        static char transTitle[256]="Window/Transparency" ;
         if( !get_param("PUTTY") ) {
 #ifdef IVPORT
 		if( get_param("TRANSPARENCY") && get_param("BACKGROUNDIMAGEIV") ) {

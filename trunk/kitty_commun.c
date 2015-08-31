@@ -165,14 +165,13 @@ int LoadParametersLight( void ) {
 		}
 	else {
 		char buffer[4096] ;
-#ifndef FDJ		
-			sprintf( buffer, "%s/KiTTY/kitty.ini", getenv("APPDATA") );
-			if( (fp = fopen( buffer, "r" )) != NULL ) {
-				IniFile = (char*)malloc(strlen(buffer)+1) ; strcpy(IniFile,buffer);
-				strcpy(INIT_SECTION,"KiTTY");
-				fclose(fp);
-			}
-	else {
+#ifndef FDJ
+		sprintf( buffer, "%s/KiTTY/kitty.ini", getenv("APPDATA") );
+		if( (fp = fopen( buffer, "r" )) != NULL ) {
+			IniFile = (char*)malloc(strlen(buffer)+1) ; strcpy(IniFile,buffer);
+			strcpy(INIT_SECTION,"KiTTY");
+			fclose(fp);
+		} else {
 #endif
 		sprintf( buffer, "%s/PuTTY/putty.ini", getenv("APPDATA") );
 		if( (fp = fopen( buffer, "r" )) != NULL ) {
@@ -180,7 +179,9 @@ int LoadParametersLight( void ) {
 			strcpy(INIT_SECTION,"PuTTY");
 			fclose(fp);
 		} 
-	}
+#ifndef FDJ
+		}
+#endif
 	}
 	
 	if( ReadParameterLight( INIT_SECTION, "autostoresshkey", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SetAutoStoreSSHKeyFlag( 1 ) ; }

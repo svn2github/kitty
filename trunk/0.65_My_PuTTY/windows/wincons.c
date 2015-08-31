@@ -11,6 +11,10 @@
 #include "storage.h"
 #include "ssh.h"
 
+#ifdef PERSOPORT
+int GetAutoStoreSSHKeyFlag(void) ;
+#endif
+
 int console_batch_mode = FALSE;
 
 static void *console_logctx = NULL;
@@ -131,13 +135,21 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 	fflush(stderr);
     }
 
+ #ifdef PERSOPORT
+	if( GetAutoStoreSSHKeyFlag() ) { 
+		fprintf( stderr, "\nAutostore key is on\n" );
+		strcpy(line,"y\r\n"); 
+	} else {
+#endif
     hin = GetStdHandle(STD_INPUT_HANDLE);
     GetConsoleMode(hin, &savemode);
     SetConsoleMode(hin, (savemode | ENABLE_ECHO_INPUT |
 			 ENABLE_PROCESSED_INPUT | ENABLE_LINE_INPUT));
     ReadFile(hin, line, sizeof(line) - 1, &i, NULL);
     SetConsoleMode(hin, savemode);
-
+#ifdef PERSOPORT
+    }
+#endif
     if (line[0] != '\0' && line[0] != '\r' && line[0] != '\n') {
 	if (line[0] == 'y' || line[0] == 'Y')
 	    store_host_key(host, port, keytype, keystr);

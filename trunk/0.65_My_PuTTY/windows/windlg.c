@@ -1157,8 +1157,10 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 			       appname);
 	char *caption = dupprintf(mbtitle, appname);
 #ifdef PERSOPORT
-	if( GetAutoStoreSSHKeyFlag() ) { mbret=IDYES ; }
-	else 
+	if( GetAutoStoreSSHKeyFlag() ) { 
+	    logevent(NULL, "Auto update host key") ;
+	    mbret=IDYES ; 
+	} else 
 #endif
 	mbret = message_box(text, caption,
 			    MB_ICONWARNING | MB_YESNOCANCEL | MB_DEFBUTTON3,
@@ -1179,8 +1181,10 @@ int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
 	char *text = dupprintf(absentmsg, keytype, fingerprint, appname);
 	char *caption = dupprintf(mbtitle, appname);
 #ifdef PERSOPORT
-	if( GetAutoStoreSSHKeyFlag() ) { mbret=IDYES ; }
-	else 
+	if( GetAutoStoreSSHKeyFlag() ) { 
+	    logevent(NULL, "Auto store host key") ;
+	    mbret=IDYES ; 
+	} else 
 #endif
 	mbret = message_box(text, caption,
 			    MB_ICONWARNING | MB_YESNOCANCEL | MB_DEFBUTTON3,

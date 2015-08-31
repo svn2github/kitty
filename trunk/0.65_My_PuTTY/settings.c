@@ -1151,7 +1151,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     gpps(sesskey, "Printer", "", conf, CONF_printer);
 #ifdef PRINTCLIPPORT
     if( !strcmp( conf_get_str(conf,CONF_printer),PRINT_TO_CLIPBOARD_STRING) ) { conf_set_int(conf,CONF_printclip,1) ; }
-    else { conf_set_int(conf,CONF_printclip,0); }
+    else { conf_set_int(conf,CONF_printclip,0) ; }
 #endif
     gppi(sesskey, "CapsLockCyr", 0, conf, CONF_xlat_capslockcyr);
     gppi(sesskey, "ScrollBar", 1, conf, CONF_scrollbar);
