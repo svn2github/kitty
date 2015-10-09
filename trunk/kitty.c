@@ -1,5 +1,4 @@
 /*************************************************
-/*************************************************
 ** DEFINITION DES INCLUDES
 *************************************************/
 // Includes classiques
@@ -305,6 +304,11 @@ static int UserPassSSHNoSave = 0 ;
 int GetUserPassSSHNoSave(void) { return UserPassSSHNoSave ; }
 void SetUserPassSSHNoSave( const int flag ) { UserPassSSHNoSave = flag ; }
 
+// Flag pour inhiber la gestion du CTRL+TAB
+static int CtrlTabFlag = 1 ;
+int GetCtrlTabFlag(void) { return CtrlTabFlag  ; }
+void SetCtrlTabFlag( const int flag ) { CtrlTabFlag  = flag ; }
+
 // Flag pour repasser en mode Putty basic
 int PuttyFlag = 0 ;
 
@@ -452,6 +456,7 @@ static struct TShortcuts {
 	int autocommand ;
 	int command ;
 	int editor ;
+	int editorclipboard ;
 	int getfile ;
 	int imagechange ;
 	int input ;
@@ -677,6 +682,7 @@ char * get_param_str( const char * val ) {
 	if( !stricmp( val, "INI" ) ) return KittyIniFile ;
 	else if( !stricmp( val, "SAV" ) ) return KittySavFile ;
 	else if( !stricmp( val, "NAME" ) ) return INIT_SECTION ;
+	else if( !stricmp( val, "CLASS" ) ) return KiTTYClassName ;
 	return NULL ;
 	}
 	
@@ -1308,6 +1314,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#WinSCPProtocol", "sftp" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#autostoresshkey", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#UserPassSSHNoSave", "no" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#ctrltab", "yes" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#KiClassName", "PuTTY" ) ;
 #ifdef RECONNECTPORT
 			writeINI( KittyIniFile, INIT_SECTION, "#ReconnectDelay", "5" ) ;
@@ -1372,6 +1379,7 @@ int ReadParameter( const char * key, const char * name, char * value ) {
 			strcpy( buffer, "" ) ;
 			}
 		}
+	buffer[1023] = '\0' ;
 	strcpy( value, buffer ) ;
 	return strcmp( buffer, "" ) ;
 	}
@@ -4566,6 +4574,8 @@ void InitShortcuts( void ) {
 	int i, t=0 ;
 	if( !readINI(KittyIniFile,"Shortcuts","editor",buffer) || ( (shortcuts_tab.editor=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.editor = SHIFTKEY+VK_F2 ;
+	if( !readINI(KittyIniFile,"Shortcuts","editorclipboard",buffer) || ( (shortcuts_tab.editorclipboard=DefineShortcuts(buffer))<=0 ) )
+		shortcuts_tab.editorclipboard = CONTROLKEY+SHIFTKEY+VK_F2 ;
 	if( !readINI(KittyIniFile,"Shortcuts","winscp",buffer) || ( (shortcuts_tab.winscp=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.winscp = SHIFTKEY+VK_F3 ;
 	if( !readINI(KittyIniFile,"Shortcuts","showportforward",buffer) || ( (shortcuts_tab.showportforward=DefineShortcuts(buffer))<=0 ) )
@@ -4662,7 +4672,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 #endif
 
 	if( control_flag && shift_flag && (key_num==VK_F12) ) {
-		ResizeWinList( hwnd, conf_get_int(conf,CONF_width)/*cfg.width*/, conf_get_int(conf,CONF_height)/*cfg.height*/ ) ; return 1 ; 
+		ResizeWinList( hwnd, conf_get_int(conf,CONF_width), conf_get_int(conf,CONF_height) ) ; return 1 ; 
 		} // Retaille toutes les autres fenetres a la dimension de celle-ci
 
 	if( key == shortcuts_tab.printall ) {		
@@ -4677,7 +4687,9 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		}
 		
 	if( key == shortcuts_tab.editor ) 			// Lancement d'un putty-ed
-		{ RunPuttyEd( hwnd ) ; return 1 ; }
+		{ RunPuttyEd( hwnd, NULL ) ; return 1 ; }
+	if( key == (shortcuts_tab.editorclipboard ) ) 		// Lancement d'un putty-ed qui charge le contenu du presse-papier
+		{ term_copyall(term) ; RunPuttyEd( hwnd, "1" ) ; return 1 ; }
 	else if( key == shortcuts_tab.winscp )			// Lancement de WinSCP
 		{ SendMessage( hwnd, WM_COMMAND, IDM_WINSCP, 0 ) ; return 1 ; }
 	else if( key == shortcuts_tab.autocommand ) 		// Rejouer la commande de demarrage
@@ -4848,6 +4860,7 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "sshversion", buffer ) ) { set_sshver( buffer ) ; }
 	
 	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { if( !stricmp( buffer, "NO" ) ) UserPassSSHNoSave = 1 ; }
+	if( ReadParameter( INIT_SECTION, "ctrltab", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetCtrlTabFlag( 0 ) ; }
 	
 	if( ReadParameter( INIT_SECTION, "wintitle", buffer ) ) {  if( !stricmp( buffer, "NO" ) ) TitleBarFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "paste", buffer ) ) {  if( !stricmp( buffer, "YES" ) ) PasteCommandFlag = 1 ; }
@@ -5053,8 +5066,21 @@ void InitWinMain( void ) {
 	strcpy( KiTTYClassName, appname ) ;
 #ifndef FDJ
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
-		{ if( strlen( buffer ) > 0 ) strcpy( KiTTYClassName, buffer ) ; }
+		{ if( strlen( buffer ) > 0 ) { buffer[127] = '\0' ; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
+#endif
+
+	// Teste l'integrite du programme
+#ifndef NO_TRANSPARENCY
+	FILE *fp = fopen( "kitty.err.log","r" ) ;
+	if( fp==NULL ) {
+		if( !CheckMD5Integrity() ) {
+			fprintf(stderr,"La signature du programme n'est pas bonne\n");
+			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
+			exit(1);
+			}
+		}
+	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus

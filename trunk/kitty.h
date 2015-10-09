@@ -22,6 +22,9 @@ extern int PuttyFlag ;
 // extern int ConfigBoxNoExitFlag ;
 int GetConfigBoxNoExitFlag(void) ;
 
+// Flag pour inhiber la gestion du CTRL+TAB
+int GetCtrlTabFlag(void) ;
+void SetCtrlTabFlag( const int flag ) ;
 
 #ifdef RECONNECTPORT
 // Delai avant de tenter une reconnexion automatique

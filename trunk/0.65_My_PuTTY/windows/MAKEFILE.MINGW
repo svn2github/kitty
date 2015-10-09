@@ -319,7 +319,7 @@ putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../regex/libregex.a ../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
-		../../md5/MD5check.a ../../mini/mini.a ../../notepad.a ../../base64/base64.a \
+		../../md5/MD5check.a ../../mini/mini.a ../../blocnote/notepad.a ../../base64/base64.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 \
 		-limm32 -lole32 -lshell32 -luser32 -lwinmm -lwinspool \
 		-lwsock32 -lpsapi -lole32 -lcrypt32 -lwtsapi32
@@ -623,7 +623,8 @@ psftp.res.o: ../windows/psftp.rc ../windows/rcstuff.h ../windows/pscp.ico \
 putty.res.o: ../windows/putty.rc ../windows/rcstuff.h ../windows/win_res.rc2 \
 		../windows/putty.mft ../windows/win_res.h \
 		../windows/putty.ico ../windows/puttycfg.ico \
-		../windows/version.rc2 ../version.h
+		../windows/version.rc2 ../version.h \
+		../../blocnote/notepad.rc
 	$(RC) $(RCFL) $(RCFLAGS) ../windows/putty.rc putty.res.o
 
 puttygen.res.o: ../windows/puttygen.rc ../windows/rcstuff.h \
@@ -634,7 +635,8 @@ puttygen.res.o: ../windows/puttygen.rc ../windows/rcstuff.h \
 puttytel.res.o: ../windows/puttytel.rc ../windows/rcstuff.h \
 		../windows/win_res.rc2 ../windows/putty.mft \
 		../windows/win_res.h ../windows/putty.ico \
-		../windows/puttycfg.ico ../windows/version.rc2 ../version.h
+		../windows/puttycfg.ico ../windows/version.rc2 ../version.h \
+		../../blocnote/notepad.rc
 	$(RC) $(RCFL) $(RCFLAGS) ../windows/puttytel.rc puttytel.res.o
 
 raw.o: ../raw.c ../putty.h ../puttyps.h ../network.h ../misc.h \
@@ -1355,7 +1357,7 @@ kitty_dll.res.o: ../../kitty_dll.rc
 
 kitty.dll: ../../kitty_dll.c kitty_dll.res.o
 	$(CPP) -shared -o kitty.dll kitty_dll.res.o ../../kitty_dll.c \
-	-Wl,--whole-archive ../../base64/base64.a ../../regex/libregex.a ../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../md5/MD5check.a ../../notepad.a ../../mini/mini.a -Wl,--no-whole-archive \
+	-Wl,--whole-archive ../../base64/base64.a ../../regex/libregex.a ../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../md5/MD5check.a ../../blocnote/notepad.a ../../mini/mini.a -Wl,--no-whole-archive \
 	-DBUILD_DLL -static-libgcc -lcomdlg32 -lgdi32
 	upx --best --compress-icons=2 kitty.dll
 
@@ -1404,7 +1406,7 @@ putty_nohyperlink.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o 
 		kitty_nohyperlink.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack_nohyperlink.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
-		../../md5/MD5check.a ../../mini/mini.a ../../notepad.a ../../base64/base64.a \
+		../../md5/MD5check.a ../../mini/mini.a ../../blocnote/notepad.a ../../base64/base64.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 \
 		-limm32 -lole32 -lshell32 -luser32 -lwinmm -lwinspool \
 		-lwsock32 -lpsapi -lcrypt32 -lwtsapi32
@@ -1443,7 +1445,7 @@ putty_notrans.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dial
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
-		../../regex/libregex.a ../../md5/MD5check.a ../../mini/mini.a ../../notepad.a ../../base64/base64.a \
+		../../regex/libregex.a ../../md5/MD5check.a ../../mini/mini.a ../../blocnote/notepad.a ../../base64/base64.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
 		-lwsock32 -lpsapi -lole32 -lcrypt32 -lwtsapi32
@@ -1482,7 +1484,7 @@ putty_portable.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dia
 		kitty_portable.o kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
-		../../regex/libregex.a ../../md5/MD5check.a ../../mini/mini.a ../../notepad.a ../../base64/base64.a \
+		../../regex/libregex.a ../../md5/MD5check.a ../../mini/mini.a ../../blocnote/notepad.a ../../base64/base64.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
 		-lwsock32 -lpsapi -lole32 -lcrypt32 -lwsock32 -lwtsapi32
@@ -1521,7 +1523,7 @@ putty_zmodem.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialo
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
-		../../regex/libregex.a ../../md5/MD5check.a ../../mini/mini.a ../../notepad.a ../../base64/base64.a \
+		../../regex/libregex.a ../../md5/MD5check.a ../../mini/mini.a ../../blocnote/notepad.a ../../base64/base64.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lshell32 -luser32 -lwinmm -lwinspool \
 		-lwsock32 -lpsapi -lole32 -lcrypt32 -lwtsapi32

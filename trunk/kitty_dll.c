@@ -9,3 +9,8 @@
 #else
 #define LINKDLL 
 #endif
+
+extern "C" char * get_param_str( const char * val ) {
+	if( !stricmp( val, "CLASS" ) ) return "KiTTY" ;
+	return NULL ;
+	}

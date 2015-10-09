@@ -254,7 +254,7 @@ BEGIN
     PUSHBUTTON "&Donate", IDA_DON, 132, 69, 50, 14
 END
 
-#include "../../notepad.rc"
+#include "../../blocnote/notepad.rc"
 IDI_EDITICON ICON "../../res/edit.ico"
 
 #endif

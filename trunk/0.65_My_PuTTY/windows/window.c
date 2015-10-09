@@ -693,8 +693,13 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
 		} else if( !strcmp(p, "-version") || !strcmp(p, "-about") ) {
 			showabout(hwnd) ; exit( 0 ) ;
+		} else if( !strcmp(p, "-noctrltab") ) {
+			SetCtrlTabFlag( 0 ) ;
 		} else if( !strcmp(p, "-noicon") ) {
 			SetIconeFlag( -1 ) ;
+		} else if( !strcmp(p, "-noshortcuts") ) {
+			SetShortcutsFlag( 0 ) ;
+			SetMouseShortcutsFlag( 0 ) ;
 		} else if( !strcmp(p, "-notrans") ) {
 			SetTransparencyFlag( 0 ) ;
 			conf_set_int(conf,CONF_transparencynumber, -1) ;
@@ -749,6 +754,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			SetCapsLockFlag( 0 ) ;
 			SetWinHeight( -1 ) ;
 			SetConfigBoxHeight( 7 ) ;
+			SetCtrlTabFlag( 0 ) ;
 #ifdef CYGTERMPORT
 			cygterm_set_flag( 0 ) ;
 #endif
@@ -770,7 +776,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 #endif
 		} else if( !strcmp(p, "-ed") ) {
 			char buffer[1024];
-			sprintf(buffer, "%s|%s", (char*)get_param_str("INI"), (char*)get_param_str("SAV") ) ;
+			sprintf(buffer, "%s|%s|0", (char*)get_param_str("INI"), (char*)get_param_str("SAV") ) ;
+			return Notepad_WinMain(inst, prev, buffer, show) ;
+		} else if( !strcmp(p, "-edb") ) {
+			char buffer[1024];
+			i++;
+			sprintf(buffer, "%s|%s|%s", (char*)get_param_str("INI"), (char*)get_param_str("SAV"), argv[i] ) ;
 			return Notepad_WinMain(inst, prev, buffer, show) ;
 #ifdef LAUNCHERPORT
 		} else if( !strcmp(p, "-launcher") ) {
@@ -1094,7 +1105,7 @@ if( conf_get_int(conf,CONF_icone) == 0 ) {
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = inst;
 #ifdef PERSOPORT
-	if (conf_get_int(conf, CONF_ctrl_tab_switch))
+	if( conf_get_int(conf, CONF_ctrl_tab_switch) && GetCtrlTabFlag() )
 	    wndclass.cbWndExtra += 8;
 	if( GetIconeFlag() > 0 ) 
 		wndclass.hIcon = LoadIcon( GethInstIcons(), MAKEINTRESOURCE(IDI_MAINICON_0 + GetIconeNum() ) );
@@ -3129,7 +3140,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		if( !PuttyFlag )
 		if( conf_get_int( conf,CONF_saveonexit) /*cfg.saveonexit*/ && conf_get_int( conf,CONF_windowstate)/*cfg.windowstate*/ ) 
 			PostMessage( hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)NULL );
-		if (conf_get_int(conf, CONF_ctrl_tab_switch)) {
+		if( conf_get_int(conf, CONF_ctrl_tab_switch) && GetCtrlTabFlag() ) {
 			int wndExtra = GetClassLong(hwnd, GCL_CBWNDEXTRA);
 			FILETIME filetime;
 			GetSystemTimeAsFileTime(&filetime);
@@ -3258,9 +3269,9 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			char *session = sesslist.sessions[sessno];
 			cl = dupprintf("putty @%s", session);
 #ifdef PERSOPORT
-			GetSessionFolderName( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/ ) ;
-			if( DirectoryBrowseFlag ) if( strcmp(conf_get_str(conf,CONF_folder)/*cfg.folder*/, "")&&strcmp(conf_get_str(conf,CONF_folder)/*cfg.folder*/,"Default") )
-				{ strcat( cl, " -folder \"" ) ; strcat( cl, conf_get_str(conf,CONF_folder)/*cfg.folder*/ ) ; strcat( cl, "\"" ) ; }
+			GetSessionFolderName( conf_get_str(conf,CONF_sessionname), conf_get_str(conf,CONF_folder) ) ;
+			if( DirectoryBrowseFlag ) if( strcmp(conf_get_str(conf,CONF_folder), "")&&strcmp(conf_get_str(conf,CONF_folder),"Default") )
+				{ strcat( cl, " -folder \"" ) ; strcat( cl, conf_get_str(conf,CONF_folder) ) ; strcat( cl, "\"" ) ; }
 #endif
 			inherit_handles = FALSE;
 			freecl = TRUE;
@@ -3268,8 +3279,8 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			break;
 #ifdef PERSOPORT
 	    } else /* IDM_NEWSESS */ {
-		if( strcmp(conf_get_str(conf,CONF_folder)/*cfg.folder*/, "")&&strcmp(conf_get_str(conf,CONF_folder)/*cfg.folder*/,"Default") )
-			sprintf(c, "putty -folder \"%s\"", conf_get_str(conf,CONF_folder)/*cfg.folder*/ ) ;
+		if( strcmp(conf_get_str(conf,CONF_folder), "")&&strcmp(conf_get_str(conf,CONF_folder),"Default") )
+			sprintf(c, "putty -folder \"%s\"", conf_get_str(conf,CONF_folder) ) ;
 		else c[0]='\0' ;
 		cl = c ;
 #else
@@ -4723,28 +4734,30 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_KEYUP:
       case WM_SYSKEYUP:
 #endif
+#ifdef RECONNECTPORT
+	if( !back &&  conf_get_int(conf,CONF_failure_reconnect) ) { 
+		logevent(NULL, "Lost connection, trying to reconnect...") ; 
+		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
+		break ;
+	}
+#endif
 #ifdef PERSOPORT
-      
-      if( !back ) { 
-	logevent(NULL, "Lost connection, trying to reconnect...") ; 
-	PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
-	break ;
-      }
       
 	//if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
 	//if( (message==WM_KEYUP) && (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
-	if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) & 0x8000) && conf_get_int(conf, CONF_ctrl_tab_switch) ) {
-		if( message==WM_KEYUP ) {
+	if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
+		if( (message==WM_KEYUP) && conf_get_int(conf, CONF_ctrl_tab_switch) && GetCtrlTabFlag() ) {
 			struct ctrl_tab_info info = { (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : -1, hwnd, } ;
 
-info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
+			info.next_hi_date_time = info.self_hi_date_time = GetWindowLong(hwnd, 0);
 			info.next_lo_date_time = info.self_lo_date_time = GetWindowLong(hwnd, 4);
 			EnumWindows(CtrlTabWindowProc, (LPARAM) &info);
 			if (info.next != NULL) 
 				if( info.next != hwnd )
 					SetForegroundWindow(info.next);
-		}
 		return 0;
+		}
+		return DefWindowProc(hwnd, message, wParam, lParam);
 	}
 
 		AntiIdleCount = 0 ;

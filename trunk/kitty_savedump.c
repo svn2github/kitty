@@ -549,8 +549,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 		fprintf( fp, "\n" )  ;
 		}
 	if( IconFile!= NULL ) fprintf( fp, "IconFile=%s\n", IconFile ) ;
-	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\n"
-	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag);
+	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\nCtrlTabFlag=%d\n"
+	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag,CtrlTabFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
@@ -585,6 +585,7 @@ void SaveShortCuts( FILE *fp ) {
 	fprintf( fp, "autocommand=%d\n", shortcuts_tab.autocommand ) ;
 	fprintf( fp, "command=%d\n", shortcuts_tab.command ) ;
 	fprintf( fp, "editor=%d\n", shortcuts_tab.editor ) ;
+	fprintf( fp, "editorclipboard=%d\n", shortcuts_tab.editorclipboard ) ;
 	fprintf( fp, "getfile=%d\n", shortcuts_tab.getfile ) ;
 	fprintf( fp, "imagechange=%d\n", shortcuts_tab.imagechange ) ;
 	fprintf( fp, "input=%d\n", shortcuts_tab.input ) ;

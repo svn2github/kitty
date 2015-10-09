@@ -501,7 +501,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, int has_help,
 		ctrl_checkbox(s, "Save position and size on exit", NO_SHORTCUT,
 		  HELPCTX(no_help),
 		  conf_checkbox_handler, I(CONF_saveonexit)); // dlg_stdcheckbox_handler, I(offsetof(Config,saveonexit)));
-		if (!midsession)
+		if (!midsession && GetCtrlTabFlag() )
 		ctrl_checkbox(s, "Switch PuTTY windows with Ctrl + TAB", 's',
 			HELPCTX(no_help),
 			conf_checkbox_handler,
