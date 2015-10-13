@@ -5070,19 +5070,6 @@ void InitWinMain( void ) {
 	appname = KiTTYClassName ;
 #endif
 
-	// Teste l'integrite du programme
-#ifndef NO_TRANSPARENCY
-	FILE *fp = fopen( "kitty.err.log","r" ) ;
-	if( fp==NULL ) {
-		if( !CheckMD5Integrity() ) {
-			fprintf(stderr,"La signature du programme n'est pas bonne\n");
-			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
-			exit(1);
-			}
-		}
-	else { fclose( fp ) ; }
-#endif
-
 	// Initialise le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;
 	
