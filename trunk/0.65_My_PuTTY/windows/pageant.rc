@@ -4,15 +4,24 @@
 
 #include "rcstuff.h"
 
+#ifdef PERSOPORT
+#define APPNAME "Kageant"
+#define APPDESC "KiTTY SSH authentication agent"
+#else
 #define APPNAME "Pageant"
 #define APPDESC "PuTTY SSH authentication agent"
+#endif
 
 200 ICON "pageant.ico"
 201 ICON "pageants.ico"
 
 210 DIALOG DISCARDABLE 0, 0, 140, 60
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+#ifdef PERSOPORT
+CAPTION "Kageant: Enter Passphrase"
+#else
 CAPTION "Pageant: Enter Passphrase"
+#endif
 FONT 8, "MS Shell Dlg"
 BEGIN
     CTEXT "Enter passphrase for key", 100, 10, 6, 120, 8
@@ -24,7 +33,11 @@ END
 
 211 DIALOG DISCARDABLE 0, 0, 330, 200
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+#ifdef PERSOPORT
+CAPTION "Kageant Key List"
+#else
 CAPTION "Pageant Key List"
+#endif
 FONT 8, "MS Shell Dlg"
 BEGIN
     LISTBOX 100, 10, 10, 310, 155,
@@ -38,12 +51,20 @@ END
 /* Accelerators used: cl */
 213 DIALOG DISCARDABLE 140, 40, 136, 70
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+#ifdef PERSOPORT
+CAPTION "About Kageant"
+#else
 CAPTION "About Pageant"
+#endif
 FONT 8, "MS Shell Dlg"
 BEGIN
     DEFPUSHBUTTON "&Close", IDOK, 82, 52, 48, 14
     PUSHBUTTON "View &Licence", 101, 6, 52, 70, 14
+#ifdef PERSOPORT
+    CTEXT "Kageant", 102, 10, 6, 120, 8
+#else
     CTEXT "Pageant", 102, 10, 6, 120, 8
+#endif
     CTEXT "", 100, 10, 16, 120, 16
     CTEXT "\251 1997-2015 Simon Tatham. All rights reserved.",
           103, 10, 34, 120, 16

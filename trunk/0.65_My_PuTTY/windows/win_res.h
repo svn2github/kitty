@@ -103,6 +103,10 @@
 #define IDA_LICENCE     1005
 #define IDA_WEB         1006
 
+#ifdef RUTTYPORT
+#define IDA_WEB2        1007
+#endif
+
 #define IDC_TAB         1001
 #define IDC_TABSTATIC1  1002
 #define IDC_TABSTATIC2  1003

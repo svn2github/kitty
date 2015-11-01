@@ -110,6 +110,11 @@ extern int HyperlinkFlag ;
 int GetHyperlinkFlag(void) ;
 void SetHyperlinkFlag( const int flag ) ;
 
+// Flag de gestion de la fonction "rutty" (script automatique)
+//extern int RuTTYFlag ;
+int GetRuTTYFlag(void) ;
+void SetRuTTYFlag( const int flag ) ;
+
 // Flag pour le fonctionnement en mode "portable" (gestion par fichiers), defini dans kitty_commun.c
 extern int IniFileFlag ;
 

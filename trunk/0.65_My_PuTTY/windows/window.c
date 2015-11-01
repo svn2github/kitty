@@ -282,6 +282,19 @@ int force_reconf = 1 ;
 static time_t last_reconnect = 0;
 void SetConnBreakIcon( void ) ;
 #endif
+/* rutty: */
+#ifdef RUTTYPORT
+#define IDM_SCRIPT (0x5100)
+#define IDM_SCRIPTSEND (0x5110)
+#define IDM_SCRIPTHALT (0x5120)
+
+#include "script.h" 
+ScriptData scriptdata; 
+
+#include "script_win.c" 
+#include "script.c" 
+
+#endif  /* rutty */   
 
 static int dbltime, lasttime, lastact;
 static Mouse_Button lastbtn;
@@ -395,6 +408,15 @@ static void start_backend(void)
     }
 
     session_closed = FALSE;
+    
+/* rutty: */
+#ifdef RUTTYPORT
+    script_init(&scriptdata, conf);
+    if(conf_get_int(conf, CONF_script_mode) == SCRIPT_PLAY && !filename_is_null(conf_get_filename(conf, CONF_script_filename)))
+      script_sendfile(&scriptdata, conf_get_filename(conf, CONF_script_filename));
+	else if(conf_get_int(conf, CONF_script_mode) == SCRIPT_RECORD && !filename_is_null(conf_get_filename(conf, CONF_script_filename)))
+      script_record(&scriptdata, conf_get_filename(conf, CONF_script_filename));
+#endif  /* rutty */
 }
 
 static void close_session(void *ignored_context)
@@ -703,6 +725,10 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 		} else if( !strcmp(p, "-notrans") ) {
 			SetTransparencyFlag( 0 ) ;
 			conf_set_int(conf,CONF_transparencynumber, -1) ;
+#ifdef RUTTYPORT	
+		} else if( !strcmp(p, "-norutty") ) {			
+			SetRuTTYFlag( 0 ) ;
+#endif
 #ifdef ZMODEMPORT
 		} else if( !strcmp(p, "-zmodem") ) {
 			SetZModemFlag( 1 ) ;
@@ -755,6 +781,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			SetWinHeight( -1 ) ;
 			SetConfigBoxHeight( 7 ) ;
 			SetCtrlTabFlag( 0 ) ;
+			SetRuTTYFlag( 0 ) ;
 #ifdef CYGTERMPORT
 			cygterm_set_flag( 0 ) ;
 #endif
@@ -1339,6 +1366,11 @@ TrayIcone.hWnd = hwnd ;
 #ifdef PERSOPORT
 		if( !PuttyFlag ) InitSpecialMenu( m, conf_get_str(conf,CONF_folder)/*cfg.folder*/, conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/ ) ;
 #endif
+/* rutty: */
+#ifdef RUTTYPORT 
+        AppendMenu(m, MF_ENABLED, IDM_SCRIPTSEND, "Send &script file" ) ;
+        AppendMenu(m, MF_SEPARATOR, IDM_SCRIPT, 0);
+#endif /* rutty */  
 	    AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "&Event Log");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 	    AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
@@ -3165,11 +3197,31 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    char *str;
 	    show_mouseptr(1);
 	    str = dupprintf("%s Exit Confirmation", appname);
+		
+#ifdef RUTTYPORT
+/* rutty: */
+	    if (scriptdata.runs)
+		{
+		  if (session_closed ||
+		  MessageBox(hwnd,
+			   "session scripting is running !\n Are you sure you want to close this session?",
+			   str, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON1) == IDOK)
+		  {
+        script_close(&scriptdata);
+        script_record_stop(&scriptdata);
+		  	DestroyWindow(hwnd);
+		  }
+		}
+		else
+#endif /* rutty */
 	    if ( !conf_get_int(conf,CONF_warn_on_close)/*cfg.warn_on_close*/ || session_closed ||
 		MessageBox(hwnd,
 			   "Are you sure you want to close this session?",
 			   str, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON1)
 		== IDOK) {
+#ifdef RUTTYPORT
+			script_record_stop(&scriptdata);
+#endif
 			if( strlen( conf_get_str(conf,CONF_autocommandout)/*cfg.autocommandout*/ ) > 0 ) { //Envoie d'une command automatique en sortant
 				SendAutoCommand( hwnd, conf_get_str(conf,CONF_autocommandout)/*cfg.autocommandout*/ ) ;
 				conf_set_str(conf,CONF_autocommandout,"" );//strcpy( cfg.autocommandout, "" );
@@ -3606,6 +3658,26 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_ABOUT:
 	    showabout(hwnd);
 	    break;
+/* rutty: */
+#ifdef RUTTYPORT
+	  case IDM_SCRIPTHALT:
+		script_close(&scriptdata);
+		logevent(NULL, "script stopped");
+		break;
+	  case IDM_SCRIPTSEND:
+    {
+      char scriptfilename[FILENAME_MAX]; 
+      Filename * scriptfile;
+		  if(prompt_scriptfile(hwnd, scriptfilename))
+      {
+		    script_init(&scriptdata, conf);	
+    	  scriptfile = filename_from_str(scriptfilename);
+        script_sendfile(&scriptdata, scriptfile);
+        filename_free(scriptfile);
+      }
+     } 
+	   break;
+#endif  /* rutty */       
 #ifdef PERSOPORT
 	  /*case IDM_USERCMD:  
 	  	ManageSpecialCommand( hwnd, wParam-IDM_USERCMD ) ;
@@ -8015,16 +8087,40 @@ void frontend_keypress(void *handle)
     return;
 }
 
-int from_backend(void *frontend, int is_stderr, const char *data, int len)
-{
 #ifdef PERSOPORT
+/* rutty: special entry point for ldisc.c - local backend
+ modified version for all other backends
+ */
+#ifdef RUTTYPORT
+ int from_backend_local(void *frontend, int is_stderr, const char *data, int len)
+{
 	int res = term_data(term, is_stderr, data, len) ;
 	if( (!PuttyFlag) && (ScriptFileContent!=NULL) ) ManageInitScript( data, len ) ;
 	return res ;
-#else
-    return term_data(term, is_stderr, data, len);
-#endif
 }
+
+int from_backend(void *frontend, int is_stderr, const char *data, int len)
+{
+	if( (!PuttyFlag) && (GetRuTTYFlag()) ) script_remote(&scriptdata, data, len);
+	int res = term_data(term, is_stderr, data, len) ;
+	if( (!PuttyFlag) && (ScriptFileContent!=NULL) ) ManageInitScript( data, len ) ;
+	return res ;
+}
+#else
+/*   Version avec PERSOPORT seule sans RUTTYPORT */
+int from_backend(void *frontend, int is_stderr, const char *data, int len)
+{
+	int res = term_data(term, is_stderr, data, len) ;
+	if( (!PuttyFlag) && (ScriptFileContent!=NULL) ) ManageInitScript( data, len ) ;
+	return res ;
+}
+#endif
+#else
+int from_backend(void *frontend, int is_stderr, const char *data, int len)
+{
+    return term_data(term, is_stderr, data, len);
+}
+#endif
 
 int from_backend_untrusted(void *frontend, const char *data, int len)
 {

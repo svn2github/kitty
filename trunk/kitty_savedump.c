@@ -319,6 +319,21 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "ssh_no_shell=%d\n",		conf_get_int(conf,CONF_ssh_no_shell) ) ;
 	//fprintf( fp, "ssh_nc_host=%s\n",		conf_get_str(conf,CONF_ssh_nc_host) ) ;
 	//fprintf( fp, "ssh_nc_port=%d\n",		conf_get_int(conf,CONF_ssh_nc_port) ) ;
+
+#ifdef RUTTYPORT
+	fprintf( fp, "ScriptFileName=%s\n",		conf_get_filename(conf,CONF_script_filename)->path ) ;
+	fprintf( fp, "ScriptMode=%d\n",			conf_get_int(conf,CONF_script_mode) ) ;
+	fprintf( fp, "ScriptLineDelay=%d\n",		conf_get_int(conf,CONF_script_line_delay) ) ;
+	fprintf( fp, "ScriptCharDelay=%d\n",		conf_get_int(conf,CONF_script_char_delay) ) ;
+	fprintf( fp, "ScriptCondLine=%s\n",		conf_get_str(conf,CONF_script_cond_line) ) ;
+	fprintf( fp, "ScriptCondUse=%d\n",		conf_get_int(conf,CONF_script_cond_use) ) ;
+	fprintf( fp, "ScriptCRLF=%d\n",			conf_get_int(conf,CONF_script_crlf) ) ;
+	fprintf( fp, "ScriptEnable=%d\n",		conf_get_int(conf,CONF_script_enable) ) ;
+    	fprintf( fp, "ScriptExcept=%d\n",		conf_get_int(conf,CONF_script_except) ) ;
+	fprintf( fp, "ScriptTimeout=%d\n",		conf_get_int(conf,CONF_script_timeout) ) ;
+	fprintf( fp, "ScriptWait=%s\n",			conf_get_str(conf,CONF_script_waitfor) ) ;
+	fprintf( fp, "ScriptHalt=%s\n",			conf_get_str(conf,CONF_script_halton) ) ;
+#endif
 #ifdef SCPORT
 	fprintf( fp, "try_write_syslog=%d\n",		conf_get_int(conf,CONF_try_write_syslog) ) ; 
 	fprintf( fp, "try_pkcs11_auth=%d\n",		conf_get_int(conf,CONF_try_pkcs11_auth) ) ;
@@ -549,8 +564,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 		fprintf( fp, "\n" )  ;
 		}
 	if( IconFile!= NULL ) fprintf( fp, "IconFile=%s\n", IconFile ) ;
-	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\nCtrlTabFlag=%d\n"
-	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag,CtrlTabFlag);
+	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\nCtrlTabFlag=%d\nRuTTYFlag=%d\n"
+	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag,CtrlTabFlag,RuTTYFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );

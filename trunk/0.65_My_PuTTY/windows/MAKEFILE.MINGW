@@ -118,7 +118,7 @@ UPX = upx
 # You may also need to tell windres where to find include files:
 # RCINC = --include-dir c:\cygwin\include\
 
-# 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DTUTTYPORT -DPORTKNOCKINGPORT -DPUTTYXPORT -DWTSPORT -DPRINTCLIPPORT \
+# 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DTUTTYPORT -DPORTKNOCKINGPORT -DPUTTYXPORT -DWTSPORT -DPRINTCLIPPORT -DRUTTYPORT \
 
 # Anciens flags: -DSCPORT -DIVPORT -DPERFPORT (ne marche pas !!!)
 
@@ -126,14 +126,14 @@ FDJFLAG = FDJ1
 
 CFLAGS = -Wall -O2 -D_WINDOWS -DWIN32S_COMPAT -D$(FDJFLAG) \
 		-DUSE_CAPI -DCOVERITY \
- 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DTUTTYPORT -DPORTKNOCKINGPORT -DPUTTYXPORT -DWTSPORT -DPRINTCLIPPORT \
+ 		-DPERSOPORT -DCYGTERMPORT -DIMAGEPORT -DRECONNECTPORT -DHYPERLINKPORT -DZMODEMPORT -DSTARTBUTTON -DLAUNCHERPORT -DSAVEDUMPPORT -DKEYMAPPINGPORT -DWINCRYPTPORT -DTUTTYPORT -DPORTKNOCKINGPORT -DPUTTYXPORT -DWTSPORT -DPRINTCLIPPORT -DRUTTYPORT \
 		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -DNO_SECUREZEROMEMORY -I.././ -I../../ \
 		-I../charset/ -I../windows/ -I../unix/ -I../mac/ \
 		-I../macosx \
-		-I../../base64 -I../../bcrypt -I../../md5 -I../../regex -I../../sc -I../../url -I../../wincrypt
+		-I../../base64 -I../../bcrypt -I../../md5 -I../../regex -I../../sc -I../../url -I../../wincrypt -I../../rutty
 CFLAGS_PLINK = -Wall -O2 -D_WINDOWS -DWIN32S_COMPAT \
 		-DPERSOPORT -DPUTTYCYG -DRECONNECTPORT \
-		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -I../. \
+		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -DNO_RUTTYPORT -I../. \
 		-I../charset -I../windows -I../unix -I../mac -I.\
 		-I../macosx \
 		-I../../base64 -I../../bcrypt -I../../md5 -I../../regex -I../../sc -I../../url
@@ -190,7 +190,7 @@ pageant.exe: conf.o misc.o pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-lcrypt32
 
-plink.exe: be_all_s_plink.o \
+plink.exe: be_all_s_plink.o ldisc_plink.o \
 		callback.o cmdline.o conf.o cproxy.o errsock.o ldisc.o \
 		logging.o misc.o noterm.o pgssapi.o pinger.o plink.res.o \
 		portfwd.o proxy.o raw.o rlogin.o settings.o ssh.o sshaes.o \
@@ -203,9 +203,9 @@ plink.exe: be_all_s_plink.o \
 		winplink.o winproxy.o winsecur.o winser.o winshare.o \
 		winstore.o wintime.o winx11.o x11fwd.o \
 		wincapi.o sc.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o
-	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,plink.map be_all_s_plink.o \
+	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,plink.map be_all_s_plink.o ldisc_plink.o \
 		callback.o \
-		cmdline.o conf.o cproxy.o errsock.o ldisc.o logging.o misc.o \
+		cmdline.o conf.o cproxy.o errsock.o logging.o misc.o \
 		noterm.o pgssapi.o pinger.o plink.res.o portfwd.o proxy.o \
 		raw.o rlogin.o settings.o ssh.o sshaes.o ssharcf.o \
 		sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o sshdh.o \
@@ -481,6 +481,12 @@ ldisc.o: ../ldisc.c ../putty.h ../terminal.h ../ldisc.h ../puttyps.h \
 		../macosx/osx.h ../unix/unix.h ../puttymem.h \
 		../windows/winhelp.h ../charset/charset.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../ldisc.c
+
+ldisc_plink.o: ../ldisc.c ../putty.h ../terminal.h ../ldisc.h ../puttyps.h \
+		../network.h ../misc.h ../tree234.h ../windows/winstuff.h \
+		../macosx/osx.h ../unix/unix.h ../puttymem.h \
+		../windows/winhelp.h ../charset/charset.h
+	$(CC) $(COMPAT) $(CFLAGS_PLINK) $(XFLAGS) -o ldisc_plink.o -c ../ldisc.c
 
 ldiscucs.o: ../ldiscucs.c ../putty.h ../terminal.h ../ldisc.h ../puttyps.h \
 		../network.h ../misc.h ../tree234.h ../windows/winstuff.h \

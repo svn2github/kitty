@@ -7,11 +7,7 @@
 #include "ssh.h"
 
 /*
- * Defines and declarations due to mssing declarations in mingw32 headers.
- * CERT_SYSTEM_STORE_CURRENT_USER, CERT_STORE_PROV_MEMORY,
- * CRYPT_FIND_USER_KEYSET_FLAG, CRYPT_FIND_SILENT_KEYSET_FLAG,
- * CERT_CLOSE_STORE_FORCE_FLAG, CryptFindCertificateKeyProvInfo,
- * CryptUIDlgSelectCertificateFromStore
+ * Defines and declarations due to missing declarations in mingw32 and BCC55 headers.
  */
 #ifndef CERT_SYSTEM_STORE_CURRENT_USER
 #define CERT_SYSTEM_STORE_CURRENT_USER (1 << 16)
@@ -37,15 +33,35 @@
 #define CRYPT_ACQUIRE_NO_HEALING 0x00000008
 #endif /* CRYPT_ACQUIRE_NO_HEALING */
 
-/*
- * Defines and declarations due to mssing declarations in BCC55 headers.
- * CRYPT_ACQUIRE_SILENT_FLAG
- */
+#ifndef CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG
+#define CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG 0x00010000
+#endif /* CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG */
+
+#ifndef CERT_NCRYPT_KEY_SPEC
+#define CERT_NCRYPT_KEY_SPEC 0xFFFFFFFF
+#endif /* CERT_NCRYPT_KEY_SPEC */
+
+typedef ULONG_PTR HCRYPTPROV_OR_NCRYPT_KEY_HANDLE;
+
+#ifndef __BCRYPT_H__
+#define BCRYPT_PAD_PKCS1 0x00000002
+#define BCRYPT_SHA1_ALGORITHM L"SHA1"
+typedef struct _BCRYPT_PKCS1_PADDING_INFO
+{
+	LPCWSTR pszAlgId;
+} BCRYPT_PKCS1_PADDING_INFO;
+#endif /* __BCRYPT_H__ */
+
 #ifndef CRYPT_ACQUIRE_SILENT_FLAG
 #define CRYPT_ACQUIRE_SILENT_FLAG 0x00000040
 #endif /* CRYPT_ACQUIRE_SILENT_FLAG */
 
-typedef PCCERT_CONTEXT (WINAPI *DFNCryptUIDlgSelectCertificateFromStore)(HCERTSTORE, HWND, LPCWSTR, LPCWSTR, DWORD, DWORD, void*);
+typedef PCCERT_CONTEXT(WINAPI *DFNCryptUIDlgSelectCertificateFromStore)(HCERTSTORE, HWND, LPCWSTR, LPCWSTR, DWORD, DWORD, PVOID);
+
+/*
+ * Dynamically lookup NCryptSignHash to avoid link dependency to ncrypt.dll (not supported by Windows XP).
+ */
+typedef LONG(WINAPI *DFNNCryptSignHash)(ULONG_PTR, PVOID, PBYTE, DWORD, PBYTE, DWORD, PDWORD, DWORD);
 
 /*
  * convert sha1 string to binary data
@@ -63,7 +79,7 @@ void capi_sha1_to_binary(PSTR szHex, PBYTE pbBin)
 }
 
 /*
- * windows XP do not support CryptBinaryToString with raw hex
+ * Windows XP do not support CryptBinaryToString with raw hex.
  */
 PSTR capi_binary_to_hex(PBYTE pbBinary, DWORD cbBinary)
 {
@@ -96,8 +112,8 @@ void capi_reverse_array(PBYTE pb, DWORD cb)
 }
 
 /*
- * select a certificate given the criterias provided
- * if a criteria is absent it will be disregarded
+ * Select a certificate given the criteria provided.
+ * If a criterion is absent it will be disregarded.
  */
 void capi_select_cert_2(PBYTE pbSHA1, LPWSTR wszCN, PCCERT_CONTEXT *ppCertCtx, HCERTSTORE *phStore)
 {
@@ -106,50 +122,49 @@ void capi_select_cert_2(PBYTE pbSHA1, LPWSTR wszCN, PCCERT_CONTEXT *ppCertCtx, H
 	HMODULE hCryptUIDLL = NULL;
 	DFNCryptUIDlgSelectCertificateFromStore dfnCryptUIDlgSelectCertificateFromStore;
 	CRYPT_HASH_BLOB cryptHashBlob;
-	HCRYPTPROV hCryptProv;
+	HCRYPTPROV_OR_NCRYPT_KEY_HANDLE hCryptProvOrNCryptKey;
 	DWORD dwCertCount = 0, dwKeySpec;
-	BOOL fCallerFreeProv;
-	if(!(hStoreMY = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER, L"MY"))) {
+	BOOL fCallerFreeProvAlwaysFalse;
+	if (!(hStoreMY = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER, L"MY"))) {
 		goto error;
 	}
-	if(pbSHA1) {
+	if (pbSHA1) {
 		cryptHashBlob.cbData = 20;
 		cryptHashBlob.pbData = pbSHA1;
-		if((*ppCertCtx = CertFindCertificateInStore(hStoreMY, X509_ASN_ENCODING, 0, CERT_FIND_SHA1_HASH, &cryptHashBlob, pCertCtx))) {
+		if ((*ppCertCtx = CertFindCertificateInStore(hStoreMY, X509_ASN_ENCODING, 0, CERT_FIND_SHA1_HASH, &cryptHashBlob, pCertCtx))) {
 			*phStore = hStoreMY;
 			return;
-		} else {
+		}
+		else {
 			goto error;
 		}
 	}
-	if(!(hStoreTMP = CertOpenStore(CERT_STORE_PROV_MEMORY, 0, 0, 0, NULL))) {
+	if (!(hStoreTMP = CertOpenStore(CERT_STORE_PROV_MEMORY, 0, 0, 0, NULL))) {
 		goto error;
 	}
-	while(TRUE) {
-		if(wszCN) {
+	while (TRUE) {
+		if (wszCN) {
 			pCertCtx = CertFindCertificateInStore(hStoreMY, X509_ASN_ENCODING, 0, CERT_FIND_SUBJECT_STR, wszCN, pCertCtx);
-		} else {
+		}
+		else {
 			pCertCtx = CertEnumCertificatesInStore(hStoreMY, pCertCtx);
 		}
-		if(!pCertCtx) {
+		if (!pCertCtx) {
 			break;
 		}
-		if(!CryptAcquireCertificatePrivateKey(pCertCtx, CRYPT_ACQUIRE_CACHE_FLAG | CRYPT_ACQUIRE_NO_HEALING | CRYPT_ACQUIRE_SILENT_FLAG, NULL, &hCryptProv, &dwKeySpec, &fCallerFreeProv)) {
+		if (!CryptAcquireCertificatePrivateKey(pCertCtx, CRYPT_ACQUIRE_CACHE_FLAG | CRYPT_ACQUIRE_NO_HEALING | CRYPT_ACQUIRE_SILENT_FLAG | CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG, NULL, &hCryptProvOrNCryptKey, &dwKeySpec, &fCallerFreeProvAlwaysFalse)) {
 			continue;
-		}
-		if(fCallerFreeProv) {
-			CryptReleaseContext(hCryptProv, 0);
 		}
 		dwCertCount++;
 		CertAddCertificateContextToStore(hStoreTMP, pCertCtx, CERT_STORE_ADD_ALWAYS, NULL);
 	}
 	CertCloseStore(hStoreMY, CERT_CLOSE_STORE_FORCE_FLAG);
 	hStoreMY = NULL;
-	if(dwCertCount == 1) {
+	if (dwCertCount == 1) {
 		*ppCertCtx = CertEnumCertificatesInStore(hStoreTMP, NULL);
 		*phStore = hStoreTMP;
 		return;
-	} else if((dwCertCount > 1) &&
+	} else if ((dwCertCount > 1) &&
 		(hCryptUIDLL = LoadLibrary("cryptui.dll")) &&
 		(dfnCryptUIDlgSelectCertificateFromStore = (DFNCryptUIDlgSelectCertificateFromStore)GetProcAddress(hCryptUIDLL, "CryptUIDlgSelectCertificateFromStore")) &&
 		(*ppCertCtx = dfnCryptUIDlgSelectCertificateFromStore(hStoreTMP, NULL, NULL, NULL, 0, 0, NULL))) {
@@ -158,15 +173,15 @@ void capi_select_cert_2(PBYTE pbSHA1, LPWSTR wszCN, PCCERT_CONTEXT *ppCertCtx, H
 		return;
 	}
 error:
-	if(hCryptUIDLL) { FreeLibrary(hCryptUIDLL); }
-	if(hStoreTMP)	{ CertCloseStore(hStoreTMP, CERT_CLOSE_STORE_FORCE_FLAG); }
-	if(hStoreMY)	{ CertCloseStore(hStoreMY, CERT_CLOSE_STORE_FORCE_FLAG); }
+	if (hCryptUIDLL) { FreeLibrary(hCryptUIDLL); }
+	if (hStoreTMP)	{ CertCloseStore(hStoreTMP, CERT_CLOSE_STORE_FORCE_FLAG); }
+	if (hStoreMY)	{ CertCloseStore(hStoreMY, CERT_CLOSE_STORE_FORCE_FLAG); }
 	*ppCertCtx = NULL;
 	*phStore = NULL;
 }
 
 /*
- * return a malloc'ed string containing the requested subitem
+ * Return a malloc'ed string containing the requested subitem.
  */
 PSTR capi_select_cert_finditem(PSTR szCert, PCSTR szStart)
 {
@@ -186,7 +201,7 @@ PSTR capi_select_cert_finditem(PSTR szCert, PCSTR szStart)
 }
 
 /*
- * select a certificate given the definition string
+ * Select a certificate given the definition string.
  */
 void capi_select_cert(PSTR szCert, PCCERT_CONTEXT *ppCertCtx, HCERTSTORE *phStore)
 {
@@ -226,7 +241,7 @@ void capi_select_cert(PSTR szCert, PCCERT_CONTEXT *ppCertCtx, HCERTSTORE *phStor
 }
 
 /* 
- * get rsa key comment on the form "cert://cn=<cn>,thumbprint=<sha1>"
+ * Get rsa key comment on the form "cert://cn=<cn>,thumbprint=<sha1>".
  */
 static PSTR capi_get_description(PCCERT_CONTEXT pCertContext)
 {
@@ -245,7 +260,7 @@ static PSTR capi_get_description(PCCERT_CONTEXT pCertContext)
 }
 
 /*
- * load a rsa key from a certificate in windows certificate personal store
+ * Load a rsa key from a certificate in windows certificate personal store.
  */
 void *capi_load_key(unsigned char **blob, int *len) 
 {
@@ -298,7 +313,7 @@ void *capi_load_key(unsigned char **blob, int *len)
 }
 
 /*
- * check whether the supplied key is a capi key or not
+ * Check whether the supplied key is a capi key or not.
  */
 BOOL capi_is_capikey(struct RSAKey *rsa)
 {
@@ -312,33 +327,65 @@ BOOL capi_is_capikey(struct RSAKey *rsa)
 }
 
 /*
- * perform the signing operation
+ * Perform the signing operation.
  */
-Bignum capi_rsa2_sign(struct RSAKey *rsa, char *data, int datalen)
+Bignum capi_rsa2_sign_2(struct RSAKey *rsa, char *data, int datalen, BOOL isSilent)
 {
 	Bignum ret = NULL;
 	HCERTSTORE hCertStore;
 	PCCERT_CONTEXT pCertCtx;
-	HCRYPTPROV hProv = 0;
+	HCRYPTPROV_OR_NCRYPT_KEY_HANDLE hCryptProvOrNCryptKey = 0;
 	HCRYPTHASH hHash = 0;
 	PBYTE pbSig = NULL;
 	DWORD dwSpec, cbSig = 0;
-	BOOL fDmy;
+	BOOL fCallerFreeProvAlwaysFalse = TRUE;
+	HMODULE hNCryptDLL = NULL;
+	DFNNCryptSignHash dfnNCryptSignHash;
+	LONG win32ret;
+	BYTE bHash[20];
+	BCRYPT_PKCS1_PADDING_INFO padInfo;
 	/* perform the signing operation (terminate on any error) */
 	capi_select_cert(rsa->comment, &pCertCtx, &hCertStore);
-	if( pCertCtx &&
-		CryptAcquireCertificatePrivateKey(pCertCtx, 0, 0, &hProv, &dwSpec, &fDmy) &&
-		CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash) &&
-		CryptHashData(hHash, (PBYTE)data, datalen, 0) &&
-		CryptSignHash(hHash, dwSpec, NULL, 0, NULL, &cbSig) &&
-		CryptSignHash(hHash, dwSpec, NULL, 0, pbSig = snewn(cbSig, BYTE), &cbSig)) {
-		capi_reverse_array(pbSig, cbSig);
-		ret = bignum_from_bytes(pbSig, cbSig);
+	if (pCertCtx && CryptAcquireCertificatePrivateKey(pCertCtx, CRYPT_ACQUIRE_CACHE_FLAG | CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG | (isSilent ? CRYPT_ACQUIRE_SILENT_FLAG : 0), 0, &hCryptProvOrNCryptKey, &dwSpec, &fCallerFreeProvAlwaysFalse)) {
+		if (dwSpec == AT_KEYEXCHANGE || dwSpec == AT_SIGNATURE) {
+			/* CSP implementation */
+			if (CryptCreateHash((HCRYPTPROV)hCryptProvOrNCryptKey, CALG_SHA1, 0, 0, &hHash) &&
+				CryptHashData(hHash, (PBYTE)data, datalen, 0) &&
+				CryptSignHash(hHash, dwSpec, NULL, 0, NULL, &cbSig) &&
+				CryptSignHash(hHash, dwSpec, NULL, 0, pbSig = snewn(cbSig, BYTE), &cbSig)) {
+				capi_reverse_array(pbSig, cbSig);
+				ret = bignum_from_bytes(pbSig, cbSig);
+			} else if (isSilent && NTE_SILENT_CONTEXT == GetLastError()) {
+				CryptSetProvParam((HCRYPTPROV)hCryptProvOrNCryptKey, PP_KEYEXCHANGE_PIN, NULL, 0);
+				CryptSetProvParam((HCRYPTPROV)hCryptProvOrNCryptKey, PP_SIGNATURE_PIN, NULL, 0);
+				ret = capi_rsa2_sign_2(rsa, data, datalen, FALSE);
+			}
+		} else if (dwSpec == CERT_NCRYPT_KEY_SPEC) {
+			/* KSP/CNG implementation */
+			SHA_Simple(data, datalen, bHash);
+			padInfo.pszAlgId = BCRYPT_SHA1_ALGORITHM;
+			if ((hNCryptDLL = LoadLibrary("ncrypt.dll")) && (dfnNCryptSignHash = (DFNNCryptSignHash)GetProcAddress(hNCryptDLL, "NCryptSignHash"))) {
+				dfnNCryptSignHash(hCryptProvOrNCryptKey, &padInfo, bHash, 20, NULL, 0, &cbSig, BCRYPT_PAD_PKCS1);
+				if (!(win32ret = dfnNCryptSignHash(hCryptProvOrNCryptKey, &padInfo, bHash, 20, pbSig = snewn(cbSig, BYTE), cbSig, &cbSig, BCRYPT_PAD_PKCS1))) {
+					ret = bignum_from_bytes(pbSig, cbSig);
+				} else if (win32ret == NTE_SILENT_CONTEXT) {
+					ret = capi_rsa2_sign_2(rsa, data, datalen, FALSE);
+				}
+			}
+		}
 	}
-	if(pbSig) { sfree(pbSig); }
-	if(hHash) { CryptDestroyHash(hHash); }
-	if(hProv) { CryptReleaseContext(hProv, 0); } 
-	if(pCertCtx) { CertFreeCertificateContext(pCertCtx); }
-	if(hCertStore) { CertCloseStore(hCertStore, CERT_CLOSE_STORE_FORCE_FLAG); }
-	return ret?ret:bignum_from_long(0);
+	if (pbSig) { sfree(pbSig); }
+	if (hHash) { CryptDestroyHash(hHash); }
+	if (pCertCtx) { CertFreeCertificateContext(pCertCtx); }
+	if (hCertStore) { CertCloseStore(hCertStore, CERT_CLOSE_STORE_FORCE_FLAG); }
+	if (hNCryptDLL) { FreeLibrary(hNCryptDLL); }
+	return ret ? ret : bignum_from_long(0);
+}
+
+/*
+ * Perform the signing operation.
+ */
+Bignum capi_rsa2_sign(struct RSAKey *rsa, char *data, int datalen)
+{
+	return capi_rsa2_sign_2(rsa, data, datalen, TRUE);
 }

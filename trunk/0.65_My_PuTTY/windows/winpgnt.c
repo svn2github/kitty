@@ -517,14 +517,14 @@ static void add_keyfile(Filename *filename)
 #ifdef USE_CAPI
 		if(0 == strncmp("cert://", filename->path, 7)) {
 			blob = ssh2_userkey_loadpub(filename, NULL, &bloblen,
-						&comment, &error);
+				&comment, &error);
 			if(blob) {
-				filename->path=dupstr(comment);
-				//memset(filename->path, 0, FILENAME_MAX);
-				//strncpy(filename->path, comment, FILENAME_MAX - 1);
-				free(comment);
+				sfree(filename->path);
+				filename->path = comment;
+				comment = NULL;
 			}
-		} else {
+		}
+		else {
 #endif /* USE_CAPI */
 #endif
 	    blob = ssh2_userkey_loadpub(filename, NULL, &bloblen,
@@ -972,6 +972,29 @@ static void *get_keylist2(int *length)
     return ret;
 }
 
+#ifdef PERSOPORT
+	// Patch pageant-confirm_with_condition_coded_comment.diff
+static int confirm_key_usage(char* fingerprint, char* comment) {
+	const char* title = "Confirm SSH Key usage";
+	char* message = NULL;
+	int result = IDYES; // successful result is the default
+
+	if ((NULL != strstr(comment, "needs confirm")) ||
+		(NULL != strstr(comment, "need confirm")) ||
+		(NULL != strstr(comment, "confirmation"))) {
+		
+		message = dupprintf("Allow authentication with key with fingerprint\n%s\ncomment: %s", fingerprint, comment);
+		result = MessageBox(NULL, message, title, MB_ICONQUESTION | MB_YESNO);
+		sfree(message);
+	}
+
+	if (result != IDYES) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+#endif
 /*
  * This is the main agent function that answers messages.
  */
@@ -1046,7 +1069,10 @@ static void answer_msg(void *msg)
 	    unsigned char response_source[48], response_md5[16];
 	    struct MD5Context md5c;
 	    int i, len;
-
+#ifdef PERSOPORT
+		// Patch pageant-confirm_with_condition_coded_comment.diff
+		char fingerprint[100];
+#endif
 	    p += 4;
 	    i = ssh1_read_bignum(p, msgend - p, &reqkey.exponent);
 	    if (i < 0)
@@ -1081,6 +1107,13 @@ static void answer_msg(void *msg)
 		freebn(challenge);
 		goto failure;
 	    }
+#ifdef PERSOPORT
+	    // Patch pageant-confirm_with_condition_coded_comment.diff
+		rsa_fingerprint(fingerprint, sizeof(fingerprint), key);
+		if (! confirm_key_usage(fingerprint, key->comment)) {
+	      goto failure;
+	    }
+#endif
 	    response = rsadecrypt(challenge, key);
 	    for (i = 0; i < 32; i++)
 		response_source[i] = bignum_byte(response, 31 - i);
@@ -1156,6 +1189,12 @@ static void answer_msg(void *msg)
 	      memset(pps1.passphrase, 0, PASSPHRASE_MAXLEN);
 	    }
 	    else
+#endif
+#ifdef PERSOPORT
+	    // Patch pageant-confirm_with_condition_coded_comment.diff
+		if (! confirm_key_usage( key->alg->fingerprint(key->data) , key->comment)) {
+	      goto failure;
+	    }
 #endif
 	    signature = key->alg->sign(key->data, data, datalen, &siglen);
 	    len = 5 + 4 + siglen;
@@ -1562,12 +1601,10 @@ static int cmpkeys_ssh2_asymm(void *av, void *bv)
  */
 static void prompt_add_capikey(void)
 {
-	char buf[MAX_PATH];
-	memcpy(buf, "cert://*", 9);
-	Filename * filename= filename_from_str(buf);
-	add_keyfile(filename);
+	Filename *fn = filename_from_str("cert://*");
+	add_keyfile(fn);
+	filename_free(fn);
 	keylist_update();
-	filename_free(filename);
 }
 
 /*
@@ -1575,25 +1612,25 @@ static void prompt_add_capikey(void)
  */
 static void key_to_clipboard2(struct ssh2_userkey *key)
 {
-    unsigned char *pub_blob;
-    char *buffer, *p, *psz;
-    int pub_len, i;
+	unsigned char *pub_blob;
+	char *buffer, *p, *psz;
+	int pub_len, i;
 	HGLOBAL hClipBuffer;
-
+	
 	pub_blob = key->alg->public_blob(key->data, &pub_len);
-    buffer = snewn(strlen(key->alg->name) + 4 * ((pub_len + 2) / 3) + strlen(key->comment) + 3, char);
-    strcpy(buffer, key->alg->name);
-    p = buffer + strlen(buffer);
-    *p++ = ' ';
-    i = 0;
-    while (i < pub_len) {
+	buffer = snewn(strlen(key->alg->name) + 4 * ((pub_len + 2) / 3) + strlen(key->comment) + 3, char);
+	strcpy(buffer, key->alg->name);
+	p = buffer + strlen(buffer);
+	*p++ = ' ';
+	i = 0;
+	while(i < pub_len) {
 		int n = (pub_len - i < 3 ? pub_len - i : 3);
 		base64_encode_atom(pub_blob + i, n, p);
 		i += n;
 		p += 4;
-    }
-    *p++ = ' ';
-    strcpy(p, key->comment);
+	}
+	*p++ = ' ';
+	strcpy(p, key->comment);
 	if(OpenClipboard(NULL)) {
 		hClipBuffer = GlobalAlloc(GMEM_MOVEABLE, strlen(buffer) + 1);
 		if(hClipBuffer) {
@@ -1605,8 +1642,8 @@ static void key_to_clipboard2(struct ssh2_userkey *key)
 		}
 		CloseClipboard();
 	}
-    sfree(pub_blob);
-    sfree(buffer);
+	sfree(pub_blob);
+	sfree(buffer);
 }
 
 /*
@@ -1730,7 +1767,7 @@ static int CALLBACK KeyListProc(HWND hwnd, UINT msg,
 #ifdef WINCRYPTPORT
 #ifdef USE_CAPI
 	  case 100:		       /* key list */
-		if (HIWORD(wParam) == LBN_DBLCLK) {
+		if(HIWORD(wParam) == LBN_DBLCLK) {
 			key_to_clipboard(hwnd);
 		}
 		return 0;
@@ -2055,8 +2092,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 #ifdef WINCRYPTPORT
 #ifdef USE_CAPI
 	  case IDM_ADDCERT:
-	    prompt_add_capikey();
-	    break;
+		prompt_add_capikey();
+		break;
 #endif /* USE_CAPI */
 #endif
 	  case IDM_ABOUT:

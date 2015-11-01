@@ -147,6 +147,11 @@ int HyperlinkFlag = 0 ;
 int GetHyperlinkFlag(void) { return HyperlinkFlag ; }
 void SetHyperlinkFlag( const int flag ) { HyperlinkFlag = flag ; }
 
+// Flag de gestion de la fonction "rutty" (script automatique)
+static int RuTTYFlag = 1 ;
+int GetRuTTYFlag(void) { return RuTTYFlag ; } 
+void SetRuTTYFlag( const int flag ) { RuTTYFlag = flag ; }
+
 // Flag de gestion de la Transparence
 static int TransparencyFlag = 0 ;
 int GetTransparencyFlag(void) { return TransparencyFlag ; }
@@ -1319,6 +1324,9 @@ void CreateDefaultIniFile( void ) {
 #ifdef RECONNECTPORT
 			writeINI( KittyIniFile, INIT_SECTION, "#ReconnectDelay", "5" ) ;
 #endif
+#ifdef RUTTYPORT
+			writeINI( KittyIniFile, INIT_SECTION, "#scriptmode", "yes" ) ;
+#endif
 #ifdef PORTABLE
 			writeINI( KittyIniFile, INIT_SECTION, "savemode", "dir" ) ;
 #else
@@ -1371,7 +1379,7 @@ int WriteParameter( const char * key, const char * name, char * value ) {
 
 // Lit un parametre soit dans le fichier de configuration, soit dans le registre
 int ReadParameter( const char * key, const char * name, char * value ) {
-	char buffer[1024] ;
+	char buffer[4096] ;
 	strcpy( buffer, "" ) ;
 
 	if( GetValueData( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), name, buffer ) == NULL ) {
@@ -1379,7 +1387,7 @@ int ReadParameter( const char * key, const char * name, char * value ) {
 			strcpy( buffer, "" ) ;
 			}
 		}
-	buffer[1023] = '\0' ;
+	buffer[4095] = '\0' ;
 	strcpy( value, buffer ) ;
 	return strcmp( buffer, "" ) ;
 	}
@@ -4840,6 +4848,12 @@ void LoadParameters( void ) {
 		if( ReconnectDelay < 1 ) ReconnectDelay = 1 ;
 		}
 #endif
+#ifdef RUTTYPORT
+	if( ReadParameter( INIT_SECTION, "scriptmode", buffer ) ) { 
+		if( !stricmp( buffer, "YES" ) ) RuTTYFlag = 1 ;
+		if( !stricmp( buffer, "NO" ) ) RuTTYFlag = 0 ;
+		}
+#endif
 	if( ReadParameter( INIT_SECTION, "KiPP", buffer ) != 0 ) {
 		if( decryptstring( buffer, MASTER_PASSWORD ) ) ManagePassPhrase( buffer ) ;
 		}
@@ -5066,7 +5080,7 @@ void InitWinMain( void ) {
 	strcpy( KiTTYClassName, appname ) ;
 #ifndef FDJ
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
-		{ if( strlen( buffer ) > 0 ) { buffer[127] = '\0' ; strcpy( KiTTYClassName, buffer ) ; } }
+		{ if( (strlen(buffer)>0) && (strlen(buffer)<128) ) { buffer[127]='\0'; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
 #endif
 
@@ -5212,3 +5226,8 @@ void WriteCountUpAndPath( void ) ;
 
 // Initialisation spécifique a KiTTY
 void InitWinMain( void ) ;
+
+
+// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+// Se trouve dans le fichier kitty_registry.c
+BOOL RegCleanPuTTY( void ) ;

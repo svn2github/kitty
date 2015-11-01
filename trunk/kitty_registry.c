@@ -528,6 +528,18 @@ return 1 ;
 					RegDeleteValue( hSubKey, "BoldAsColour" ) ;
 					RegDeleteValue( hSubKey, "UnderlinedAsColour" ) ;
 					RegDeleteValue( hSubKey, "SelectedAsColour" ) ;
+					RegDeleteValue( hSubKey, "ScriptFileName" ) ;
+					RegDeleteValue( hSubKey, "ScriptMode" ) ;
+					RegDeleteValue( hSubKey, "ScriptLineDelay" ) ;
+					RegDeleteValue( hSubKey, "ScriptCharDelay" ) ;
+					RegDeleteValue( hSubKey, "ScriptCondLine" ) ;
+					RegDeleteValue( hSubKey, "ScriptCondUse" ) ;
+					RegDeleteValue( hSubKey, "ScriptCRLF" ) ;
+					RegDeleteValue( hSubKey, "ScriptEnable" ) ;
+					RegDeleteValue( hSubKey, "ScriptExcept" ) ;
+					RegDeleteValue( hSubKey, "ScriptTimeout" ) ;
+					RegDeleteValue( hSubKey, "ScriptWait" ) ;
+					RegDeleteValue( hSubKey, "ScriptHalt" ) ;
 					//RegDeleteValue( hSubKey, "" ) ;
  					RegCloseKey(hSubKey) ;
 					}

@@ -286,6 +286,21 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "ConnectionSharingDownstream", conf_get_int(conf, CONF_ssh_connection_sharing_downstream));
     wmap_forced(sesskey, "SSHManualHostKeys", conf, CONF_ssh_manual_hostkeys, FALSE);
 
+/* rutty: */
+#ifdef RUTTYPORT
+    write_setting_filename_forced(sesskey, "ScriptFileName", conf_get_filename(conf, CONF_script_filename));
+    write_setting_i_forced(sesskey, "ScriptMode", (conf_get_int(conf, CONF_script_mode)!=SCRIPT_PLAY)?SCRIPT_STOP:conf_get_int(conf, CONF_script_mode));  /* dont save with record on */
+    write_setting_i_forced(sesskey, "ScriptLineDelay", conf_get_int(conf, CONF_script_line_delay));
+    write_setting_i_forced(sesskey, "ScriptCharDelay", conf_get_int(conf, CONF_script_char_delay));
+    write_setting_s_forced(sesskey, "ScriptCondLine", conf_get_str(conf, CONF_script_cond_line));
+    write_setting_i_forced(sesskey, "ScriptCondUse", conf_get_int(conf, CONF_script_cond_use));
+    write_setting_i_forced(sesskey, "ScriptCRLF", conf_get_int(conf, CONF_script_crlf));
+    write_setting_i_forced(sesskey, "ScriptEnable", conf_get_int(conf, CONF_script_enable));
+    write_setting_i_forced(sesskey, "ScriptExcept", conf_get_int(conf, CONF_script_except));
+    write_setting_i_forced(sesskey, "ScriptTimeout", conf_get_int(conf, CONF_script_timeout));
+    write_setting_s_forced(sesskey, "ScriptWait", conf_get_str(conf, CONF_script_waitfor));
+    write_setting_s_forced(sesskey, "ScriptHalt", conf_get_str(conf, CONF_script_halton));
+#endif  /* rutty */
 #ifdef SCPORT
     write_setting_i_forced(sesskey, "PKCS11SysLog", conf_get_int(conf,CONF_try_write_syslog) );
     write_setting_i_forced(sesskey, "AuthPKCS11", conf_get_int(conf,CONF_try_pkcs11_auth) /*cfg->try_pkcs11_auth*/);
@@ -821,6 +836,21 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "ConnectionSharingUpstream", 1, conf, CONF_ssh_connection_sharing_upstream);
     gppi_forced(sesskey, "ConnectionSharingDownstream", 1, conf, CONF_ssh_connection_sharing_downstream);
     gppmap_forced(sesskey, "SSHManualHostKeys", conf, CONF_ssh_manual_hostkeys);
+/* rutty: */
+#ifdef RUTTYPORT
+	gppfile_forced(sesskey, "ScriptFileName", conf, CONF_script_filename);
+	gppi_forced(sesskey, "ScriptMode", 0, conf, CONF_script_mode);
+	gppi_forced(sesskey, "ScriptLineDelay", 0, conf, CONF_script_line_delay);
+	gppi_forced(sesskey, "ScriptCharDelay", 0, conf, CONF_script_char_delay);
+	gpps_forced(sesskey, "ScriptCondLine", ":", conf, CONF_script_cond_line);
+	gppi_forced(sesskey, "ScriptCondUse", 0, conf, CONF_script_cond_use);
+	gppi_forced(sesskey, "ScriptCRLF", SCRIPT_NOLF, conf, CONF_script_crlf);
+	gppi_forced(sesskey, "ScriptEnable", 0, conf, CONF_script_enable);
+	gppi_forced(sesskey, "ScriptExcept", 0, conf, CONF_script_except);
+	gppi_forced(sesskey, "ScriptTimeout", 30, conf, CONF_script_timeout);
+	gpps_forced(sesskey, "ScriptWait", "", conf, CONF_script_waitfor);
+	gpps_forced(sesskey, "ScriptHalt", "", conf, CONF_script_halton);
+#endif  /* rutty */  
 #ifdef SCPORT
     gppi_forced(sesskey, "PKCS11SysLog", 0, conf, CONF_try_write_syslog );
     gppi_forced(sesskey, "AuthPKCS11", 0, conf, CONF_try_pkcs11_auth /*&cfg->try_pkcs11_auth*/);

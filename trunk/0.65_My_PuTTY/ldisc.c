@@ -22,10 +22,23 @@
                       (ldisc->back->ldisc(ldisc->backhandle, LD_EDIT) || \
 			   term_ldisc(ldisc->term, LD_EDIT))))
 
+/* rutty: special entry point for local data (in windows.c) */
+#ifdef RUTTYPORT
+extern int from_backend_local(void *frontend, int is_stderr, const char *data, int len);
+static void c_write(Ldisc ldisc, char *buf, int len)
+{
+	if( !get_param("PUTTY") && (GetRuTTYFlag()>0) ) {
+		from_backend_local(ldisc->frontend, 0, buf, len);
+	} else { 
+		from_backend(ldisc->frontend, 0, buf, len);
+	}
+}
+#else
 static void c_write(Ldisc ldisc, char *buf, int len)
 {
     from_backend(ldisc->frontend, 0, buf, len);
 }
+#endif
 
 static int plen(Ldisc ldisc, unsigned char c)
 {
@@ -128,6 +141,12 @@ void ldisc_free(void *handle)
     sfree(ldisc);
 }
 
+/* rutty: */
+#ifdef RUTTYPORT
+#include "script.h"
+extern ScriptData scriptdata;  /* in window.c */
+#endif /* rutty */
+
 void ldisc_send(void *handle, char *buf, int len, int interactive)
 {
     Ldisc ldisc = (Ldisc) handle;
@@ -157,6 +176,11 @@ void ldisc_send(void *handle, char *buf, int len, int interactive)
      * Close On Exit). 
      */
     frontend_keypress(ldisc->frontend);
+
+/* rutty: */
+#ifdef RUTTYPORT
+    if( !get_param("PUTTY") && (GetRuTTYFlag()>0) ) { script_local(&scriptdata, buf,len); }
+#endif /* rutty */
 
     if (interactive) {
         /*
