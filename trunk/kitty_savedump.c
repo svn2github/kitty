@@ -180,7 +180,7 @@ void SaveDumpListFile( FILE * fp, const char * directory ) {
 	}
 	
 void SaveDumpListConf( FILE *fp, const char *directory ) {
-	char buffer[1025], fullpath[MAX_VALUE_NAME] ;
+	char buffer[4096], fullpath[MAX_VALUE_NAME] ;
 	FILE *fp2 ;
 	DIR *dir ;
 	struct dirent *de ;
@@ -193,7 +193,7 @@ void SaveDumpListConf( FILE *fp, const char *directory ) {
 				else {
 					fprintf( fp, "[%s]\n", fullpath ) ;
 					if( ( fp2 = fopen( fullpath, "r" ) ) != NULL ) {
-						while( fgets( buffer, 1024, fp2 ) != NULL ) fputs( buffer, fp ) ;
+						while( fgets( buffer, 4095, fp2 ) != NULL ) fputs( buffer, fp ) ;
 						fclose( fp2 ) ;
 						}
 					fprintf( fp, "\n\n" ) ;
@@ -268,8 +268,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "folder=%s\n", 			conf_get_str(conf,CONF_folder) ) ;
 	fprintf( fp, "sftpconnect=%s\n", 		conf_get_str(conf,CONF_sftpconnect) ) ;
 
-	char bufpass[1024] ; 
-	strcpy( bufpass, conf_get_str(conf,CONF_password) ) ;
+	char bufpass[4096] ;
+	memcpy( bufpass, conf_get_str(conf,CONF_password), 4095 ) ; bufpass[4095]='\0';
 	MASKPASS(bufpass);
 	fprintf( fp, "password=%s\n",			bufpass ) ;
 	memset(bufpass,0,strlen(bufpass));
@@ -671,7 +671,7 @@ void SaveCurrentConfig( FILE *fp, Conf * conf ) {
 // recupere toute la configuration en un seul fichier
 void SaveDump( void ) {
 	FILE * fp, * fpout ;
-	char buffer[1025], buffer2[1025] ;
+	char buffer[4096], buffer2[4096] ;
 	int i;
 
 	if( IniFileFlag != SAVEMODE_REG ) { WriteCountUpAndPath() ; }
@@ -687,7 +687,7 @@ void SaveDump( void ) {
 		
 		fputs( "\n@ KiTTYIniFile @\n\n", fpout ) ;
 		if( ( fp = fopen( KittyIniFile, "r" ) ) != NULL ) {
-			while( fgets( buffer, 1024, fp ) != NULL ) fputs( buffer, fpout ) ;
+			while( fgets( buffer, 4095, fp ) != NULL ) fputs( buffer, fpout ) ;
 			fclose( fp ) ;
 			}
 		fputs( "\n", fpout ) ;
@@ -697,7 +697,7 @@ void SaveDump( void ) {
 			fputs( "\n@ PuTTY RegistryBackup @\n\n", fpout ) ;
 			SaveRegistryKeyEx( HKEY_CURRENT_USER, TEXT("Software\\SimonTatham\\PuTTY"), KittySavFile ) ;
 			if( ( fp = fopen( KittySavFile, "r" ) ) != NULL ) {
-				while( fgets( buffer, 1024, fp ) != NULL ) fputs( buffer, fpout ) ;
+				while( fgets( buffer, 4095, fp ) != NULL ) fputs( buffer, fpout ) ;
 				fclose( fp ) ;
 				}
 			unlink( KittySavFile ) ;
@@ -708,7 +708,7 @@ void SaveDump( void ) {
 		if( (IniFileFlag == SAVEMODE_REG)||(IniFileFlag == SAVEMODE_FILE) ) {
 			SaveRegistryKey() ;
 			if( ( fp = fopen( KittySavFile, "r" ) ) != NULL ) {
-				while( fgets( buffer, 1024, fp ) != NULL ) fputs( buffer, fpout ) ;
+				while( fgets( buffer, 4095, fp ) != NULL ) fputs( buffer, fpout ) ;
 				fclose( fp ) ;
 				}
 			}

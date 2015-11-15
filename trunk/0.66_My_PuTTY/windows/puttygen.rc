@@ -1,27 +1,36 @@
 /*
- * Windows resources for Pageant.
+ * Windows resources for PuTTYgen.
  */
 
 #include "rcstuff.h"
 
-#ifdef PERSOPORT
-#define APPNAME "Kageant"
-#define APPDESC "KiTTY SSH authentication agent"
+#ifdef INTEGRATED_KEYGEN
+#define APPNAME_KEYGEN "PuTTYgen"
+#define APPDESC_KEYGEN "PuTTY SSH key generation utility"
+
+800 ICON "puttygen.ico"
+#define NO_MANIFESTS
 #else
-#define APPNAME "Pageant"
-#define APPDESC "PuTTY SSH authentication agent"
+#define APPNAME "PuTTYgen"
+#define APPDESC "PuTTY SSH key generation utility"
+
+200 ICON "puttygen.ico"
 #endif
 
-200 ICON "pageant.ico"
-201 ICON "pageants.ico"
-
-210 DIALOG DISCARDABLE 0, 0, 140, 60
+201 DIALOG DISCARDABLE 0, 0, 318, 270
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-#ifdef PERSOPORT
-CAPTION "Kageant: Enter Passphrase"
+CAPTION "PuTTY Key Generator"
+FONT 8, "MS Shell Dlg"
+BEGIN
+END
+
+#ifdef INTEGRATED_KEYGEN
+810 DIALOG DISCARDABLE 0, 0, 140, 60
 #else
-CAPTION "Pageant: Enter Passphrase"
+210 DIALOG DISCARDABLE 0, 0, 140, 60
 #endif
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "PuTTYgen: Enter Passphrase"
 FONT 8, "MS Shell Dlg"
 BEGIN
     CTEXT "Enter passphrase for key", 100, 10, 6, 120, 8
@@ -31,47 +40,30 @@ BEGIN
     PUSHBUTTON "&Cancel", IDCANCEL, 80, 42, 40, 14
 END
 
-211 DIALOG DISCARDABLE 0, 0, 330, 200
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-#ifdef PERSOPORT
-CAPTION "Kageant Key List"
-#else
-CAPTION "Pageant Key List"
-#endif
-FONT 8, "MS Shell Dlg"
-BEGIN
-    LISTBOX 100, 10, 10, 310, 155,
-        LBS_EXTENDEDSEL | LBS_HASSTRINGS | LBS_USETABSTOPS | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON "&Add Key", 101, 75, 162, 60, 14
-    PUSHBUTTON "&Remove Key", 102, 195, 162, 60, 14
-    PUSHBUTTON "&Help", 103, 10, 182, 50, 14
-    DEFPUSHBUTTON "&Close", IDOK, 270, 182, 50, 14
-END
-
 /* Accelerators used: cl */
-213 DIALOG DISCARDABLE 140, 40, 136, 70
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-#ifdef PERSOPORT
-CAPTION "About Kageant"
+#ifdef INTEGRATED_KEYGEN
+813 DIALOG DISCARDABLE 140, 40, 136, 70
 #else
-CAPTION "About Pageant"
+213 DIALOG DISCARDABLE 140, 40, 136, 70
 #endif
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About PuTTYgen"
 FONT 8, "MS Shell Dlg"
 BEGIN
     DEFPUSHBUTTON "&Close", IDOK, 82, 52, 48, 14
     PUSHBUTTON "View &Licence", 101, 6, 52, 70, 14
-#ifdef PERSOPORT
-    CTEXT "Kageant", 102, 10, 6, 120, 8
-#else
-    CTEXT "Pageant", 102, 10, 6, 120, 8
-#endif
+    CTEXT "PuTTYgen", 102, 10, 6, 120, 8
     CTEXT "", 100, 10, 16, 120, 16
     CTEXT "\251 1997-2015 Simon Tatham. All rights reserved.",
           103, 10, 34, 120, 16
 END
 
 /* No accelerators used */
+#ifdef INTEGRATED_KEYGEN
+814 DIALOG DISCARDABLE 50, 50, 226, 263
+#else
 214 DIALOG DISCARDABLE 50, 50, 226, 263
+#endif
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "PuTTY Licence"
 FONT 8, "MS Shell Dlg"
@@ -112,5 +104,5 @@ END
 #include "version.rc2"
 
 #ifndef NO_MANIFESTS
-1 RT_MANIFEST "pageant.mft"
+1 RT_MANIFEST "puttygen.mft"
 #endif /* NO_MANIFESTS */

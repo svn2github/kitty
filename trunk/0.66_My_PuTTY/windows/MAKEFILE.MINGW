@@ -178,7 +178,7 @@ pageant.exe: conf.o misc.o pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o \
 		sshmd5.o sshpubk.o sshrsa.o sshsh256.o sshsh512.o sshsha.o \
 		tree234.o version.o winhelp.o winmisc.o winpgnt.o winpgntc.o \
 		winsecur.o winutils.o \
-		wincapi.o kitty_commun.o kitty_registry.o
+		wincapi.o kitty_commun.o kitty_crypt.o kitty_registry.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,pageant.map conf.o misc.o \
 		pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o sshmd5.o \
 		sshpubk.o sshrsa.o sshsh256.o sshsh512.o sshsha.o tree234.o \
@@ -186,7 +186,7 @@ pageant.exe: conf.o misc.o pageant.res.o sshaes.o sshbn.o sshdes.o sshdss.o \
 		winsecur.o winutils.o -ladvapi32 -lcomctl32 -lcomdlg32 \
 		-lgdi32 -limm32 -lole32 -lshell32 -luser32 -lwinmm \
 		-lwinspool \
-		kitty_commun.o kitty_registry.o wincapi.o \
+		kitty_commun.o kitty_crypt.o kitty_registry.o wincapi.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-lcrypt32
 
@@ -287,10 +287,11 @@ psftp.exe: be_ssh.o callback.o cmdline.o conf.o cproxy.o errsock.o int64.o \
 		
 putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
+		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
+		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
 		telnet.o terminal.o timing.o tree234.o version.o wcwidth.o \
 		wildcard.o wincfg.o winctrls.o windefs.o windlg.o window.o \
@@ -299,13 +300,15 @@ putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
+		winpgnt_integrated.o winpgen_integrated.o \
+		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
+		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -316,6 +319,8 @@ putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
+		winpgnt_integrated.o winpgen_integrated.o \
+		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../regex/libregex.a ../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
@@ -518,6 +523,12 @@ misc.o: ../misc.c ../putty.h ../puttyps.h ../network.h ../misc.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../misc.c
 
+miscucs.o: ../miscucs.c ../putty.h ../misc.h ../puttyps.h ../network.h \
+		../puttymem.h ../windows/winstuff.h ../macosx/osx.h \
+		../unix/unix.h ../tree234.h ../windows/winhelp.h \
+		../charset/charset.h
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../miscucs.c
+
 nocproxy.o: ../nocproxy.c ../putty.h ../network.h ../proxy.h ../puttyps.h \
 		../misc.h ../windows/winstuff.h ../macosx/osx.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
@@ -631,7 +642,7 @@ putty.res.o: ../windows/putty.rc ../windows/rcstuff.h ../windows/win_res.rc2 \
 		../windows/putty.ico ../windows/puttycfg.ico \
 		../windows/version.rc2 ../version.h \
 		../../blocnote/notepad.rc
-	$(RC) $(RCFL) $(RCFLAGS) ../windows/putty.rc putty.res.o
+	$(RC) $(RCFL) $(RCFLAGS) ../windows/putty.rc putty.res.o -DINTEGRATED_AGENT -DINTEGRATED_KEYGEN
 
 puttygen.res.o: ../windows/puttygen.rc ../windows/rcstuff.h \
 		../windows/puttygen.ico ../windows/version.rc2 \
@@ -1031,7 +1042,8 @@ window.o: ../windows/window.c ../putty.h ../terminal.h ../storage.h \
 	-DBUILD_TIME=`date +'"%d/%m/%Y-%H:%M:%S(%Z)"'` \
 	-DBUILD_VERSION=`cat version_major.txt` \
 	-DBUILD_SUBVERSION=`cat version_minor.txt` \
-	-DMASTER_PASSWORD=`cat ../../masterpassword.txt`
+	-DMASTER_PASSWORD=`cat ../../masterpassword.txt` \
+	-DINTEGRATED_AGENT -DINTEGRATED_KEYGEN
 
 wingss.o: ../windows/wingss.c ../putty.h ../pgssapi.h ../sshgss.h \
 		../sshgssc.h ../misc.h ../puttyps.h ../network.h \
@@ -1358,6 +1370,21 @@ winnet_zmodem.o: ../windows/winnet.c ../putty.h ../network.h ../tree234.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o winnet_zmodem.o -c ../windows/winnet.c
 
+winpgen_integrated.o: ../windows/winpgen.c ../putty.h ../ssh.h ../puttyps.h \
+		../network.h ../misc.h ../puttymem.h ../tree234.h ../int64.h \
+		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
+		../windows/winhelp.h ../charset/charset.h
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o winpgen_integrated.o -c ../windows/winpgen.c -DINTEGRATED_KEYGEN
+
+
+winpgnt_integrated.o: ../windows/winpgnt.c ../putty.h ../ssh.h ../misc.h ../tree234.h \
+		../windows/winsecur.h ../puttyps.h ../network.h \
+		../puttymem.h ../int64.h ../windows/winstuff.h \
+		../macosx/osx.h ../unix/unix.h ../windows/winhelp.h \
+		../charset/charset.h
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -o winpgnt_integrated.o -c ../windows/winpgnt.c -DMASTER_PASSWORD=`cat ../../masterpassword.txt` -DINTEGRATED_AGENT
+
+
 kitty_dll.res.o: ../../kitty_dll.rc
 	windres ../../kitty_dll.rc kitty_dll.res.o
 
@@ -1380,8 +1407,8 @@ kitty: putty.exe
 
 putty_nohyperlink.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings_nohyperlink.o sizetip.o ssh.o sshaes.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings_nohyperlink.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -1397,8 +1424,8 @@ putty_nohyperlink.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o 
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings_nohyperlink.o sizetip.o ssh.o sshaes.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings_nohyperlink.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -1419,8 +1446,8 @@ putty_nohyperlink.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o 
 
 putty_notrans.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -1436,8 +1463,8 @@ putty_notrans.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dial
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -1458,8 +1485,8 @@ putty_notrans.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dial
 
 putty_portable.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -1475,7 +1502,7 @@ putty_portable.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dia
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
 		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
@@ -1497,8 +1524,8 @@ putty_portable.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dia
 
 putty_zmodem.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o raw.o \
-		rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
 		sshrsa.o sshsh256.o sshsh512.o sshsha.o sshshare.o sshzlib.o \
@@ -1509,6 +1536,8 @@ putty_zmodem.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialo
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
+		winpgnt_integrated.o winpgen_integrated.o \
+		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
@@ -1526,6 +1555,8 @@ putty_zmodem.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialo
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
 		wincapi.o cygcfg.o cygterm.o sc.o winpzmodem.o \
+		winpgnt_integrated.o winpgen_integrated.o \
+		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \

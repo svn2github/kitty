@@ -17,6 +17,7 @@ IDI_MAINICON ICON "putty.ico"
 
 IDI_FILEASSOC ICON "../../res/file_assoc/kitty_assoc.ico"
 IDI_PUTTY_LAUNCH ICON "../../res/putty_launcher.ico"
+IDI_BLACKBALL ICON "../../res/black.ico"
 IDI_NOCON ICON "../../res/nocon/kitty_nocon.ico"
 
 #ifndef FDJ
@@ -256,6 +257,12 @@ END
 
 #include "../../blocnote/notepad.rc"
 IDI_EDITICON ICON "../../res/edit.ico"
+#ifdef INTEGRATED_KEYGEN
+#include "puttygen.rc"
+#endif
+#ifdef INTEGRATED_AGENT
+#include "pageant.rc"
+#endif
 
 #endif
 

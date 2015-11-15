@@ -497,7 +497,6 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 	SAVEABLE(0);
 	conf_set_int(conf, CONF_sshprot, 3);   /* ssh protocol 2 only */
     }
-
     if (!strcmp(p, "-i")) {
 	Filename *fn;
 	RETURN(2);
@@ -507,7 +506,6 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 	conf_set_filename(conf, CONF_keyfile, fn);
         filename_free(fn);
     }
-
     if (!strcmp(p, "-4") || !strcmp(p, "-ipv4")) {
 	RETURN(1);
 	SAVEABLE(1);
@@ -602,6 +600,23 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 	    nextitem += length + skip;
 	}
     }
+
+    if (!strcmp(p, "-sessionlog") ||
+        !strcmp(p, "-sshlog") ||
+        !strcmp(p, "-sshrawlog")) {
+	Filename *fn;
+	RETURN(2);
+	UNAVAILABLE_IN(TOOLTYPE_NONNETWORK);
+	SAVEABLE(0);
+	fn = filename_from_str(value);
+	conf_set_filename(conf, CONF_logfilename, fn);
+	conf_set_int(conf, CONF_logtype,
+                     !strcmp(p, "-sessionlog") ? LGTYP_DEBUG :
+                     !strcmp(p, "-sshlog") ? LGTYP_PACKETS :
+                     /* !strcmp(p, "-sshrawlog") ? */ LGTYP_SSHRAW);
+        filename_free(fn);
+    }
+
     return ret;			       /* unrecognised */
 }
 

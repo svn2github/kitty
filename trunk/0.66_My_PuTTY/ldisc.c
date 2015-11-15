@@ -24,6 +24,8 @@
 
 /* rutty: special entry point for local data (in windows.c) */
 #ifdef RUTTYPORT
+int get_param( const char * val ) ;
+int GetRuTTYFlag(void);
 extern int from_backend_local(void *frontend, int is_stderr, const char *data, int len);
 static void c_write(Ldisc ldisc, char *buf, int len)
 {

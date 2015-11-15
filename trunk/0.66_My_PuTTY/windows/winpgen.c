@@ -24,6 +24,7 @@
 
 static char *cmdline_keyfile = NULL;
 
+#ifndef INTEGRATED_KEYGEN
 /*
  * Print a modal (Really Bad) message box and perform a fatal exit.
  */
@@ -56,6 +57,7 @@ void nonfatal(char *fmt, ...)
 	       MB_SYSTEMMODAL | MB_ICONERROR | MB_OK);
     sfree(stuff);
 }
+#endif
 
 /* ----------------------------------------------------------------------
  * Progress report code. This is really horrible :-)
@@ -302,7 +304,11 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 	    return 0;
 	  case 101:
 	    EnableWindow(hwnd, 0);
+#ifdef INTEGRATED_KEYGEN
+	    DialogBox(hinst, MAKEINTRESOURCE(814), hwnd, LicenceProc);
+#else
 	    DialogBox(hinst, MAKEINTRESOURCE(214), hwnd, LicenceProc);
+#endif
 	    EnableWindow(hwnd, 1);
 	    SetActiveWindow(hwnd);
 	    return 0;
@@ -433,6 +439,7 @@ static int save_ssh1_pubkey(char *filename, struct RSAKey *key)
     return 1;
 }
 
+#ifndef INTEGRATED_KEYGEN
 /*
  * Warn about the obsolescent key file format.
  */
@@ -452,6 +459,7 @@ void old_keyfile_warning(void)
 
     MessageBox(NULL, message, mbtitle, MB_OK);
 }
+#endif
 
 static int save_ssh2_pubkey(char *filename, struct ssh2_userkey *key)
 {
@@ -677,7 +685,11 @@ void load_key_file(HWND hwnd, struct MainDlgState *state,
             pps.passphrase = &passphrase;
             pps.comment = comment;
 	    dlgret = DialogBoxParam(hinst,
+#ifdef INTEGRATED_KEYGEN
+				    MAKEINTRESOURCE(810),
+#else
 				    MAKEINTRESOURCE(210),
+#endif
 				    NULL, PassphraseProc,
 				    (LPARAM) &pps);
 	    if (!dlgret) {
@@ -826,8 +838,13 @@ static int CALLBACK MainDlgProc(HWND hwnd, UINT msg,
              * if the help file isn't present.
              */
         }
+#ifdef INTEGRATED_KEYGEN
+	SendMessage(hwnd, WM_SETICON, (WPARAM) ICON_BIG,
+		    (LPARAM) LoadIcon(hinst, MAKEINTRESOURCE(800)));
+#else
 	SendMessage(hwnd, WM_SETICON, (WPARAM) ICON_BIG,
 		    (LPARAM) LoadIcon(hinst, MAKEINTRESOURCE(200)));
+#endif
 
 	state = snew(struct MainDlgState);
 	state->generation_thread_exists = FALSE;
@@ -1047,7 +1064,11 @@ static int CALLBACK MainDlgProc(HWND hwnd, UINT msg,
 	    break;
 	  case IDC_ABOUT:
 	    EnableWindow(hwnd, 0);
+#ifdef INTEGRATED_KEYGEN
+	    DialogBox(hinst, MAKEINTRESOURCE(813), hwnd, AboutProc);
+#else
 	    DialogBox(hinst, MAKEINTRESOURCE(213), hwnd, AboutProc);
+#endif
 	    EnableWindow(hwnd, 1);
 	    SetActiveWindow(hwnd);
 	    return 0;
@@ -1415,6 +1436,7 @@ static int CALLBACK MainDlgProc(HWND hwnd, UINT msg,
     return 0;
 }
 
+#ifndef INTEGRATED_KEYGEN
 void cleanup_exit(int code)
 {
     shutdown_help();
@@ -1422,6 +1444,9 @@ void cleanup_exit(int code)
 }
 
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
+#else
+int WINAPI KeyGen_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
+#endif
 {
     int argc;
     char **argv;

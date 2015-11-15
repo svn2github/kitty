@@ -76,6 +76,11 @@
 #define WHEEL_DELTA 120
 #endif
 
+/* VK_PACKET, used to send Unicode characters in WM_KEYDOWNs */
+#ifndef VK_PACKET
+#define VK_PACKET 0xE7
+#endif
+
 static Mouse_Button translate_button(Mouse_Button button);
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
@@ -270,6 +275,14 @@ void netscheduler_free(struct netscheduler_tag* netscheduler) ;
 
 /* Flag pour interdire l'ouverture de boite configuration */
 int force_reconf = 1 ;
+
+#ifdef INTEGRATED_KEYGEN
+int WINAPI KeyGen_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show);
+#endif
+#ifdef INTEGRATED_AGENT
+int WINAPI Agent_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show);
+#endif
+
 #endif
 
 #ifdef WTSPORT
@@ -369,6 +382,7 @@ static void start_backend(void)
 	    back->free(backhandle);
 	    backhandle = NULL;
 	    back = NULL;
+	    logevent(NULL, "Lost connection, trying to reconnect...") ; 
 	    SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
 	    return ;
 	    }
@@ -469,7 +483,6 @@ stpcpy_max(char *dst, const char *src, size_t n)
 
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
-    WNDCLASS wndclass;
     MSG msg;
     HRESULT hr;
     int guess_width, guess_height;
@@ -558,7 +571,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 		default_port = b->default_port;
 	}
 	conf_set_int(conf, CONF_logtype, LGTYP_NONE);
-
 	do_defaults(NULL, conf);
 #ifdef PERSOPORT
 	// On cree la session "Default Settings" si elle n'existe pas
@@ -567,7 +579,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	}
 #endif
 	p = cmdline;
-
 	/*
 	 * Process a couple of command-line options which are more
 	 * easily dealt with before the line is broken up into words.
@@ -640,8 +651,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 		char *p = argv[i];
 		int ret;
 
-		ret = cmdline_process_param(p, i+1<argc?argv[i+1]:NULL,
+	        ret = cmdline_process_param(p, i+1<argc?argv[i+1]:NULL,
 					    1, conf);
+
 		if (ret == -2) {
 		    cmdline_error("option \"%s\" requires an argument", p);
 		} else if (ret == 2) {
@@ -812,7 +824,21 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			return Notepad_WinMain(inst, prev, buffer, show) ;
 #ifdef LAUNCHERPORT
 		} else if( !strcmp(p, "-launcher") ) {
-			return Launcher_WinMain(inst, prev, cmdline, show) ;
+			char *np;
+			np=strstr(cmdline,"-launcher")+9;
+			return Launcher_WinMain(inst, prev, np, show) ;
+#endif
+#ifdef INTEGRATED_KEYGEN
+		} else if( !strcmp(p, "-keygen") ) {
+			char *np;
+			np=strstr(cmdline,"-keygen")+7;
+			return KeyGen_WinMain(inst, prev, np, show) ;
+#endif
+#ifdef INTEGRATED_AGENT
+		} else if( !strcmp(p, "-runagent") ) {
+			char *np;
+			np=strstr(cmdline,"-runagent")+9;
+			return Agent_WinMain(inst, prev, np, show) ;
 #endif
 		} else if( !strcmp(p, "-convert-dir") ) {
 			return Convert2Dir( ConfigDirectory ) ;
@@ -1126,6 +1152,8 @@ if( conf_get_int(conf,CONF_icone) == 0 ) {
 #endif
 
     if (!prev) {
+        WNDCLASSW wndclass;
+
 	wndclass.style = 0;
 	wndclass.lpfnWndProc = WndProc;
 	wndclass.cbClsExtra = 0;
@@ -1145,12 +1173,12 @@ if( conf_get_int(conf,CONF_icone) == 0 ) {
 	wndclass.hbrBackground = NULL;
 	wndclass.lpszMenuName = NULL;
 #if (defined PERSOPORT) && (!defined FDJ)
-	wndclass.lpszClassName = KiTTYClassName ;
+	wndclass.lpszClassName = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, KiTTYClassName);
 #else
-	wndclass.lpszClassName = appname;
+	wndclass.lpszClassName = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
 #endif
 
-	RegisterClass(&wndclass);
+	RegisterClassW(&wndclass);
     }
 #ifdef PERSOPORT
 // Initialisation de la structure NOTIFYICONDATA
@@ -1198,6 +1226,7 @@ TrayIcone.hWnd = hwnd ;
     {
 	int winmode = WS_OVERLAPPEDWINDOW | WS_VSCROLL;
 	int exwinmode = 0;
+        wchar_t *uappname = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
 	if (!conf_get_int(conf, CONF_scrollbar))
 	    winmode &= ~(WS_VSCROLL);
 	if (conf_get_int(conf, CONF_resize_action) == RESIZE_DISABLED)
@@ -1238,24 +1267,25 @@ TrayIcone.hWnd = hwnd ;
 		// when we're handling our own border here.
 	}
 
-	hwnd = CreateWindowEx(exwinmode|WS_EX_ACCEPTFILES, appname, winname,
+	hwnd = CreateWindowExW(exwinmode|WS_EX_ACCEPTFILES, uappname, winname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
 			      NULL, NULL, inst, NULL);
 
 	if( BackgroundImageFlag ) init_dc_blend();
 #else
-	hwnd = CreateWindowEx(exwinmode|WS_EX_ACCEPTFILES, appname, appname,
+	hwnd = CreateWindowExW(exwinmode|WS_EX_ACCEPTFILES, uappname, uappname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
 			      NULL, NULL, inst, NULL);
 #endif
 #else
-	hwnd = CreateWindowEx(exwinmode, appname, appname,
+	hwnd = CreateWindowExW(exwinmode, uappname, uappname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
 			      NULL, NULL, inst, NULL);
 #endif
+        sfree(uappname);
     }
 
     /*
@@ -1435,46 +1465,45 @@ TrayIcone.hWnd = hwnd ;
     
 	if( !PuttyFlag ) {
 		// Lancement automatique dans le Tray
-		if( conf_get_int(conf,CONF_sendtotray)/*cfg.sendtotray*/ ) SetAutoSendToTray( 1 ) ;
+		if( conf_get_int(conf,CONF_sendtotray) ) SetAutoSendToTray( 1 ) ;
 			
 		// Charge le fichier de script d'initialisation si il existe
 		ScriptFileContent = NULL ;
 		ReadInitScript( NULL ) ;
 		
 		// Lancement du serveur de chat
-		static char reg_buffer[256];
+		static char reg_buffer[4096];
 		if( ReadParameter( INIT_SECTION, "chat", reg_buffer ) ) 
 			{
 			int chat_flag = atoi( reg_buffer ) ;
 			if ( chat_flag > 0 ) {
 				if( chat_flag != 1 ) PORT = chat_flag ; _beginthread( routine_server, 0, NULL ) ;
-				//if( chat_flag == 1 ) chat_flag = 1987 ;	server_run_routine( chat_flag, 2 ) ;
 				}
 			}
 
 		// Parametrage specifique a la session
-		if( GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "InitDelay", reg_buffer ) ) {
+		if( GetSessionField( conf_get_str(conf,CONF_sessionname), conf_get_str(conf,CONF_folder), "InitDelay", reg_buffer ) ) {
 			if( init_delay != (int)(1000*atof( reg_buffer ) ) ) { 
 					init_delay = (int)(1000*atof( reg_buffer ) ) ; 
-					conf_set_int(conf,CONF_initdelay,init_delay)/*cfg.initdelay = atof( reg_buffer )*/ ; 
+					conf_set_int(conf,CONF_initdelay,init_delay) ; 
 				}
 			}
-		if( GetSessionField( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf_get_str(conf,CONF_folder)/*cfg.folder*/, "BCDelay", reg_buffer ) ) {
+		if( GetSessionField( conf_get_str(conf,CONF_sessionname), conf_get_str(conf,CONF_folder), "BCDelay", reg_buffer ) ) {
 			if( between_char_delay != atof( reg_buffer ) ) { 
 				between_char_delay = atof( reg_buffer ) ;
-				conf_set_int(conf,CONF_bcdelay, atof( reg_buffer ) ); //cfg.bcdelay = atof( reg_buffer ) ; 
+				conf_set_int(conf,CONF_bcdelay, atof( reg_buffer ) ); 
 				}
 			}
 
 #ifndef NO_TRANSPARENCY
-		if( GetTransparencyFlag() && conf_get_int(conf,CONF_transparencynumber)/*cfg.transparencynumber*/ != -1 ) {
-			if( conf_get_int(conf,CONF_transparencynumber)/*cfg.transparencynumber*/ > 0 ) { 
-				SetTransparency( hwnd, 255-conf_get_int(conf,CONF_transparencynumber)/*cfg.transparencynumber*/ ) ;
+		if( GetTransparencyFlag() && conf_get_int(conf,CONF_transparencynumber) != -1 ) {
+			if( conf_get_int(conf,CONF_transparencynumber) > 0 ) { 
+				SetTransparency( hwnd, 255-conf_get_int(conf,CONF_transparencynumber) ) ;
 				}
 			}
 #endif
 		// Lancement du timer auto-command pour les connexions non SSH
-		if(conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ != PROT_SSH) backend_connected = 1 ;
+		if(conf_get_int(conf,CONF_protocol) != PROT_SSH) backend_connected = 1 ;
 		SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 
 		if( IniFileFlag == SAVEMODE_REG ) {
@@ -1494,14 +1523,14 @@ TrayIcone.hWnd = hwnd ;
 			SetTimer(hwnd, TIMER_SLIDEBG, (int)(ImageSlideDelay*1000), NULL) ;
 			}
 
-		// Lancement du rafraichissement toutes les 5 minutes (pour l'image de fond, pour pallier bug d'affichage)
+		// Lancement du rafraichissement toutes les 10 minutes (pour l'image de fond, pour pallier bug d'affichage)
 		if( ReadParameter( INIT_SECTION, "redraw", reg_buffer ) ) {
-			if( stricmp( reg_buffer, "NO" ) ) SetTimer(hwnd, TIMER_REDRAW, (int)(300*1000), NULL) ;
+			if( stricmp( reg_buffer, "NO" ) ) SetTimer(hwnd, TIMER_REDRAW, (int)(600*1000), NULL) ;
 			}
-		else SetTimer(hwnd, TIMER_REDRAW, (int)(300*1000), NULL) ;
+		else SetTimer(hwnd, TIMER_REDRAW, (int)(600*1000), NULL) ;
 		
 		// Lancement du timer d'anti-idle
-		SetTimer(hwnd, TIMER_ANTIIDLE, (int)(10*1000), NULL) ;
+		SetTimer(hwnd, TIMER_ANTIIDLE, (int)(30*1000), NULL) ;
 #endif
 			
 		} // fin de if( !PuttyFlag )
@@ -1609,12 +1638,12 @@ ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknock
 	} else
 	    sfree(handles);
 
-	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+	while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
 	    if (msg.message == WM_QUIT)
 		goto finished;	       /* two-level break */
 
 	    if (!(IsWindow(logbox) && IsDialogMessage(logbox, &msg)))
-		DispatchMessage(&msg);
+		DispatchMessageW(&msg);
 #ifdef ZMODEMPORT
 	    	    if( (!PuttyFlag) && GetZModemFlag() && xyz_Process(back, backhandle, term))
 		    continue;
@@ -1911,7 +1940,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
     char *stuff, morestuff[100];
 #ifdef RECONNECTPORT
 	SetConnBreakIcon() ;
-	if ( conf_get_int(conf,CONF_failure_reconnect) ) {
+	if( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
 		
 /*
  		time_t tnow = time(NULL);
@@ -1944,6 +1973,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
 
 	time_t tnow = time(NULL);
 	queue_toplevel_callback(close_session, NULL);
+	logevent(NULL, "Lost connection, trying to reconnect...") ;
 	SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
 
  	} else {
@@ -3115,6 +3145,12 @@ else if((UINT_PTR)wParam == TIMER_ANTIIDLE) {  // Envoi de l'anti-idle
 		if(strlen( conf_get_str(conf,CONF_antiidle) ) > 0) SendAutoCommand( hwnd, conf_get_str(conf,CONF_antiidle) ) ;
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
+	if(!back||!backend_connected) { // On essaie de se reconnecter en cas de problème de connexion
+		if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) 
+			logevent(NULL, "Lost connection, trying to reconnect...") ; 
+			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
+			break;
+		}
 	}
 else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (print '\007' pour simuler)
 	static int BlinkingState = 0 ;
@@ -3138,12 +3174,13 @@ else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone d
 	}
 #ifdef RECONNECTPORT
 else if((UINT_PTR)wParam == TIMER_RECONNECT) {
-	KillTimer( hwnd, TIMER_RECONNECT ) ;
-	if( !backend_connected ) { 
+	if( !back ) { 
 		logevent(NULL, "Lost connection, reconnecting...") ;
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; 
-		}
+	} else {
+		KillTimer( hwnd, TIMER_RECONNECT ) ;
 	}
+}
 #endif
 else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation                                                                                                               
 	timestamp_change_filename() ;
@@ -3372,6 +3409,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		start_backend();
 		if(!back) { 
 		    if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) 
+			logevent(NULL, "Unable to connect, trying to reconnect...") ; 
 			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
 			break;
 		}
@@ -3932,7 +3970,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
         if(!PuttyFlag && GetMouseShortcutsFlag() ) {
 	if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
 		if( back ) SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ;
-		else SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;
+		else { if( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) { SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; } }
 		break ;
 		}
 
@@ -4807,7 +4845,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_SYSKEYUP:
 #endif
 #ifdef RECONNECTPORT
-	if( !back &&  conf_get_int(conf,CONF_failure_reconnect) ) { 
+	if( !back &&  conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) { 
 		logevent(NULL, "Lost connection, trying to reconnect...") ; 
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
 		break ;
@@ -4893,7 +4931,8 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    unsigned char buf[20];
 	    int len;
 
-	    if (wParam == VK_PROCESSKEY) { /* IME PROCESS key */
+	    if (wParam == VK_PROCESSKEY || /* IME PROCESS key */
+                wParam == VK_PACKET) {     /* 'this key is a Unicode char' */
 		if (message == WM_KEYDOWN) {
 		    MSG m;
 		    m.hwnd = hwnd;
@@ -4905,7 +4944,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    } else {
 		len = TranslateKey(message, wParam, lParam, buf);
 		if (len == -1)
-		    return DefWindowProc(hwnd, message, wParam, lParam);
+		    return DefWindowProcW(hwnd, message, wParam, lParam);
 
 		if (len != 0) {
 		    /*
@@ -5009,10 +5048,21 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	 * we're ready to cope.
 	 */
 	{
-	    char c = (unsigned char)wParam;
+            static wchar_t pending_surrogate = 0;
+	    wchar_t c = wParam;
+
+            if (IS_HIGH_SURROGATE(c)) {
+                pending_surrogate = c;
+            } else if (IS_SURROGATE_PAIR(pending_surrogate, c)) {
+                wchar_t pair[2];
+                pair[0] = pending_surrogate;
+                pair[1] = c;
 	    term_seen_key_event(term);
-	    if (ldisc)
-		lpage_send(ldisc, CP_ACP, &c, 1, 1);
+                luni_send(ldisc, pair, 2, 1);
+            } else if (!IS_SURROGATE(c)) {
+                term_seen_key_event(term);
+                luni_send(ldisc, &c, 1, 1);
+            }
 	}
 	return 0;
       case WM_SYSCOLORCHANGE:
@@ -5038,7 +5088,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	return 0;
 #ifdef RECONNECTPORT
       case WM_POWERBROADCAST:
-	if(conf_get_int(conf,CONF_wakeup_reconnect)) {
+	if(conf_get_int(conf,CONF_wakeup_reconnect) && backend_first_connected) {
 		switch(wParam) {
 			case PBT_APMRESUMESUSPEND:
 			case PBT_APMRESUMEAUTOMATIC:
@@ -5059,15 +5109,8 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 					start_backend();
 					SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 					*/
-					logevent(NULL, "Woken up from suspend, waiting for delay..." ) ;
-					int nbSecWait = GetReconnectDelay() ;
-					if( nbSecWait > 600 ) { nbSecWait = 600 ; }
-					while( nbSecWait>=0 ) { Sleep( 1000 ) ; nbSecWait-- ; }
-					logevent(NULL, "Woken up from suspend, reconnecting...") ;
-					term_pwron(term, FALSE);
-					backend_connected = 0 ;
-					start_backend();
-					SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
+					logevent(NULL, "Lost connection, trying to reconnect...") ; 
+					SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
 				}
 				break;
 			case PBT_APMSUSPEND:
@@ -5142,7 +5185,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
      * Any messages we don't process completely above are passed through to
      * DefWindowProc() for default processing.
      */
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
 /*

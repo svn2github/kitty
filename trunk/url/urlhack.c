@@ -9,6 +9,9 @@
 #include "puttymem.h"
 #include <assert.h>
 
+extern int debug_flag ;
+void debug_logevent( const char *fmt, ... ) ;
+
 int urlhack_mouse_old_x = -1, urlhack_mouse_old_y = -1, urlhack_current_region = -1;
 
 static text_region **link_regions;
@@ -21,9 +24,12 @@ const char* urlhack_default_regex = "(((https?|ftp):\\/\\/)|www\\.)(([0-9]+\\.[0
 // Simplification de la regex par defaut pour essayer de résoudre le problème de crash (fuite mémoire) avec le patch hyperlink
 */
 
-const char* urlhack_default_regex =  "(((https?|ftp):\\/\\/)|www\\.)(([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)|localhost|([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\.(com|net|org|info|biz|gov|name|edu|[a-zA-Z][a-zA-Z]))(:[0-9]+)?((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?";
-//"((https?:\\/\\/)?(www\\.)?(([a-zA-Z0-9-]){2,}\\.){1,4}([a-zA-Z]){2,6}(:[0-9]{2,})?(\\/([a-zA-Z-_/.0-9#:+?%=&;,]*)?)?" ;
-//"((https?|ftp):\\/\\/)?(www\\.)?([a-zA-Z0-9-]{2,}\\.){1,4}[a-zA-Z]{2,6}(:[0-9]{2,5})?(\\/[a-zA-Z0-9-]*)*[/]?(\\?[^ 	\n\r]*)?";
+// Essai de regex qui accepte aussi les lien mailto://
+const char* urlhack_default_regex = " (((((https?|ftp):\\/\\/)|www\\.)(([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)|localhost|([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\.(com|net|org|info|biz|int|gov|name|edu|[a-zA-Z][a-zA-Z]))(:[0-9]+)?((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?)|(mailto:\\/\\/[a-zA-Z0-9\\-_\\.]+@[a-zA-Z0-9\\-_\\.]+\\.[a-z]{2,}))" ;
+
+
+// Celle-là marche c'est sûr
+//const char* urlhack_default_regex =  "(((https?|ftp):\\/\\/)|www\\.)(([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)|localhost|([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\.(com|net|org|info|biz|int|gov|name|edu|[a-zA-Z][a-zA-Z]))(:[0-9]+)?((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?";
 
 const char* urlhack_liberal_regex =
     "("
@@ -114,8 +120,10 @@ void urlhack_add_link_region(int x0, int y0, int x1, int y1)
 void urlhack_launch_url(const char* app, const char *url)
 {
     if (app) {
+	if( debug_flag ) { debug_logevent("Hyperlink: %s %s", app, url); }
         ShellExecute(NULL, NULL, app, url, NULL, SW_SHOWNORMAL);
     } else {
+	if( debug_flag ) { debug_logevent("Hyperlink: \"open\" %s", url); }
         ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
     }
 }

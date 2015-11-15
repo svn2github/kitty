@@ -34,6 +34,7 @@ static const char *const puttystr = PUTTY_REG_POS "\\Sessions";
 static const char hex[16] = "0123456789ABCDEF";
 
 #ifdef PERSOPORT
+#include "kitty_tools.h"
 #include "kitty_commun.h"
 #ifndef SAVEMODE_REG
 #define SAVEMODE_REG 0
@@ -808,21 +809,18 @@ void *open_settings_r(const char *sessionname)
 		/* JK: succes -> load structure setPack from file */
 		fileSize = GetFileSize(hFile, NULL);
 		fileCont = snewn(fileSize+16, char);
-
 		if (!ReadFile(hFile, fileCont, fileSize, &bytesRead, NULL)) {
 			errorShow("Unable to read session from file", p);
 			sfree(p);
 			return NULL;
 		}
 		sfree(p);
-
 		st1 = snew( struct setItem );
 		sp->fromFile = 1;
 		sp->handle = st1;
 		
 		p = fileCont;
 		sp->fileBuf = fileCont; /* JK: remeber for memory freeing */
-
 		/* JK: parse file in format:
 		 * key1\value1\
 		 * ...
@@ -836,10 +834,12 @@ void *open_settings_r(const char *sessionname)
 			st1->value = p;
 			p = strchr(p, '\\');
 			if (!p) break;
+//if( ((p-1)[0]=='\n')&&((p-2)[0]=='\r') ) { (p-2)[0]='\n' ; (p-1)[0]='\0' ; }
 			*p = '\0';
 			++p;
 			++p; /* for "\\\n" - human readable files */
-
+			while( (p[0]=='\r')||(p[0]=='\n') ) { p++; }
+//debug_log("@%s=%s|\n",st1->key,st1->value);
 			st2 = snew( struct setItem );
 			st2->next = NULL;
 			st2->key = NULL;

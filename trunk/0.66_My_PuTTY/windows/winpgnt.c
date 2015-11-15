@@ -30,7 +30,7 @@ extern int IniFileFlag ;
 // Flag permettant la gestion de l'arborscence (dossier=folder) dans le cas d'un savemode=dir
 extern int DirectoryBrowseFlag ;
 
-#include "../../kitty_crypt.c"
+#include "../../kitty_crypt.h"
 #include "../../kitty_commun.h"
 #endif
 
@@ -42,8 +42,13 @@ extern int DirectoryBrowseFlag ;
 #endif
 #endif
 
+#ifndef INTEGRATED_AGENT
 #define IDI_MAINICON 200
 #define IDI_TRAYICON 201
+#else
+#define IDI_MAINICON 900
+#define IDI_TRAYICON 901
+#endif
 
 #define WM_SYSTRAY   (WM_APP + 6)
 #define WM_SYSTRAY2  (WM_APP + 7)
@@ -97,6 +102,7 @@ static filereq *keypath = NULL;
 #define PUTTY_DEFAULT     "Default%20Settings"
 static int initial_menuitems_count;
 
+#ifndef INTEGRATED_AGENT
 /*
  * Print a modal (Really Bad) message box and perform a fatal exit.
  */
@@ -113,6 +119,7 @@ void modalfatalbox(char *fmt, ...)
     sfree(buf);
     exit(1);
 }
+#endif
 
 /* Un-munge session names out of the registry. */
 static void unmungestr(char *in, char *out, int outlen)
@@ -152,6 +159,7 @@ static void *make_keylist2(int *length);
 static void *get_keylist1(int *length);
 static void *get_keylist2(int *length);
 
+#ifndef INTEGRATED_AGENT
 /*
  * We need this to link with the RSA code, because rsaencrypt()
  * pads its data with random bytes. Since we only use rsadecrypt()
@@ -169,6 +177,7 @@ int random_byte(void)
     /* this line can't be reached but it placates MSVC's warnings :-) */
     return 0;
 }
+#endif
 
 /*
  * Blob structure for passing to the asymmetric SSH-2 key compare
@@ -391,6 +400,7 @@ static int CALLBACK PassphraseProc(HWND hwnd, UINT msg,
     return 0;
 }
 
+#ifndef INTEGRATED_AGENT
 /*
  * Warn about the obsolescent key file format.
  */
@@ -410,6 +420,7 @@ void old_keyfile_warning(void)
 
     MessageBox(NULL, message, mbtitle, MB_OK);
 }
+#endif
 
 /*
  * Update the visible key list.
@@ -1894,9 +1905,14 @@ static BOOL AddTrayIcon(HWND hwnd)
     tnid.uID = 1;	       /* unique within this systray use */
     tnid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     tnid.uCallbackMessage = WM_SYSTRAY;
+#ifndef INTEGRATED_AGENT
     tnid.hIcon = hicon = LoadIcon(hinst, MAKEINTRESOURCE(201));
     strcpy(tnid.szTip, "Pageant (PuTTY authentication agent)");
-
+#else
+    tnid.hIcon = hicon = LoadIcon(hinst, MAKEINTRESOURCE(901));
+    strcpy(tnid.szTip, "Kageant (KiTTY authentication agent)");
+#endif
+	
     res = Shell_NotifyIcon(NIM_ADD, &tnid);
 
     if (hicon) DestroyIcon(hicon);
@@ -2270,6 +2286,7 @@ void spawn_cmd(char *cmdline, char * args, int show)
     }
 }
 
+#ifndef INTEGRATED_AGENT
 /*
  * This is a can't-happen stub, since Pageant never makes
  * asynchronous agent requests.
@@ -2285,10 +2302,15 @@ void cleanup_exit(int code)
     shutdown_help();
     exit(code);
 }
+#endif
 
 int flags = FLAG_SYNCAGENT;
 
+#ifndef INTEGRATED_AGENT
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
+#else
+int WINAPI Agent_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
+#endif
 {
     WNDCLASS wndclass;
     MSG msg;

@@ -694,6 +694,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_s(sesskey, "ScriptWait", conf_get_str(conf, CONF_script_waitfor));
     write_setting_s(sesskey, "ScriptHalt", conf_get_str(conf, CONF_script_halton));
 #endif  /* rutty */
+/* potty :*/
 #ifdef SCPORT
     write_setting_i(sesskey, "PKCS11SysLog", conf_get_int(conf,CONF_try_write_syslog) );
     write_setting_i(sesskey, "AuthPKCS11", conf_get_int(conf,CONF_try_pkcs11_auth) /*cfg->try_pkcs11_auth*/);
@@ -810,13 +811,18 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "SaveWindowPos", conf_get_int(conf, CONF_save_windowpos) /*cfg->save_windowpos*/); /* BKG */
     write_setting_i(sesskey, "ForegroundOnBell", conf_get_int(conf, CONF_foreground_on_bell) /*cfg->foreground_on_bell*/);
 
-    sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host)/*cfg->host*/, conf_get_str(conf, CONF_termtype)/*cfg->termtype*/ ) ;
-    char pst[1024] ;
+    if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
+	sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    } else {
+	strcpy( PassKey, "" ) ;
+    }
+    char pst[4096] ;
     strcpy( pst, conf_get_str(conf, CONF_password ) );
     MASKPASS(pst);
     cryptstring( pst, PassKey ) ;
     write_setting_s(sesskey, "Password", pst);
     memset(pst,0,strlen(pst));
+
     write_setting_i(sesskey, "CtrlTabSwitch", conf_get_int(conf, CONF_ctrl_tab_switch));
     write_setting_s(sesskey, "Comment", conf_get_str(conf, CONF_comment) );
     write_setting_i(sesskey, "ACSinUTF", conf_get_int(conf, CONF_acs_in_utf));
@@ -832,8 +838,8 @@ void load_settings(char *section, Conf *conf)
     sesskey = open_settings_r(section);
     load_open_settings(sesskey, conf);
 #ifdef PERSOPORT
-	if( section != NULL ) conf_set_str( conf, CONF_sessionname, section ) /*strcpy( cfg->sessionname, section )*/ ;
-	else conf_set_str( conf, CONF_sessionname, "" ) /*strcpy( cfg->sessionname, "" )*/ ;
+	if( section != NULL ) conf_set_str( conf, CONF_sessionname, section ) ;
+	else conf_set_str( conf, CONF_sessionname, "" ) ;
 #endif
     close_settings_r(sesskey);
 
@@ -845,7 +851,6 @@ void load_open_settings(void *sesskey, Conf *conf)
 {
     int i;
     char *prot;
-
 #ifdef PERSOPORT
     /*
      * HACK: PuTTY-url
@@ -863,6 +868,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 
     gpps(sesskey, "HostName", "", conf, CONF_host);
     gppfile(sesskey, "LogFileName", conf, CONF_logfilename);
+
     gppi(sesskey, "LogType", 0, conf, CONF_logtype);
     gppi(sesskey, "LogFileClash", LGXF_ASK, conf, CONF_logxfovr);
     gppi(sesskey, "LogFlush", 1, conf, CONF_logflush);
@@ -1244,7 +1250,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 	gppi(sesskey, "ScriptTimeout", 30, conf, CONF_script_timeout);
 	gpps(sesskey, "ScriptWait", "", conf, CONF_script_waitfor);
 	gpps(sesskey, "ScriptHalt", "", conf, CONF_script_halton);
-#endif  /* rutty */   
+#endif  /* rutty */
 #ifdef SCPORT
     gppi(sesskey, "PKCS11SysLog", 0, conf, CONF_try_write_syslog );
     gppi(sesskey, "AuthPKCS11", 0, conf, CONF_try_pkcs11_auth /*&cfg->try_pkcs11_auth*/);
@@ -1371,13 +1377,16 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "SaveWindowPos", 0, conf, CONF_save_windowpos /*&cfg->save_windowpos*/); /* BKG */
     gppi(sesskey, "ForegroundOnBell", 0, conf, CONF_foreground_on_bell /*&cfg->foreground_on_bell*/);
 
-    char PassKey[1024] = "" ;
-    sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
+	sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    } else {
+	strcpy( PassKey, "" ) ;
+    }
     gpps(sesskey, "Password", "", conf, CONF_password );
-    char pst[1024] ;
-    strcpy( pst, conf_get_str( conf, CONF_password ) ) ;
+    char pst[4096] ;
+    if( strlen(conf_get_str(conf, CONF_password))<=4095 ) { strcpy( pst, conf_get_str(conf, CONF_password) ) ; }
+    else { memcpy( pst, conf_get_str( conf, CONF_password ), 4095 ) ; pst[4095]='\0'; }
     decryptstring( pst, PassKey ) ;
-    
     if( strlen( pst ) > 0 ) {
 	FILE *fp ;
 	if( ( fp = fopen( "kitty.password", "r") ) != NULL ) { // Affichage en clair du password dans le fichier kitty.password si celui-ci existe
@@ -1390,8 +1399,8 @@ void load_open_settings(void *sesskey, Conf *conf)
 	}
     MASKPASS(pst);
     conf_set_str( conf, CONF_password, pst ) ;
-    
     memset(pst,0,strlen(pst));
+
     gppi(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps(sesskey, "Comment", "", conf, CONF_comment );
     gppi(sesskey, "ACSinUTF", 0, conf, CONF_acs_in_utf);
@@ -1399,7 +1408,6 @@ void load_open_settings(void *sesskey, Conf *conf)
 #ifdef PORTKNOCKINGPORT
 	gpps(sesskey, "PortKnocking", "", conf, CONF_portknockingoptions );
 #endif
-
 }
 
 void do_defaults(char *session, Conf *conf)

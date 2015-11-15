@@ -90,7 +90,7 @@ void DelDir( const char * directory ) {
 char  * IniFile = NULL ;
 char INIT_SECTION[10];
 int ReadParameterLight( const char * key, const char * name, char * value ) {
-	char buffer[1024] ;
+	char buffer[4096] ;
 	strcpy( buffer, "" ) ;
 
 	if( GetValueData( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), name, buffer ) == NULL ) {
@@ -106,7 +106,7 @@ int ReadParameterLight( const char * key, const char * name, char * value ) {
 int LoadParametersLight( void ) {
 	FILE * fp = NULL ;
 	int ret = 0 ;
-	char buffer[256] ;
+	char buffer[4096] ;
 
 #ifndef FDJ
 	if( (fp = fopen( "kitty.ini", "r" )) != NULL ) {
@@ -164,18 +164,19 @@ int LoadParametersLight( void ) {
 		else  DirectoryBrowseFlag = 0 ;
 		}
 	else {
-		char buffer[4096] ;
 #ifndef FDJ
 		sprintf( buffer, "%s/KiTTY/kitty.ini", getenv("APPDATA") );
 		if( (fp = fopen( buffer, "r" )) != NULL ) {
-			IniFile = (char*)malloc(strlen(buffer)+1) ; strcpy(IniFile,buffer);
+			IniFile = (char*)malloc(strlen(buffer)+1) ; 
+			strcpy(IniFile,buffer);
 			strcpy(INIT_SECTION,"KiTTY");
 			fclose(fp);
 		} else {
 #endif
 		sprintf( buffer, "%s/PuTTY/putty.ini", getenv("APPDATA") );
 		if( (fp = fopen( buffer, "r" )) != NULL ) {
-			IniFile = (char*)malloc(strlen(buffer)+1) ; strcpy(IniFile,buffer);
+			IniFile = (char*)malloc(strlen(buffer)+1) ; 
+			strcpy(IniFile,buffer);
 			strcpy(INIT_SECTION,"PuTTY");
 			fclose(fp);
 		} 

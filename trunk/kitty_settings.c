@@ -301,6 +301,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_s_forced(sesskey, "ScriptWait", conf_get_str(conf, CONF_script_waitfor));
     write_setting_s_forced(sesskey, "ScriptHalt", conf_get_str(conf, CONF_script_halton));
 #endif  /* rutty */
+/* potty :*/
 #ifdef SCPORT
     write_setting_i_forced(sesskey, "PKCS11SysLog", conf_get_int(conf,CONF_try_write_syslog) );
     write_setting_i_forced(sesskey, "AuthPKCS11", conf_get_int(conf,CONF_try_pkcs11_auth) /*cfg->try_pkcs11_auth*/);
@@ -417,8 +418,12 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "SaveWindowPos", conf_get_int(conf, CONF_save_windowpos) /*cfg->save_windowpos*/); /* BKG */
     write_setting_i_forced(sesskey, "ForegroundOnBell", conf_get_int(conf, CONF_foreground_on_bell) /*cfg->foreground_on_bell*/);
 
-    sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host)/*cfg->host*/, conf_get_str(conf, CONF_termtype)/*cfg->termtype*/ ) ;
-    char pst[1024] ;
+    if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
+	sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    } else { 
+	strcpy( PassKey, "" ) ;
+    }
+    char pst[4096] ;
     strcpy( pst, conf_get_str(conf, CONF_password ) );
     MASKPASS(pst);
     cryptstring( pst, PassKey ) ;
@@ -979,26 +984,21 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "SaveWindowPos", 0, conf, CONF_save_windowpos /*&cfg->save_windowpos*/); /* BKG */
     gppi_forced(sesskey, "ForegroundOnBell", 0, conf, CONF_foreground_on_bell /*&cfg->foreground_on_bell*/);
 
-    char PassKey[1024] = "" ;
-    sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
+	sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+    } else {
+	strcpy( PassKey, "" ) ;
+    }
     gpps_forced(sesskey, "Password", "", conf, CONF_password );
-    char pst[1024] ;
-    strcpy( pst, conf_get_str( conf, CONF_password ) );
-
+    char pst[4096] ;
+    if( strlen(conf_get_str(conf, CONF_password))<=4095 ) { strcpy( pst, conf_get_str(conf, CONF_password) ) ; }
+    else { memcpy( pst, conf_get_str( conf, CONF_password ), 4095 ) ; pst[4095]='\0'; }
     decryptstring( pst, PassKey ) ;
-    if( strlen( pst ) > 0 ) {
-	FILE *fp ;
-	if( ( fp = fopen( "kitty.password", "r") ) != NULL ) { // Affichage en clair du password dans le fichier kitty.password si celui-ci existe
-		fclose( fp ) ;
-		if( ( fp = fopen( "kitty.password", "w" ) ) != NULL ) {
-			fprintf( fp, "%s", pst ) ;
-			fclose( fp ) ;
-			}
-		}
-	}
+
     MASKPASS(pst);
     conf_set_str( conf, CONF_password, pst ) ;
     memset(pst,0,strlen(pst));
+
     gppi_forced(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps_forced(sesskey, "Comment", "", conf, CONF_comment );
     gppi_forced(sesskey, "ACSinUTF", 0, conf, CONF_acs_in_utf);

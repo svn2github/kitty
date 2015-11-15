@@ -1020,7 +1020,7 @@ void SetUsernameInConfig( char * username ) {
 		len = strlen( username ) ;
 		if( len > 126 ) len = 126 ;
 		username[len] = '\0' ;
-		conf_set_str(conf,CONF_username,username); /*memcpy( cfg.username, username, len+1 ) ;*/
+		conf_set_str(conf,CONF_username,username);
 		}
 	}
 
@@ -1212,7 +1212,7 @@ int license_test( char * license, char sep, int modulo, int result ) ;
 
 // Augmente le compteur d'utilisation dans la base de registre
 void CountUp( void ) {
-	char buffer[1024] = "0", *pst ;
+	char buffer[4096] = "0", *pst ;
 	long int n ;
 	int len = 1024 ;
 	
@@ -1222,6 +1222,7 @@ void CountUp( void ) {
 	WriteParameter( INIT_SECTION, "KiCount", buffer) ;
 	
 	if( ReadParameter( INIT_SECTION, "KiLastUp", buffer ) == 0 ) { sprintf( buffer, "%ld/", time(0) ) ; }
+	buffer[2048]='\0';
 	if( (pst=strstr(buffer,"/"))==NULL ) { strcat(buffer,"/") ; pst=buffer+strlen(buffer)-1 ; }
 	sprintf( pst+1, "%ld", time(0) ) ;
 	WriteParameter( INIT_SECTION, "KiLastUp", buffer) ;
@@ -1249,13 +1250,13 @@ void CountUp( void ) {
 			{ WriteParameter( INIT_SECTION, "KiPath", buffer) ; }
 			
 	if( ReadParameter( INIT_SECTION, "KiLic", buffer ) == 0 ) { 
-		strcpy( buffer, "KI63" ) ;
+		strcpy( buffer, "KI66" ) ;
 		license_make_with_first( buffer, 25, 97, 0 )  ;
 		license_form( buffer, '-', 5 ) ;
 		WriteParameter( INIT_SECTION, "KiLic", buffer) ; 
 		}
 	else if( !license_test( buffer, '-', 97, 0 ) ) {
-		strcpy( buffer, "KI63" ) ;
+		strcpy( buffer, "KI66" ) ;
 		license_make_with_first( buffer, 25, 97, 0 )  ;
 		license_form( buffer, '-', 5 ) ;
 		WriteParameter( INIT_SECTION, "KiLic", buffer) ; 
@@ -1381,7 +1382,6 @@ int WriteParameter( const char * key, const char * name, char * value ) {
 int ReadParameter( const char * key, const char * name, char * value ) {
 	char buffer[4096] ;
 	strcpy( buffer, "" ) ;
-
 	if( GetValueData( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS), name, buffer ) == NULL ) {
 		if( !readINI( KittyIniFile, key, name, buffer ) ) {
 			strcpy( buffer, "" ) ;
@@ -1948,6 +1948,7 @@ void RunScriptFile( HWND hwnd, const char * filename ) {
 void OpenAndSendScriptFile( HWND hwnd ) {
 	char filename[4096], buffer[4096] ;
 	if( ReadParameter( INIT_SECTION, "scriptfilefilter", buffer ) ) {
+		buffer[4090]='\0';
 		}
 	else strcpy( buffer, "Script files (*.ksh,*.sh)|*.ksh;*.sh|SQL files (*.sql)|*.sql|All files (*.*)|*.*|" ) ;
 	if( buffer[strlen(buffer)-1]!='|' ) strcat( buffer, "|" ) ;
@@ -1960,7 +1961,7 @@ void OpenAndSendScriptFile( HWND hwnd ) {
 int SearchPSCP( void ) ;
 static int nb_pscp_run = 0 ;
 void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdir) {
-	char buffer[4096], pscppath[4096]="", pscpport[16]="22", remotedir[4096]=".",dir[4096], b1[256] ;
+	char buffer[4096], pscppath[4096]="", pscpport[4096]="22", remotedir[4096]=".",dir[4096], b1[256] ;
 	int p ;
 	
 	if( distantdir == NULL ) { distantdir = kitty_current_dir(); } 
@@ -1999,6 +2000,7 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
 	
 	if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
+		pscpport[17]='\0';
 		if( !strcmp( pscpport,"*" ) ) sprintf( pscpport, "%d", conf_get_int(conf, CONF_port) ) ;
 		strcat( buffer, "-P " ) ;
 		strcat( buffer, pscpport ) ;
@@ -2185,7 +2187,7 @@ Il faut ensuite simplement taper: get filename
 C'est traite dans KiTTY par la fonction ManageLocalCmd
 */
 void GetOneFile( HWND hwnd, char * directory, char * filename ) {
-	char buffer[4096], pscppath[4096]="", pscpport[16]="22", dir[4096]=".", b1[256] ;
+	char buffer[4096], pscppath[4096]="", pscpport[4096]="22", dir[4096]=".", b1[256] ;
 	int p;
 	
 	if( PSCPPath==NULL ) {
@@ -2215,6 +2217,7 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
 	
 	if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
+		pscpport[17]='\0';
 		if( !strcmp( pscpport,"*" ) ) sprintf( pscpport, "%d", conf_get_int(conf,CONF_port) ) ;
 		strcat( buffer, "-P " ) ;
 		strcat( buffer, pscpport ) ;
@@ -2279,7 +2282,7 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 // Reception d'un fichier par SCP
 void GetFile( HWND hwnd ) {
 	char buffer[4096]="", b1[256], *pst ;
-	char dir[4096], pscppath[4096]="", pscpport[16]="22" ;
+	char dir[4096], pscppath[4096]="", pscpport[4096]="22" ;
 	int p;
 	
 	if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ != PROT_SSH ) {
@@ -2328,6 +2331,7 @@ void GetFile( HWND hwnd ) {
 					}
 						
 				if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
+					pscpport[17]='\0';
 					if( !strcmp( pscpport,"*" ) ) sprintf( pscpport, "%d", conf_get_int(conf,CONF_port) ) ;
 					strcat( buffer, "-P " ) ;
 					strcat( buffer, pscpport ) ;
@@ -3375,7 +3379,7 @@ int ShowPortfwd( HWND hwnd, Conf * conf ) {
 						if ( owner->dwState == MIB_TCP_STATE_LISTEN ) {
 							if( ntohs(owner->dwLocalPort) == atoi(key+1) ) {
 								if( GetCurrentProcessId() == owner->dwOwningPid ) p = dupprintf("[C] %s \t\t--> \t%s\n", key+1,val);
-								else p = dupprintf("[X] %s(%u)\t--> \t%s\n", key+1,owner->dwOwningPid,val) ;
+								else p = dupprintf("[X] %s(%u)\t--> \t%s\n", key+1,(unsigned int)owner->dwOwningPid,val) ;
 								found=1;
 								break;
 								}
@@ -3453,7 +3457,7 @@ int ShowPortfwd( HWND hwnd, char * portfwd ) {
 #endif
 
 int InternalCommand( HWND hwnd, char * st ) {
-	char buffer[1024] ;
+	char buffer[4096] ;
 
 	if( strstr( st, "/message " ) == st ) { MessageBox( hwnd, st+9, "Info", MB_OK ) ; return 1 ; }
 	else if( !strcmp( st, "/copytoputty" ) ) {
@@ -3584,7 +3588,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 		}
 	else if( !strcmp( st, "/passwd" ) && debug_flag ) {
 		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
-			char bufpass[1024], buffer[1024] ;
+			char bufpass[4096], buffer[4096] ;
 			strcpy( bufpass, conf_get_str(conf,CONF_password) ) ;
 			MASKPASS(bufpass);
 			sprintf( buffer, "Your password is\n-%s-", bufpass ) ;
@@ -3620,11 +3624,12 @@ int InternalCommand( HWND hwnd, char * st ) {
 		}
 	else if( !strcmp( st, "/-configpassword" ) ) {
 		if( ReadParameter( INIT_SECTION, "password", buffer ) ) {
-			decryptstring( buffer, MASTER_PASSWORD ) ;
-			MessageBox( hwnd, buffer, "Your password is ...", MB_OK|MB_ICONWARNING ) ;
+			if( decryptstring( buffer, MASTER_PASSWORD ) ) {
+				MessageBox( hwnd, buffer, "Your password is ...", MB_OK|MB_ICONWARNING ) ;
 			}
-		return 1 ;
 		}
+		return 1 ;
+	}
 	else if( !strcmp( st, "/switchcrypt" ) ) { SwitchCryptFlag() ; return 1 ; }
 	else if( !strcmp( st, "/redraw" ) ) { InvalidateRect( MainHwnd, NULL, TRUE ) ; return 1 ; }
 	else if( !strcmp( st, "/refresh" ) ) { RefreshBackground( MainHwnd ) ; return 1 ; }
@@ -3644,7 +3649,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 
 // Recherche le chemin vers le programme cthelper.exe
 int SearchCtHelper( void ) {
-	char buffer[1024] ;
+	char buffer[4096] ;
 	if( CtHelperPath!=NULL ) { free(CtHelperPath) ; CtHelperPath=NULL ; }
 	if( ReadParameter( INIT_SECTION, "CtHelperPath", buffer ) != 0 ) {
 		if( existfile( buffer ) ) { 
@@ -3668,7 +3673,7 @@ int SearchCtHelper( void ) {
 	
 // Recherche le chemin vers le programme WinSCP
 int SearchWinSCP( void ) {
-	char buffer[1024] ;
+	char buffer[4096] ;
 	if( WinSCPPath!=NULL) { free(WinSCPPath) ; WinSCPPath = NULL ; }
 	if( ReadParameter( INIT_SECTION, "WinSCPPath", buffer ) != 0 ) {
 		if( existfile( buffer ) ) { 
@@ -3697,6 +3702,7 @@ int SearchWinSCP( void ) {
 		return 1 ;
 		}
 	if( ReadParameter( INIT_SECTION, "winscpdir", buffer ) ) {
+		buffer[4076]='\0';
 		strcat( buffer, "\\" ) ; strcat( buffer, "WinSCP.exe" ) ;
 		if( existfile( buffer ) ) { 
 			WinSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( WinSCPPath, buffer ) ; 
@@ -3788,7 +3794,7 @@ start "C:\Program Files\WinSCP\WinSCP.exe" "%1" "%2" "%3" "%4" "%5" "%6" "%7" "%
 */	
 // winscp.exe [(sftp|ftp|scp)://][user[:password]@]host[:port][/path/[file]] [/privatekey=key_file]
 void StartWinSCP( HWND hwnd, char * directory ) {
-	char cmd[4096], shortpath[1024], buffer[256], proto[10] ;
+	char cmd[4096], shortpath[1024], buffer[4096], proto[10] ;
 	
 	if( directory == NULL ) { directory = kitty_current_dir(); } 
 	if( WinSCPPath==NULL ) {
@@ -3865,7 +3871,7 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 	
 // Recherche le chemin vers le programme PSCP
 int SearchPSCP( void ) {
-	char buffer[1024], ki[10]="kscp.exe", pu[10]="pscp.exe" ;
+	char buffer[4096], ki[10]="kscp.exe", pu[10]="pscp.exe" ;
 
 	if( PSCPPath!=NULL ) { free(PSCPPath) ; PSCPPath = NULL ; }
 	// Dans la base de registre
@@ -3878,6 +3884,7 @@ int SearchPSCP( void ) {
 
 	// Dans le fichier ini
 	if( ReadParameter( INIT_SECTION, "pscpdir", buffer ) ) {
+		buffer[4076]='\0';
 		strcat( buffer, "\\" ) ; strcat( buffer, ki ) ;
 		if( existfile( buffer ) ) { 
 			PSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( PSCPPath, buffer ) ; 
@@ -3886,6 +3893,7 @@ int SearchPSCP( void ) {
 			}
 		else {
 			ReadParameter( INIT_SECTION, "pscpdir", buffer ) ;
+			buffer[4076]='\0';
 			strcat( buffer, "\\" ) ; strcat( buffer, pu ) ;
 			if( existfile( buffer ) ) { 
 				PSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( PSCPPath, buffer ) ; 
@@ -3926,11 +3934,12 @@ int SearchPSCP( void ) {
 	
 // Recherche le chemin vers le programme Plink.exe
 int SearchPlink( void ) {
-	char buffer[1024], ki[10]="klink.exe", pu[10]="plink.exe" ;
+	char buffer[4096], ki[10]="klink.exe", pu[10]="plink.exe" ;
 
 	if( PlinkPath!=NULL ) { free(PlinkPath) ; PlinkPath = NULL ; }
 	// Dans la base de registre
 	if( ReadParameter( INIT_SECTION, "PlinkPath", buffer ) != 0 ) {
+		buffer[4076]='\0';
 		if( existfile( buffer ) ) { 
 			PlinkPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( PlinkPath, buffer ) ; return 1 ;
 			}
@@ -4578,7 +4587,7 @@ void TranslateShortcuts( char * st ) {
 	}
 	
 void InitShortcuts( void ) {
-	char buffer[256], list[2048], *pl ;
+	char buffer[4096], list[4096], *pl ;
 	int i, t=0 ;
 	if( !readINI(KittyIniFile,"Shortcuts","editor",buffer) || ( (shortcuts_tab.editor=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.editor = SHIFTKEY+VK_F2 ;
@@ -4627,6 +4636,7 @@ void InitShortcuts( void ) {
 			i=0;
 			while( (i<strlen(pl))&&(pl[i]!=' ') ) { i++ ; }
 			if( pl[i]==' ' ) { pl[i]='\0' ; t=1 ; }
+			if( strlen(pl)>0 )
 			if( ReadParameter( "Shortcuts", pl, buffer ) ) {
 				if( (pl[0]<'0')||(pl[0]>'9') ) {
 					shortcuts_tab2[NbShortCuts].num = DefineShortcuts( pl );
@@ -4864,7 +4874,7 @@ void LoadParameters( void ) {
 			strcpy( KittySavFile, buffer) ;
 			}
 		}
-	if( ReadParameter( INIT_SECTION, "antiidle", buffer ) ) { strcpy( AntiIdleStr, buffer ) ; }
+	if( ReadParameter( INIT_SECTION, "antiidle", buffer ) ) { buffer[127]='\0'; strcpy( AntiIdleStr, buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "antiidledelay", buffer ) ) 
 		{ AntiIdleCountMax = (int)floor(atoi(buffer)/10.0) ; if( AntiIdleCountMax<=0 ) AntiIdleCountMax =1 ; }
 	if( ReadParameter( INIT_SECTION, "shortcuts", buffer ) ) { if( !stricmp( buffer, "NO" ) ) ShortcutsFlag = 0 ; }
@@ -5105,7 +5115,6 @@ void InitWinMain( void ) {
 	}
 	if( getenv("KITTY_PATH")!=NULL ) { appendPath(getenv("KITTY_PATH")); }
 #endif
-	
 	// Initialisation des shortcuts
 	InitShortcuts() ;
 
@@ -5160,7 +5169,6 @@ void InitWinMain( void ) {
 	if( (IniFileFlag == SAVEMODE_REG)||( IniFileFlag == SAVEMODE_FILE) )  
 		if( !RegTestKey( HKEY_CURRENT_USER, buffer ) ) { InitLauncherRegistry() ; }
 #endif
-
 	// Initialise la liste des folders
 	InitFolderList() ;
 

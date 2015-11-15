@@ -15,7 +15,7 @@
 char ver[] = "Custom build" ;
 char sshver[] = "PuTTY-KiTTY\0                        " ;
 
-void set_sshver( const char * vers ) { strcpy( sshver, vers ) ; }
+void set_sshver( char * vers ) { vers[36]='\0'; strcpy( sshver, vers ) ; }
 #else
 char ver[] = TEXTVER;
 char sshver[] = SSHVER;

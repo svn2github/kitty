@@ -100,7 +100,6 @@ void SetSSHConnected( void ) ;
 #endif
 #endif
 
-
 /*
  * Codes for terminal modes.
  * Most of these are the same in SSH-1 and SSH-2.
@@ -380,6 +379,7 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 			     struct Packet *pktin);
 static void ssh2_channel_check_close(struct ssh_channel *c);
 static void ssh_channel_destroy(struct ssh_channel *c);
+static void ssh2_msg_something_unimplemented(Ssh ssh, struct Packet *pktin);
 
 /*
  * Buffer management constants. There are several of these for
@@ -1762,6 +1762,15 @@ static struct Packet *ssh2_rdpkt(Ssh ssh, unsigned char **data, int *datalen)
 	}
     }
 
+    /*
+     * RFC 4253 doesn't explicitly say that completely empty packets
+     * with no type byte are forbidden, so treat them as deserving
+     * an SSH_MSG_UNIMPLEMENTED.
+     */
+    if (st->pktin->length <= 5) { /* == 5 we hope, but robustness */
+        ssh2_msg_something_unimplemented(ssh, st->pktin);
+        crStop(NULL);
+    }
     /*
      * pktin->body and pktin->length should identify the semantic
      * content of the packet, excluding the initial type byte.
@@ -4613,8 +4622,13 @@ static int do_ssh1_login(Ssh ssh, unsigned char *in, int inlen,
 #ifdef PERSOPORT
 		ret=0;
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[1024] ;
-			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
+			char bufpass[4096] ;
+			if( strlen(conf_get_str(ssh->conf,CONF_password))<4090 ) {
+				strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
+			} else {
+				memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 4090 ) ;
+				bufpass[4090]='\0';
+			}
 			MASKPASS(bufpass);
 			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
 				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }
@@ -7112,7 +7126,6 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 	ssh->deferred_rekey_reason = NULL;
 	goto begin_key_exchange;
     }
-
     /*
      * Otherwise, schedule a timer for our next rekey.
      */
@@ -9254,11 +9267,20 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 		s->can_keyb_inter = conf_get_int(ssh->conf, CONF_try_ki_auth) &&
 		    in_commasep_string("keyboard-interactive", methods, methlen);
 #ifndef NO_GSSAPI
+                if (conf_get_int(ssh->conf, CONF_try_gssapi_auth) &&
+		    in_commasep_string("gssapi-with-mic", methods, methlen)) {
+                    /* Try loading the GSS libraries and see if we
+                     * have any. */
 		if (!ssh->gsslibs)
 		    ssh->gsslibs = ssh_gss_setup(ssh->conf);
-		s->can_gssapi = conf_get_int(ssh->conf, CONF_try_gssapi_auth) &&
-		    in_commasep_string("gssapi-with-mic", methods, methlen) &&
-		    ssh->gsslibs->nlibraries > 0;
+                    s->can_gssapi = (ssh->gsslibs->nlibraries > 0);
+                } else {
+                    /* No point in even bothering to try to load the
+                     * GSS libraries, if the user configuration and
+                     * server aren't both prepared to attempt GSSAPI
+                     * auth in the first place. */
+                    s->can_gssapi = FALSE;
+                }
 #endif
 	    }
 
@@ -9984,8 +10006,13 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 			int ret; /* not live over crReturn */
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[1024] ;
-			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
+			char bufpass[4096] ;
+			if( strlen(conf_get_str(ssh->conf,CONF_password))<4090 ) {
+			    strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
+		    } else {
+			    memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 4090 ) ;
+			    bufpass[4090]='\0';
+		    }
 			MASKPASS(bufpass);
     			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
 				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }
@@ -10123,8 +10150,13 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 		ssh2_pkt_addbool(s->pktout, FALSE);
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[1024] ;
-			strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) );
+			char bufpass[4096] ;
+			if( strlen(conf_get_str(ssh->conf,CONF_password))<4090 ) {
+				strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) );
+			} else {
+				memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 4090 ) ;
+				bufpass[4090]='\0';
+			}
 			MASKPASS(bufpass); 
 			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
 				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }

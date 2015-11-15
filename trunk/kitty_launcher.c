@@ -2,6 +2,9 @@
 #ifndef IDI_PUTTY_LAUNCH
 #define IDI_PUTTY_LAUNCH 9901
 #endif
+#ifndef IDI_BLACKBALL
+#define IDI_BLACKBALL 9902
+#endif
 
 #define KLWM_NOTIFYICON		(WM_USER+2)
 static HMENU MenuLauncher = NULL ;
@@ -11,6 +14,7 @@ static HBITMAP bmpCheck, bmpUnCheck ;
 
 // Gestion Hide/UnHide all
 static struct THWin { HWND hwnd ; char name[128] ; } TabWin[100] ;
+static int oldIconFlag = 0 ;
 static int NbWin = 0 ;
 static int IsUnique = 0 ;
 int RefreshWinList( HWND hwnd ) ;
@@ -637,11 +641,16 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
         
 	// Initialisation de la structure NOTIFYICONDATA
 	TrayIcone.cbSize = sizeof(TrayIcone);	// On alloue la taille nécessaire pour la structure
-	TrayIcone.uID = IDI_PUTTY_LAUNCH ;	// On lui donne un ID
+	if( oldIconFlag ) {
+		TrayIcone.uID = IDI_BLACKBALL ;	// On lui donne un ID
+		TrayIcone.hIcon = LoadIcon((HINSTANCE) GetModuleHandle (NULL), MAKEINTRESOURCE(IDI_BLACKBALL));
+	} else {
+		TrayIcone.uID = IDI_PUTTY_LAUNCH ;	// On lui donne un ID
+		TrayIcone.hIcon = LoadIcon((HINSTANCE) GetModuleHandle (NULL), MAKEINTRESOURCE(IDI_PUTTY_LAUNCH));
+	}
 	TrayIcone.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;	// On lui indique les champs valables
 	// On lui dit qu'il devra "écouter" son environement (clique de souris, etc)
 	TrayIcone.uCallbackMessage = KLWM_NOTIFYICON;
-	TrayIcone.hIcon = LoadIcon((HINSTANCE) GetModuleHandle (NULL), MAKEINTRESOURCE(IDI_PUTTY_LAUNCH));
 #ifdef FDJ
 	TrayIcone.szTip[1024] = (TCHAR*)"PuTTY\0" ;			// Le tooltip par défaut, soit rien
 #else
@@ -678,7 +687,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				*/
 				case WM_RBUTTONUP:
 					{
-					if (wParam == IDI_PUTTY_LAUNCH) {
+					if ( (wParam == IDI_PUTTY_LAUNCH) || (wParam == IDI_BLACKBALL) ) {
 						RefreshMenuLauncher() ;
 						DisplayContextMenu( hwnd, HideMenu ) ;
 						}
@@ -686,7 +695,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				break ;
 				case WM_LBUTTONUP: 
 					{
-					if (wParam == IDI_PUTTY_LAUNCH) {
+					if ( (wParam == IDI_PUTTY_LAUNCH) || (wParam == IDI_BLACKBALL) ) {
 						RefreshMenuLauncher() ;
 						DisplayContextMenu( hwnd, MenuLauncher ) ;
 						}
@@ -790,7 +799,7 @@ int WINAPI Launcher_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int s
 	hinst = inst ;
 	WNDCLASS wndclass ;
 	MSG msg;
-	char buffer[1024] ;
+	char buffer[4096] ;
 
 	if( FindWindow("KiTTYLauncher","KiTTYLauncher") ) return 0 ;
 
@@ -801,7 +810,9 @@ int WINAPI Launcher_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int s
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = inst;
-	wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_PUTTY_LAUNCH) );
+	if( strstr( cmdline, "-oldicon" ) != NULL ) { oldIconFlag = 1 ; } 
+	if( oldIconFlag ) { wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_BLACKBALL) ); }
+	else { wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_PUTTY_LAUNCH) ); }
 	wndclass.hCursor = LoadCursor(NULL, IDC_IBEAM) ;
 	wndclass.hbrBackground = NULL;
 	wndclass.lpszMenuName = NULL;
