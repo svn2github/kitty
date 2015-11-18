@@ -9,7 +9,6 @@
 #define APPDESC_AGENT "KiTTY SSH authentication agent"
 900 ICON "pageant.ico"
 901 ICON "pageants.ico"
-#define NO_MANIFESTS
 #else
 #define APPNAME "Pageant"
 #define APPDESC "PuTTY SSH authentication agent"
@@ -112,8 +111,10 @@ BEGIN
 
 END
 
+#ifndef INTEGRATED_AGENT
 #include "version.rc2"
 
 #ifndef NO_MANIFESTS
 1 RT_MANIFEST "pageant.mft"
 #endif /* NO_MANIFESTS */
+#endif

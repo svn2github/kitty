@@ -257,6 +257,7 @@ END
 
 #include "../../blocnote/notepad.rc"
 IDI_EDITICON ICON "../../res/edit.ico"
+
 #ifdef INTEGRATED_KEYGEN
 #include "puttygen.rc"
 #endif

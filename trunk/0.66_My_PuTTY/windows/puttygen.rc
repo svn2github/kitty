@@ -9,7 +9,6 @@
 #define APPDESC_KEYGEN "PuTTY SSH key generation utility"
 
 800 ICON "puttygen.ico"
-#define NO_MANIFESTS
 #else
 #define APPNAME "PuTTYgen"
 #define APPDESC "PuTTY SSH key generation utility"
@@ -101,8 +100,10 @@ BEGIN
 
 END
 
+#ifndef INTEGRATED_KEYGEN
 #include "version.rc2"
 
 #ifndef NO_MANIFESTS
 1 RT_MANIFEST "puttygen.mft"
 #endif /* NO_MANIFESTS */
+#endif

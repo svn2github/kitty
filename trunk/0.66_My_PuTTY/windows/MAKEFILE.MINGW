@@ -287,7 +287,7 @@ psftp.exe: be_ssh.o callback.o cmdline.o conf.o cproxy.o errsock.o int64.o \
 		
 putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
 		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
@@ -301,13 +301,13 @@ putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
 		winpgnt_integrated.o winpgen_integrated.o \
-		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
+		import.o sshrsag.o sshdssg.o sshprime.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
 		callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		errsock.o ldisc.o ldiscucs.o logging.o minibidi.o misc.o \
-		pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
+		miscucs.o pgssapi.o pinger.o portfwd.o proxy.o putty.res.o \
 		raw.o rlogin.o sercfg.o settings.o sizetip.o ssh.o sshaes.o \
 		ssharcf.o sshblowf.o sshbn.o sshcrc.o sshcrcda.o sshdes.o \
 		sshdh.o sshdss.o sshgssc.o sshmd5.o sshpubk.o sshrand.o \
@@ -320,7 +320,7 @@ putty.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialog.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
 		cygcfg.o cygterm.o sc.o winpzmodem.o wincapi.o \
 		winpgnt_integrated.o winpgen_integrated.o \
-		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
+		import.o sshrsag.o sshdssg.o sshprime.o \
 		kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../regex/libregex.a ../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a ../../m1-chat/m1-chat.a \
