@@ -382,7 +382,7 @@ static void start_backend(void)
 	    back->free(backhandle);
 	    backhandle = NULL;
 	    back = NULL;
-	    logevent(NULL, "Lost connection, trying to reconnect...") ; 
+	    logevent(NULL, "Unable to connect, trying to reconnect...") ; 
 	    SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
 	    return ;
 	    }
@@ -1477,7 +1477,8 @@ TrayIcone.hWnd = hwnd ;
 			{
 			int chat_flag = atoi( reg_buffer ) ;
 			if ( chat_flag > 0 ) {
-				if( chat_flag != 1 ) PORT = chat_flag ; _beginthread( routine_server, 0, NULL ) ;
+				//if( chat_flag != 1 ) PORT = chat_flag ; 
+				_beginthread( routine_server, 0, NULL ) ;
 				}
 			}
 
@@ -3146,9 +3147,10 @@ else if((UINT_PTR)wParam == TIMER_ANTIIDLE) {  // Envoi de l'anti-idle
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
 	if(!back||!backend_connected) { // On essaie de se reconnecter en cas de problème de connexion
-		if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) 
-			logevent(NULL, "Lost connection, trying to reconnect...") ; 
+		if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
+			logevent(NULL, "No connection, trying to reconnect...") ; 
 			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
+			}
 			break;
 		}
 	}
@@ -3175,7 +3177,7 @@ else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone d
 #ifdef RECONNECTPORT
 else if((UINT_PTR)wParam == TIMER_RECONNECT) {
 	if( !back ) { 
-		logevent(NULL, "Lost connection, reconnecting...") ;
+		logevent(NULL, "No backend connection, reconnecting...") ;
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; 
 	} else {
 		KillTimer( hwnd, TIMER_RECONNECT ) ;
@@ -3408,9 +3410,10 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		backend_connected = 0 ;
 		start_backend();
 		if(!back) { 
-		    if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) 
+		    if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
 			logevent(NULL, "Unable to connect, trying to reconnect...") ; 
 			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
+			}
 			break;
 		}
 #else
@@ -4846,7 +4849,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 #endif
 #ifdef RECONNECTPORT
 	if( !back &&  conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) { 
-		logevent(NULL, "Lost connection, trying to reconnect...") ; 
+		logevent(NULL, "No connection on key pressed, trying to reconnect...") ; 
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
 		break ;
 	}
@@ -5109,7 +5112,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 					start_backend();
 					SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 					*/
-					logevent(NULL, "Lost connection, trying to reconnect...") ; 
+					logevent(NULL, "Unable to connect on wakeup, trying to reconnect...") ; 
 					SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
 				}
 				break;

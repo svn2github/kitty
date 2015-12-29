@@ -109,7 +109,34 @@ int LoadParametersLight( void ) {
 	char buffer[4096] ;
 
 #ifndef FDJ
-	if( (fp = fopen( "kitty.ini", "r" )) != NULL ) {
+	if( (getenv("KITTY_INI_FILE")!=NULL) && ((fp = fopen( getenv("KITTY_INI_FILE"), "r" )) != NULL) ) {
+		fclose(fp ) ;
+		IniFile = (char*)malloc(strlen(getenv("KITTY_INI_FILE"))+1) ; 
+		strcpy( IniFile,getenv("KITTY_INI_FILE") ) ;
+		strcpy(INIT_SECTION,"KiTTY");
+		if( readINI( IniFile, "KiTTY", "savemode", buffer ) ) {
+			while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r')
+				||(buffer[strlen(buffer)-1]==' ')
+				||(buffer[strlen(buffer)-1]=='\t') ) buffer[strlen(buffer)-1]='\0';
+			if( !stricmp( buffer, "registry" ) ) IniFileFlag = SAVEMODE_REG ;
+			else if( !stricmp( buffer, "file" ) ) IniFileFlag = SAVEMODE_FILE ;
+			else if( !stricmp( buffer, "dir" ) ) { IniFileFlag = SAVEMODE_DIR ; ret = 1 ; }
+			}
+		if(  IniFileFlag == SAVEMODE_DIR ) {
+			if( readINI( IniFile, "KiTTY", "browsedirectory", buffer ) ) { 
+				if( !stricmp( buffer, "NO" )&&(IniFileFlag==SAVEMODE_DIR) ) DirectoryBrowseFlag = 0 ; 
+				else DirectoryBrowseFlag = 1 ;
+				}
+			if( readINI( IniFile, "KiTTY", "configdir", buffer ) ) {
+				if( strlen( buffer ) > 0 ) { 
+					ConfigDirectory = (char*)malloc( strlen(buffer) + 1 ) ;
+					strcpy( ConfigDirectory, buffer ) ;
+					}
+				}
+			}
+		else  DirectoryBrowseFlag = 0 ;
+	}
+	else if( (fp = fopen( "kitty.ini", "r" )) != NULL ) {
 		IniFile = (char*)malloc(11) ; strcpy(IniFile,"kitty.ini");
 		strcpy(INIT_SECTION,"KiTTY");
 		fclose(fp ) ;

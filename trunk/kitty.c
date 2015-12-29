@@ -713,8 +713,8 @@ return NULL ;  /* Ce code est tres specifique et ne marche pas partout */
 		if( strlen(dir) > 1 ) {
 			dir = dir + 1 ;
 			if(*dir == '~') { 
-				if(strlen(conf_get_str(conf,CONF_username)/*cfg.username*/)>0) { 
-				snprintf(cdir, 1024, "\"/home/%s/%s\"", conf_get_str(conf,CONF_username)/*cfg.username*/, dir + 1); 
+				if(strlen(conf_get_str(conf,CONF_username))>0) { 
+				snprintf(cdir, 1024, "\"/home/%s/%s\"", conf_get_str(conf,CONF_username), dir + 1); 
 				return cdir; 
 				} 
 			} 
@@ -1336,10 +1336,10 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "savemode", "registry" ) ;
 #endif
 
-			writeINI( KittyIniFile, INIT_SECTION, "bcdelay", "0" ) ;
-			writeINI( KittyIniFile, INIT_SECTION, "commanddelay", "5" ) ;
-			writeINI( KittyIniFile, INIT_SECTION, "initdelay", "2.0" ) ;
-			writeINI( KittyIniFile, INIT_SECTION, "internaldelay", "10" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#bcdelay", "0" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#commanddelay", "0.05" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#initdelay", "2.0" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#internaldelay", "10" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "slidedelay", "0" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "wintitle", "yes" ) ;
 #ifdef ZMODEMPORT
@@ -1534,8 +1534,28 @@ void DelRegistryKey( void ) {
 
 //extern const int Default_Port ;
 //void server_run_routine( const int port, const int timeout ) ;
-extern int PORT ; int main_m1( void ) ;
-void routine_server( void * st ) { main_m1() ; }
+
+//extern int PORT ; int main_m1( void ) ;
+//void routine_server( void * st ) { main_m1() ; }
+	
+typedef void (CALLBACK* LPFNDLLFUNC1)( void ) ;
+void routine_server( void * st ) {
+	HMODULE lphDLL ;               // Handle to DLL
+	LPFNDLLFUNC1 lpfnDllFunc1 ;    // Function pointer
+	lphDLL = LoadLibrary( TEXT("kchat.dll") ) ;
+	if( lphDLL == NULL ) {
+		MessageBox( MainHwnd, "Unable to load library kchat.dll", "Error", MB_OK|MB_ICONERROR ) ;
+		return ;
+		}
+	if( !( lpfnDllFunc1 = (LPFNDLLFUNC1) GetProcAddress( lphDLL, TEXT("main_m1") ) ) ) {
+		MessageBox( NULL, "Unable to load main chat function from library kchat.dll", "Error", MB_OK|MB_ICONERROR  );
+		FreeLibrary( lphDLL ) ;
+		return ;
+		}
+	(lpfnDllFunc1) () ;
+	FreeLibrary( lphDLL ) ;
+	return ;
+}
 
 void SendStrToTerminal( const char * str, const int len ) ;
 

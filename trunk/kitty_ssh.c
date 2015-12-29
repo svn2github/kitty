@@ -39,11 +39,11 @@ int knock( char *hostname, unsigned short port, unsigned short proto) {
 	addr.sin_port = htons(port);
 	
 	if( proto == PROTO_UDP) {
-		vprint("hitting udp %s:%u\n", inet_ntoa(addr.sin_addr), port);
+		vprint("Hitting udp %s:%u\n", inet_ntoa(addr.sin_addr), port);
 		connect(sd, (struct sockaddr*)&addr, sizeof(struct sockaddr));
 		send(sd, NULL, 0, 0);
 	} else {
-		vprint("hitting tcp %s:%u\n", inet_ntoa(addr.sin_addr), port);
+		vprint("Hitting tcp %s:%u\n", inet_ntoa(addr.sin_addr), port);
 		connect(sd, (struct sockaddr*)&addr, sizeof(struct sockaddr));
 	}
 
@@ -53,12 +53,17 @@ int knock( char *hostname, unsigned short port, unsigned short proto) {
 	return 0;
 	}
 	
-int ManagePortKnocking( char* host, char *portknockseq ) {
+int ManagePortKnocking( char* host, char *portknockseqorig ) {
 	char portstr[256], protostr[256];
 	short port, proto ;
 	int i,j;
-	if( (host==NULL) || (portknockseq==NULL) ) return 0 ;
-	if( (strlen(host)==0) || (strlen(portknockseq)==0) ) return 0 ;
+	char * portknockseq = NULL ;
+	
+	if( (host==NULL) || (portknockseqorig==NULL) ) return 0 ;
+	if( (strlen(host)==0) || (strlen(portknockseqorig)==0) ) return 0 ;
+	
+	portknockseq = (char*)malloc( strlen(portknockseqorig)+1 ) ;
+	strcpy(portknockseq,portknockseqorig);
 	
 	for(i=0;i<strlen(portknockseq);i++) 
 		{ if( (portknockseq[i]==' ')||(portknockseq[i]=='	')||(portknockseq[i]==';')||(portknockseq[i]=='-') ) portknockseq[i]=','; }
@@ -90,6 +95,7 @@ int ManagePortKnocking( char* host, char *portknockseq ) {
 			}
 		}
 	
+	free(portknockseq);
 	return 1;
 	}
 #endif

@@ -263,8 +263,7 @@ void urlhack_set_regular_expression(int mode, const char* expression)
 		char buffer[512]="";
 		regerror(result, &urlhack_rx, buffer, sizeof buffer);
 		rtfm(buffer);
-	}
-	else { 
+	} else { 
 		is_regexp_compiled = 1 ; 
 		logevent(NULL, "Hyperlink patch: regex successfully compiled" ) ;
 	}
@@ -314,5 +313,9 @@ Function pour corriger le probleme de mauvaise regex !
 */
 void InitRegistryAllSessions( HKEY hMainKey, LPCTSTR lpSubKey, char * SubKeyName, char * filename, char * text ) ;
 void FixWrongRegex() {
-	InitRegistryAllSessions( HKEY_CURRENT_USER, "Software\\9bis.com\\KiTTY", "Sessions", "hyperlinkfix.reg", "\"HyperlinkRegularExpression\"=\"(((https?|ftp):\\/\\/)|www\\.)(([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)|localhost|([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\.(com|net|org|info|biz|gov|name|edu|[a-zA-Z][a-zA-Z]))(:[0-9]+)?((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?\"" ) ;
+	char *st;
+	st = (char*) malloc(strlen(urlhack_default_regex)+100);
+	sprintf(st,"\"HyperlinkRegularExpression\"=\"%s\"",urlhack_default_regex);
+	InitRegistryAllSessions( HKEY_CURRENT_USER, "Software\\9bis.com\\KiTTY", "Sessions", "hyperlinkfix.reg",st ) ;
+	free(st);
 }
