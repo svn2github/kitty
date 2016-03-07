@@ -25,7 +25,7 @@ int del( char * ch, const int start, const int length ) ;
 /* Fonction permettant de retrouver la position d'une chaine dans une autre chaine */
 int poss( const char * c, const char * ch ) ;
 
-/* Fonction permettant de retrouver la position d'une chaîne de caracteres dans une chaine a partir d'une position donnee */
+/* Fonction permettant de retrouver la position d'une chaÃ®ne de caracteres dans une chaine a partir d'une position donnee */
 int posi( const char * c, const char * ch, const int ipos ) ;
 
 // Teste l'existance d'un fichier
@@ -58,7 +58,7 @@ int set_env( char * name, char * value ) ;
 int add_env( char * name, char * value ) ;
 
 // Creer un repertoire recurssif (rep1 / rep2 / ...)
-void MakeDir( const char * directory ) ;
+int MakeDir( const char * directory ) ;
 
 // Affichage d'un message dans l'event log
 void debug_logevent( const char *fmt, ... ) ;

@@ -23,9 +23,9 @@ LES REMPLACEMENTS DOIVENT SE FAIRE SUR LA SELECTION ENTRE LES COMMENTAIRES UNIQU
 - remplacer les gprefs( par des gprefs_forced(
 LES REMPLACEMENTS DOIVENT SE FAIRE SUR LA SELECTION ENTRE LES COMMENTAIRES UNIQUEMENT !
 
-SUPPRIMER les sauvegarde/chargement du paramètre folder
+SUPPRIMER les sauvegarde/chargement du paramÃ¨tre folder
 
-Remarque: ce fichier kitty_settings.c est inclus à la toute fin du fichier SETTINGS.C
+Remarque: ce fichier kitty_settings.c est inclus Ã  la toute fin du fichier SETTINGS.C
 ****/
 /* Fonctions prototypes */
 void write_setting_i_forced(void *handle, const char *key, int value) ;

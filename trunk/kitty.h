@@ -18,7 +18,7 @@ extern HWND MainHwnd ;
 extern int PuttyFlag ;
 
 
-// Flag pour retourner a la Config Box en fin d'execution
+// Flag pour retourner Ã  la Config Box en fin d'execution
 // extern int ConfigBoxNoExitFlag ;
 int GetConfigBoxNoExitFlag(void) ;
 
@@ -31,7 +31,7 @@ void SetCtrlTabFlag( const int flag ) ;
 int GetReconnectDelay(void) ;
 #endif
 
-// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement a la connexion) (en milliseconde)
+// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement Ã  la connexion) (en milliseconde)
 extern int init_delay ;
 
 // Delai entre chaque ligne de la commande automatique (en milliseconde)
@@ -67,6 +67,9 @@ void SetImageViewerFlag( const int flag ) ;
 // Duree (en secondes) pour switcher l'image de fond d'ecran (<=0 pas de slide)
 extern int ImageSlideDelay ;
 
+// Nombre de clignotements max de l'icone dans le systeme tray lors de la reception d'un BELL
+extern int MaxBlinkingTime ;
+
 // Flag pour l'affichage de la taille de la fenetre
 // extern int SizeFlag ;
 int GetSizeFlag(void) ;
@@ -98,7 +101,7 @@ void SetMouseShortcutsFlag( const int flag ) ;
 // Pointeur sur la commande autocommand
 extern char * AutoCommand ;
 
-// Contenu d'un script a envoyer a l'ecran
+// Contenu d'un script a envoyer Ã  l'ecran
 extern char * ScriptCommand ;
 
 // Pointeur sur la commande a passer ligne a ligne
@@ -156,7 +159,7 @@ void SetConfigBoxWindowHeight( const int num ) ;
 int GetWinHeight(void) ;
 void SetWinHeight( const int num ) ;
 
-// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) a la connexion SSH
+// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) Ã  la connexion SSH
 // extern int UserPassSSHNoSave ;
 int GetUserPassSSHNoSave(void) ;
 void SetUserPassSSHNoSave( const int flag ) ;
@@ -182,7 +185,7 @@ extern char * PSCPPath  ;
 // Repertoire de lancement
 extern char InitialDirectory[4096] ;
 
-// Répertoire de sauvegarde de la configuration (savemode=dir)
+// RÃ©pertoire de sauvegarde de la configuration (savemode=dir)
 extern char * ConfigDirectory ;
 
 // Positionne un flag permettant de determiner si on est connecte
@@ -264,7 +267,7 @@ int ReadParameter( const char * key, const char * name, char * value ) ;
 int WriteParameter( const char * key, const char * name, char * value ) ;
 int DelParameter( const char * key, const char * name ) ;
 void GetSessionFolderName( const char * session_in, char * folder ) ;
-void MakeDirTree( const char * Directory, const char * s, const char * sd ) ;
+int MakeDirTree( const char * Directory, const char * s, const char * sd ) ;
 int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, int alt_flag, int altgr_flag, int win_flag ) ;
 void mungestr(const char *in, char *out);
 void unmungestr(const char *in, char *out, int outlen);

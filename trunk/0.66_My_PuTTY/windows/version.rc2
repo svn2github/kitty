@@ -44,13 +44,13 @@ BEGIN
 	    VALUE "OriginalFilename",	APPNAME
 	    VALUE "FileVersion",	TEXTVER
 #if (defined PERSOPORT) && (!defined FDJ)
-		VALUE "Comments", "Additional features on KiTTY That's all folks! by 9bis.com, 2015"
+		VALUE "Comments", "Additional features on KiTTY That's all folks! by 9bis.com, 2016"
 		VALUE "Additional Notes", "Ne pas distribuer sans la permission de l'auteur.\0"
 		VALUE "ProductVersion",	TEXTVER " - KiTTY fork"
 #else
 	    VALUE "ProductVersion",	TEXTVER
 #endif
-	    VALUE "LegalCopyright",	"Copyright \251 1997-2015 Simon Tatham."
+	    VALUE "LegalCopyright",	"Copyright \251 1997-2016 Simon Tatham."
 #if (!defined SNAPSHOT) && (!defined RELEASE)
 	    /* Only if VS_FF_PRIVATEBUILD. */
 	    VALUE "PrivateBuild",	TEXTVER /* NBI */

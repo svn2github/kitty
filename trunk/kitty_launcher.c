@@ -136,7 +136,7 @@ HBITMAP GetMyCheckBitmaps(UINT fuCheck)
     return hbmpCheck; 
 } 
 
-// Procedure de creation de menu à partir d'une clé de registre
+// Procedure de creation de menu Ã  partir d'une clÃ© de registre
 HMENU InitLauncherMenu( char * Key ) {
 	HMENU menu ;
 	menu = CreatePopupMenu() ;
@@ -208,7 +208,7 @@ void RefreshMenuLauncher( void ) {
 	MenuLauncher = InitLauncherMenu( "Launcher" ) ;
 	}
 	
-// Nettoie les noms de folder en remplaçant les "/" par des "\" et les " \ " par des " \"
+// Nettoie les noms de folder en remplaÃ§ant les "/" par des "\" et les " \ " par des " \"
 // Deplace dans kitty_commun.c
 /*
 void CleanFolderName( char * folder ) {
@@ -256,7 +256,7 @@ void InitLauncherDir( const char * directory ) {
 	FILE * fp ;
 	sprintf( fullpath, "%s\\Sessions\\%s", ConfigDirectory, directory ) ;
 	sprintf( buffer, "%s\\Launcher\\%s", ConfigDirectory, directory ) ;
-	MakeDir( buffer ) ;
+	if( !MakeDir( buffer ) ) { MessageBox(NULL,"Unable to create the menu launcher directory","Error",MB_OK|MB_ICONERROR); }
 	if( (dir=opendir(fullpath)) != NULL ) {
 		while( (de=readdir(dir)) != NULL ) 
 		if( strcmp(de->d_name,".") && strcmp(de->d_name,"..") )	{
@@ -280,7 +280,7 @@ void InitLauncherDir( const char * directory ) {
 	closedir( dir ) ;
 	}
 
-// Inititalise la clé de registre Launcher avec les sessions enregistrées
+// Inititalise la clÃ© de registre Launcher avec les sessions enregistrÃ©es
 void InitLauncherRegistry( void ) {
 	HKEY hKey ;
 	char buffer[MAX_VALUE_NAME] ;
@@ -331,7 +331,7 @@ void InitLauncherRegistry( void ) {
 		FILE * fp ;
 		sprintf( fullpath, "%s\\Launcher", ConfigDirectory ) ;
 		DelDir( fullpath ) ;
-		MakeDir( fullpath ) ;
+		if(!MakeDir( fullpath ) ) { MessageBox(NULL,"Unable to create the menu launcher directory","Error",MB_OK|MB_ICONERROR); }
 		sprintf( fullpath, "%s\\Sessions", ConfigDirectory ) ;
 		if( (dir=opendir(fullpath)) != NULL ) {
 			while( (de=readdir(dir)) != NULL ) 
@@ -362,7 +362,7 @@ void InitLauncherRegistry( void ) {
 		char fullpath[MAX_VALUE_NAME] ;
 		sprintf( fullpath, "%s\\Launcher", ConfigDirectory ) ;
 		DelDir( fullpath ) ;
-		MakeDir( fullpath ) ;
+		if( !MakeDir( fullpath ) ) { MessageBox(NULL,"Unable to create the menu launcher directory","Error",MB_OK|MB_ICONERROR); }
 		InitLauncherDir( "" ) ;
 		}
 	}
@@ -640,7 +640,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		MenuLauncher = InitLauncherMenu( "Launcher" ) ;
         
 	// Initialisation de la structure NOTIFYICONDATA
-	TrayIcone.cbSize = sizeof(TrayIcone);	// On alloue la taille nécessaire pour la structure
+	TrayIcone.cbSize = sizeof(TrayIcone);	// On alloue la taille nÃ©cessaire pour la structure
 	if( oldIconFlag ) {
 		TrayIcone.uID = IDI_BLACKBALL ;	// On lui donne un ID
 		TrayIcone.hIcon = LoadIcon((HINSTANCE) GetModuleHandle (NULL), MAKEINTRESOURCE(IDI_BLACKBALL));
@@ -649,13 +649,13 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		TrayIcone.hIcon = LoadIcon((HINSTANCE) GetModuleHandle (NULL), MAKEINTRESOURCE(IDI_PUTTY_LAUNCH));
 	}
 	TrayIcone.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;	// On lui indique les champs valables
-	// On lui dit qu'il devra "écouter" son environement (clique de souris, etc)
+	// On lui dit qu'il devra "Ã©couter" son environement (clique de souris, etc)
 	TrayIcone.uCallbackMessage = KLWM_NOTIFYICON;
 #ifdef FDJ
-	TrayIcone.szTip[1024] = (TCHAR*)"PuTTY\0" ;			// Le tooltip par défaut, soit rien
+	TrayIcone.szTip[1024] = (TCHAR*)"PuTTY\0" ;			// Le tooltip par dÃ©faut, soit rien
 #else
-	//TrayIcone.szTip[1024] = "KiTTY That\'s all folks!\0" ;			// Le tooltip par défaut, soit rien
-	strcpy( TrayIcone.szTip, "KiTTY That\'s all folks!\0" ) ;			// Le tooltip par défaut, soit rien
+	//TrayIcone.szTip[1024] = "KiTTY That\'s all folks!\0" ;			// Le tooltip par dÃ©faut, soit rien
+	strcpy( TrayIcone.szTip, "KiTTY That\'s all folks!\0" ) ;			// Le tooltip par dÃ©faut, soit rien
 #endif
 	TrayIcone.hWnd = hwnd ;
 	ResShell = Shell_NotifyIcon(NIM_ADD, &TrayIcone);
@@ -714,7 +714,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		case WM_COMMAND: {//Commandes du menu
 			switch( LOWORD(wParam) ) {
 				case IDM_ABOUT:
-					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2015","About", MB_OK ) ;
+					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2016","About", MB_OK ) ;
 					break ;
 				case IDM_QUIT:
 					ResShell = Shell_NotifyIcon(NIM_DELETE, &TrayIcone) ;
@@ -789,7 +789,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 					}
 				}
 			break ;
-		default: // Message par défaut
+		default: // Message par dÃ©faut
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
 	return -1 ;

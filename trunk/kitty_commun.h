@@ -15,7 +15,7 @@ extern int debug_flag ;
 int GetAutoStoreSSHKeyFlag(void) ;
 void SetAutoStoreSSHKeyFlag( const int flag ) ;
 
-// Répertoire de sauvegarde de la configuration (savemode=dir)
+// RÃ©pertoire de sauvegarde de la configuration (savemode=dir)
 extern char * ConfigDirectory ;
 
 char * GetConfigDirectory( void ) ;
@@ -25,7 +25,7 @@ char * GetValueData(HKEY hkTopKey, char * lpSubKey, const char * lpValueName, ch
 int readINI( const char * filename, const char * section, const char * key, char * pStr) ;
 char * SetSessPath( const char * dec ) ;
 
-// Nettoie les noms de folder en remplaçant les "/" par des "\" et les " \ " par des " \"
+// Nettoie les noms de folder en remplaÃ§ant les "/" par des "\" et les " \ " par des " \"
 void CleanFolderName( char * folder ) ;
 
 // Supprime une arborescence
@@ -40,7 +40,7 @@ int LoadParametersLight( void ) ;
 // Positionne un flag permettant de determiner si on est connecte
 extern int backend_connected ;
 
-void SetSSHConnected( void ) ;
+void SetSSHConnected( int flag ) ;
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) ;
 

@@ -59,7 +59,7 @@ int poss( const char * c, const char * ch ) {
 	return res ; 
 	}
 	
-/* Fonction permettant de retrouver la position d'une chaîne de caracteres dans une chaine a partir d'une position donnee */
+/* Fonction permettant de retrouver la position d'une chaÃ®ne de caracteres dans une chaine a partir d'une position donnee */
 int posi( const char * c, const char * ch, const int ipos ) {
 	int res ;
 	if( ( c == NULL ) || ( ch == NULL ) ) return -1 ;
@@ -207,13 +207,13 @@ int add_env( char * name, char * value ) {
 
 // Creer un repertoire recurssif (rep1 / rep2 / ...)
 int _mkdir (const char*);
-void MakeDir( const char * directory ) {
+int MakeDir( const char * directory ) {
 	char buffer[MAX_VALUE_NAME], fullpath[MAX_VALUE_NAME], *p, *pst ;
 	int i,j ;
 	
-	if( directory==NULL ) return ; if( strlen(directory)==0 ) return ;
+	if( directory==NULL ) return 1 ; if( strlen(directory)==0 ) return 1 ;
 
-	for( i=0, j=0 ; i<=strlen(directory) ; i++,j++ ) { // On supprime les espaces après un '\' 
+	for( i=0, j=0 ; i<=strlen(directory) ; i++,j++ ) { // On supprime les espaces aprÃ¨s un '\' 
 		if( (directory[i]=='\\')||(directory[i]=='/') ) {
 			fullpath[j]='\\' ;
 			while( (directory[i+1]==' ')||(directory[i+1]=='	') ) i++ ;
@@ -222,7 +222,7 @@ void MakeDir( const char * directory ) {
 		}
 	fullpath[j+1]='\0' ;
 		
-	// On supprime les espaces à la fin
+	// On supprime les espaces Ã  la fin
 	while( (fullpath[strlen(fullpath)-1]==' ')||(fullpath[strlen(fullpath)-1]=='	') ) fullpath[strlen(fullpath)-1]='\0';
 
 	for( i=strlen(fullpath), j=strlen(fullpath) ; i>=0 ; i--, j-- ) { // On supprime les espaces avant un '\'
@@ -234,11 +234,11 @@ void MakeDir( const char * directory ) {
 		}
 	j++;
 		
-	// On supprime les espace au début
+	// On supprime les espace au dÃ©but
 	while( ((buffer+j)[0]==' ')||((buffer+j)[0]=='	') ) j++ ;
 	strcpy( fullpath, buffer+j ) ;
 	
-	// On crée les répertoire
+	// On crÃ©e les rÃ©pertoires
 	pst = fullpath ;
 	while( (strlen(pst)>0)&&((p=strstr(pst,"\\"))!=NULL) ) {
 		p[0]='\0' ;
@@ -247,4 +247,6 @@ void MakeDir( const char * directory ) {
 		pst=p+1;
 		}
 	_mkdir( fullpath ) ;
+		
+	return existdirectory(directory) ;
 	}

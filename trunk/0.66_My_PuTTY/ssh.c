@@ -93,7 +93,7 @@ void SetPasswordInConfig( char * password ) ;
 void SetUsernameInConfig( char * username ) ;
 char * ManagePassPhrase( const char * st ) ;
 void MASKPASS( char * password ) ;
-void SetSSHConnected( void ) ;
+void SetSSHConnected( int flag ) ;
 /* Maximum length of passwords/passphrases (arbitrary) */
 #ifndef SSH_MAX_PASSWORD_LEN
 #define SSH_MAX_PASSWORD_LEN 100
@@ -4814,7 +4814,7 @@ static int do_ssh1_login(Ssh ssh, unsigned char *in, int inlen,
     logevent("Authentication successful");
 
 #ifdef PERSOPORT
-    SetSSHConnected() ;
+    SetSSHConnected(1) ;
 #endif
     crFinish(1);
 }
@@ -10379,7 +10379,7 @@ static void do_ssh2_authconn(Ssh ssh, unsigned char *in, int inlen,
 
 	}
 #ifdef PERSOPORT
-	SetSSHConnected() ;
+	SetSSHConnected(1) ;
 #endif
     }
     ssh->packet_dispatch[SSH2_MSG_USERAUTH_BANNER] = NULL;

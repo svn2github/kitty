@@ -1941,7 +1941,9 @@ void connection_fatal(void *frontend, char *fmt, ...)
     char *stuff, morestuff[100];
 #ifdef RECONNECTPORT
 	SetConnBreakIcon() ;
-	if( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
+	SetSSHConnected(0);
+	ReadInitScript(NULL);
+	if( /*conf_get_int(conf,CONF_failure_reconnect) &&*/ backend_first_connected ) {
 		
 /*
  		time_t tnow = time(NULL);
@@ -1971,11 +1973,19 @@ void connection_fatal(void *frontend, char *fmt, ...)
  		start_backend() ;
 		SetTimer(hwnd, TIMER_INIT, init_delay, NULL) ;
 */
-
-	time_t tnow = time(NULL);
-	queue_toplevel_callback(close_session, NULL);
-	logevent(NULL, "Lost connection, trying to reconnect...") ;
-	SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
+	va_start(ap, fmt);
+	stuff = dupvprintf(fmt, ap);
+	va_end(ap);
+	sprintf(morestuff, "%.70s Fatal Error: %s", appname, stuff);
+	logevent(NULL, morestuff);
+	sfree(stuff);
+	
+	if( conf_get_int(conf,CONF_failure_reconnect) ) {
+		time_t tnow = time(NULL);
+		queue_toplevel_callback(close_session, NULL);
+		logevent(NULL, "Lost connection, trying to reconnect...") ;
+		SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
+		}
 
  	} else {
     va_start(ap, fmt);
@@ -3146,7 +3156,7 @@ else if((UINT_PTR)wParam == TIMER_ANTIIDLE) {  // Envoi de l'anti-idle
 		if(strlen( conf_get_str(conf,CONF_antiidle) ) > 0) SendAutoCommand( hwnd, conf_get_str(conf,CONF_antiidle) ) ;
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
-	if(!back||!backend_connected) { // On essaie de se reconnecter en cas de problème de connexion
+	if(!back||!backend_connected) { // On essaie de se reconnecter en cas de problÃ¨me de connexion
 		if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
 			logevent(NULL, "No connection, trying to reconnect...") ; 
 			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ; 
@@ -3154,23 +3164,24 @@ else if((UINT_PTR)wParam == TIMER_ANTIIDLE) {  // Envoi de l'anti-idle
 			break;
 		}
 	}
-else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (print '\007' pour simuler)
+else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (printf '\007' pour simuler)
 	static int BlinkingState = 0 ;
 	static HICON hBlinkingIcon = NULL ; 
 
 	if( GetVisibleFlag()!=VISIBLE_TRAY ) 
 		{ KillTimer( hwnd, TIMER_BLINKTRAYICON ) ; TrayIcone.hIcon = hBlinkingIcon ; BlinkingState = 0 ; break ; }
-	if( BlinkingState==0 ) {
+	if( (BlinkingState%2)==0 ) {
 		hBlinkingIcon = TrayIcone.hIcon ;
 		TrayIcone.hIcon = LoadIcon(NULL, NULL) ;
 		Shell_NotifyIcon(NIM_MODIFY, &TrayIcone) ;
-		BlinkingState = 1 ;
+		BlinkingState++ ;
 		}
 	else {
 		if( hBlinkingIcon ) {
 			TrayIcone.hIcon = hBlinkingIcon ;
 			Shell_NotifyIcon(NIM_MODIFY, &TrayIcone) ;
-			BlinkingState = 0 ;
+			BlinkingState++ ;
+			if(MaxBlinkingTime) if(BlinkingState>=MaxBlinkingTime) { KillTimer( hwnd, TIMER_BLINKTRAYICON ) ; BlinkingState = 0 ; break ; }
 			}
 		}
 	}
@@ -3971,9 +3982,12 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 #ifdef PERSOPORT
 	if( GetProtectFlag() ) { break ; }
         if(!PuttyFlag && GetMouseShortcutsFlag() ) {
-	if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
+	if( !back && backend_first_connected ) { // On essaie de se reconnecter
+		SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; break ; 
+	} 
+	else if((message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
 		if( back ) SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ;
-		else { if( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) { SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; } }
+		else { if( /*conf_get_int(conf,CONF_failure_reconnect) &&*/ backend_first_connected ) { SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; } }
 		break ;
 		}
 
@@ -4848,7 +4862,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_SYSKEYUP:
 #endif
 #ifdef RECONNECTPORT
-	if( !back &&  conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) { 
+	if( !back && /*conf_get_int(conf,CONF_failure_reconnect) &&*/ backend_first_connected ) { 
 		logevent(NULL, "No connection on key pressed, trying to reconnect...") ; 
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
 		break ;
@@ -7763,6 +7777,19 @@ static void flash_window_timer(void *ctx, unsigned long now)
  */
 static void flash_window(int mode)
 {
+#ifdef PERSOPORT
+	static int BlinkingState = 0 ;
+	if(MaxBlinkingTime && (mode!=0)) {
+		if( BlinkingState>=MaxBlinkingTime ) {
+			BlinkingState = 0 ;
+			flash_window(0);
+			return ; 
+		} else {
+			BlinkingState++ ;
+		}
+	}
+	if( mode==0 ) { BlinkingState=0 ; }
+#endif
     int beep_ind = conf_get_int(conf, CONF_beep_ind);
     if ((mode == 0) || (beep_ind == B_IND_DISABLED)) {
 	/* stop */
@@ -7785,9 +7812,15 @@ static void flash_window(int mode)
 		 * uCount=0 appears to enable continuous flashing, per
 		 * "flashing" mode, although I haven't seen this
 		 * documented. */
+#ifdef PERSOPORT
+		flash_window_ex(FLASHW_ALL | FLASHW_TIMER,
+				MaxBlinkingTime,
+				0 /* system cursor blink rate */);
+#else
 		flash_window_ex(FLASHW_ALL | FLASHW_TIMER,
 				(beep_ind == B_IND_FLASH ? 0 : 2),
 				0 /* system cursor blink rate */);
+#endif
 		/* No need to schedule timer */
 	    } else {
 		FlashWindow(hwnd, TRUE);
@@ -7863,12 +7896,11 @@ void do_beep(void *frontend, int mode)
     if (!term->has_focus) {
 #ifdef PERSOPORT
 	if( GetVisibleFlag()!=VISIBLE_TRAY ) {
-		if(conf_get_int(conf,CONF_foreground_on_bell)/*cfg.foreground_on_bell*/ ) {					// Tester avec   sleep 4 ; echo -e '\a'
+		if(conf_get_int(conf,CONF_foreground_on_bell) ) {		// Tester avec   sleep 4 ; echo -e '\a'
 			if( IsIconic(hwnd) ) SwitchToThisWindow( hwnd, TRUE ) ; 
 			else SetForegroundWindow( MainHwnd ) ;
 			}
 		else { 
-			//if( IsIconic(hwnd) && (mode == BELL_VISUAL) ) 
 			if( mode == BELL_VISUAL ) {
 				if( IsIconic(hwnd) ) 
 					FlashWindow(hwnd, TRUE) ;

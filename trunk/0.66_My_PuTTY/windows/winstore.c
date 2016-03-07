@@ -79,7 +79,6 @@ struct setPack {
 
 /* JK: my generic function for simplyfing error reporting */
 DWORD errorShow(const char* pcErrText, const char* pcErrParam) {
-
 	HWND hwRodic;
 	DWORD erChyba;
 	char pcBuf[16];
@@ -105,8 +104,12 @@ DWORD errorShow(const char* pcErrText, const char* pcErrParam) {
   
 	if (MessageBox(hwRodic, pcHlaska, "Error", MB_OK|MB_APPLMODAL|MB_ICONEXCLAMATION) == 0) {
         /* JK: this is really bad -> just ignore */
+	sfree(pcHlaska);
         return 0;
     }
+    
+    //MessageBox(GetActiveWindow(),pcHlaska, "Error", MB_OK|MB_APPLMODAL|MB_ICONEXCLAMATION) ;
+    
 
 	sfree(pcHlaska);
 	return erChyba;
@@ -133,7 +136,6 @@ static void packstr(const char *in, char *out) {
 */
 int createPath(char* dir) {
     char *p;
-
 	p = strrchr(dir, '\\');
 
 	if (p == NULL) {
@@ -146,10 +148,9 @@ int createPath(char* dir) {
 	}
 	
 	*p = '\0';
-	createPath(dir);
+	if( !createPath(dir) ) { MessageBox(NULL,"Unable to create directory !","Error",MB_OK|MB_ICONERROR) ; }
 	*p = '\\';
 	++p;
-
 	/* what if it already exists */
 	if (!SetCurrentDirectory(dir)) {
 		CreateDirectory(p, NULL);
@@ -404,10 +405,10 @@ char * GetSessPath( void ) {
 	return sesspath ;
 	}
 	
-void CreateFolderInPath( const char * d ) {
+int CreateFolderInPath( const char * d ) {
 	char buf[MAX_PATH] ;
 	sprintf( buf, "%s\\%s", sesspath, d ) ;
-	createPath( buf ) ;
+	return createPath( buf ) ;
 	}
 void SaveDumpPortableConfig( FILE * fp ) {
 	fprintf( fp, "seedpath=%s\n", seedpath ) ;
@@ -761,12 +762,13 @@ void *open_settings_r(const char *sessionname)
 
 	/* JK: default settings must be read from registry */
 	/* 8.1.2007 - 0.1.6 try to load them from file if exists - nasty code duplication */
-	if (!strcmp(sessionname, "Default Settings")) {
+	if (!strcmp(sessionname, "Default Settings")) if (sp->fromFile) {
 		GetCurrentDirectory( (MAX_PATH*2), oldpath);
 		if (SetCurrentDirectory(sesspath)) {
 			hFile = CreateFile(p, GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 		}
 		else {
+			errorShow("Unable to create default session settings file into directory", sesspath);
 			hFile = INVALID_HANDLE_VALUE;
 		}
 		SetCurrentDirectory(oldpath);
@@ -787,6 +789,7 @@ void *open_settings_r(const char *sessionname)
 			hFile = CreateFile(p, GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 		}
 		else {
+			errorShow("Unable to create session settings file into directory", sesspath);
 			hFile = INVALID_HANDLE_VALUE;
 		}
 		SetCurrentDirectory(oldpath);
@@ -1427,6 +1430,7 @@ int verify_host_key(const char *hostname, int port,
 	}
 	else {
 		/* JK: there are no hostkeys as files -> try registry -> nothing to do here now */
+		errorShow("Unable to jump into ssh host keys directory", sshkpath);
 	}
 	}
 	
@@ -1525,10 +1529,12 @@ int verify_host_key(const char *hostname, int port,
 		if ((userMB == IDYES) || (userMB == IDNO)) {
 			/* JK: save key to file */
 			if ((hFile = FindFirstFile(sshkpath, &FindFile)) == INVALID_HANDLE_VALUE) {
-				createPath(sshkpath);
+				if( !createPath(sshkpath) ){
+					errorShow("Unable to create directory for storing ssh server keys", sshkpath);
+				}
 			}
 			FindClose(hFile);
-			SetCurrentDirectory(sshkpath);
+			if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory", sshkpath); }
 
 			p = snewn(3*strlen(regname) + 1 + 16, char);
 			packstr(regname, p);
@@ -1693,10 +1699,10 @@ else {
 
 	/* JK: save hostkey to file in dir */
 	if ((hFile = FindFirstFile(sshkpath, &FindFile)) == INVALID_HANDLE_VALUE) {
-		createPath(sshkpath);
+		if( !createPath(sshkpath) ) { errorShow("Unable to create directory for storing ssh host keys", sshkpath); }
 	}
 	FindClose(hFile);
-	SetCurrentDirectory(sshkpath);
+	if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory", sshkpath); }
 
 	p = snewn(3*strlen(regname) + 1, char);
 	packstr(regname, p);
@@ -1921,7 +1927,9 @@ static int transform_jumplist_registry
 	char RecentSessionsFile[2*MAX_PATH] ;
 if( get_param("INIFILE")==SAVEMODE_DIR ) {
 	ret = ERROR_SUCCESS ;
-	if( !existdirectory(jumplistpath) ) { createPath(jumplistpath) ;}
+	if( !existdirectory(jumplistpath) ) { 
+		if( !createPath(jumplistpath) ) { errorShow("Unable to create directory for storing jump list", jumplistpath); }
+	}
 	sprintf(RecentSessionsFile,"%s/RecentSessions",jumplistpath);
 	if( !existfile(RecentSessionsFile) ) {
 		ret == ERROR_FILE_NOT_FOUND;

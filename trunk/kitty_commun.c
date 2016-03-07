@@ -1,5 +1,5 @@
 /*
- * Fichier contenant les procedures communes à tous les programmes putty, pscp, psftp, plink, pageant
+ * Fichier contenant les procedures communes Ã  tous les programmes putty, pscp, psftp, plink, pageant
  */
 
 #include "kitty_commun.h"
@@ -39,7 +39,7 @@ static int AutoStoreSSHKeyFlag = 0 ;
 int GetAutoStoreSSHKeyFlag(void) { return AutoStoreSSHKeyFlag ; }
 void SetAutoStoreSSHKeyFlag( const int flag ) { AutoStoreSSHKeyFlag = flag ; }
 
-// Répertoire de sauvegarde de la configuration (savemode=dir)
+// RÃ©pertoire de sauvegarde de la configuration (savemode=dir)
 char * ConfigDirectory = NULL ;
 
 char * GetConfigDirectory( void ) { return ConfigDirectory ; }
@@ -48,7 +48,7 @@ int stricmp(const char *s1, const char *s2) ;
 int readINI( const char * filename, const char * section, const char * key, char * pStr) ;
 char * SetSessPath( const char * dec ) ;
 
-// Nettoie les noms de folder en remplaçant les "/" par des "\" et les " \ " par des " \"
+// Nettoie les noms de folder en remplaÃ§ant les "/" par des "\" et les " \ " par des " \"
 void CleanFolderName( char * folder ) {
 	int i, j ;
 	if( folder == NULL ) return ;
@@ -219,7 +219,7 @@ int LoadParametersLight( void ) {
 // Positionne un flag permettant de determiner si on est connecte
 int backend_connected = 0 ;
 
-void SetSSHConnected( void ) { backend_connected = 1 ; }
+void SetSSHConnected( int flag ) { backend_connected = flag ; }
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) { return memset( ptr, 0, cnt ) ; }
 

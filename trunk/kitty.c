@@ -116,7 +116,7 @@ void xyz_updateMenuItems(Terminal *term);
 #define SI_RANDOM 2
 
 
-// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement a la connexion) (en milliseconde)
+// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement Ã  la connexion) (en milliseconde)
 int init_delay = 2000 ;
 // Delai entre chaque ligne de la commande automatique (en milliseconde)
 int autocommand_delay = 5 ;
@@ -128,7 +128,7 @@ int internal_delay = 10 ;
 // Pointeur sur la commande autocommand
 char * AutoCommand = NULL ;
 
-// Contenu d'un script a envoyer a l'ecran
+// Contenu d'un script a envoyer Ã  l'ecran
 char * ScriptCommand = NULL ;
 
 // Pointeur sur la commande a passer ligne a ligne
@@ -299,12 +299,12 @@ static int ConfigBoxWindowHeight = 0 ;
 int GetConfigBoxWindowHeight(void) { return ConfigBoxWindowHeight ; }
 void SetConfigBoxWindowHeight( const int num ) { ConfigBoxWindowHeight = num ; }
 
-// Flag pour retourner a la Config Box en fin d'execution
+// Flag pour retourner Ã  la Config Box en fin d'execution
 static int ConfigBoxNoExitFlag = 0 ;
 int GetConfigBoxNoExitFlag(void) { return ConfigBoxNoExitFlag ; }
 void SetConfigBoxNoExitFlag( const int flag ) { ConfigBoxNoExitFlag = flag ; }
 
-// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) a la connexion SSH
+// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) Ã  la connexion SSH
 static int UserPassSSHNoSave = 0 ;
 int GetUserPassSSHNoSave(void) { return UserPassSSHNoSave ; }
 void SetUserPassSSHNoSave( const int flag ) { UserPassSSHNoSave = flag ; }
@@ -366,6 +366,9 @@ void SetImageViewerFlag( const int flag ) { ImageViewerFlag = flag ; }
 
 // Duree (en secondes) pour switcher l'image de fond d'ecran (<=0 pas de slide)
 int ImageSlideDelay = - 1 ;
+
+// Nombre de clignotements max de l'icone dans le systeme tray lors de la reception d'un BELL
+int MaxBlinkingTime = 0 ;
 
 // Compteur pour l'envoi de anti-idle
 int AntiIdleCount = 0 ;
@@ -999,20 +1002,27 @@ void RenewPassword( Conf *conf ) {
 void SetPasswordInConfig( char * password ) {
 	int len ;
 	char bufpass[1024] ;
+//debug_log("01>Entering PasswordInConfig\n");
+//debug_log("02>setting=%d\n",UserPassSSHNoSave);
+//debug_log("03>password=%s\n",password);
 	if( (!UserPassSSHNoSave)&&(password!=NULL) ) {
 		len = strlen( password ) ;
+//debug_log("04>len=%d\n",len);
 		if( len > 126 ) len = 126 ;
 		if( strlen(password)>0 ) {
 			memcpy( bufpass, password, len+1 ) ;
 			bufpass[len]='\0' ;
+//debug_log("05>buffer=%s\n",bufpass);
 			MASKPASS(bufpass) ;
-		}
-		else {
+//debug_log("06>encrypted=%s\n",bufpass);
+		} else {
 			strcpy( bufpass, "" ) ;
 		}
 		conf_set_str(conf,CONF_password,bufpass);
-		}
+//debug_log("07>Saved!\n");
 	}
+//debug_log("99>End!\n");
+}
 	
 void SetUsernameInConfig( char * username ) {
 	int len ;
@@ -1322,6 +1332,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#UserPassSSHNoSave", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#ctrltab", "yes" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#KiClassName", "PuTTY" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "maxblinkingtime", "5" ) ;
 #ifdef RECONNECTPORT
 			writeINI( KittyIniFile, INIT_SECTION, "#ReconnectDelay", "5" ) ;
 #endif
@@ -1362,6 +1373,7 @@ void CreateDefaultIniFile( void ) {
 
 			}
 		}
+	if( !existfile( KittyIniFile ) ) { MessageBox( NULL, "Unable to create configuration file !", "Error", MB_OK|MB_ICONERROR ) ; }
 	}
 
 // Ecrit un parametre soit en registre soit dans le fichier de configuration
@@ -1668,6 +1680,10 @@ void SendKeyboardPlus( HWND hwnd, const char * st ) {
 						keybd_event( VK_ESCAPE, 1, 0, 0); 
 						keybd_event( VK_ESCAPE, 1, KEYEVENTF_KEYUP, 0) ;
 						}
+					else if( (j==VK_END) || (j==VK_HOME) ) {
+						keybd_event( j ,0, KEYEVENTF_EXTENDEDKEY, 0 ) ;
+						keybd_event( j, 0, KEYEVENTF_EXTENDEDKEY|KEYEVENTF_KEYUP, 0 ) ; 
+					}
 					else {
 						sprintf( stb, "%c", j ) ;
 						SendStrToTerminal( stb, 1 ) ;
@@ -1725,7 +1741,7 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 		buf=(char*)malloc( strlen(cmd)+30 ) ;
 		strcpy( buf, "Send automatic command" ) ;
 		if( debug_flag ) { strcat( buf, ": ") ; strcat( buf, cmd ) ; }
-		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (a  cause du password envoye en clair)
+		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (Ã  cause du password envoye en clair)
 		free(buf);
 		if( existfile( cmd ) ) RunScriptFile( hwnd, cmd ) ;
 		else if( (toupper(cmd[0])=='C')&&(toupper(cmd[1])==':')&&(toupper(cmd[2])=='\\') ) {
@@ -2858,7 +2874,7 @@ static LRESULT CALLBACK InputCallBackPassword(HWND hwnd, UINT message, WPARAM wP
 	return 0;
 }
 
-// Procedure specifique a la editbox multiligne (SHIFT+F8)
+// Procedure specifique Ã  la editbox multiligne (SHIFT+F8)
 FARPROC lpfnOldEditProc ;
 BOOL FAR PASCAL EditMultilineCallBack(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	char buffer[4096], key_name[1024] ;
@@ -3475,6 +3491,7 @@ int ShowPortfwd( HWND hwnd, char * portfwd ) {
 #ifdef SAVEDUMPPORT
 #include "kitty_savedump.c"
 #endif
+void InitShortcuts( void ) ;
 
 int InternalCommand( HWND hwnd, char * st ) {
 	char buffer[4096] ;
@@ -3650,6 +3667,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 		}
 		return 1 ;
 	}
+	else if( !strcmp( st, "/shortcuts" ) ) { InitShortcuts() ; return 1 ; }
 	else if( !strcmp( st, "/switchcrypt" ) ) { SwitchCryptFlag() ; return 1 ; }
 	else if( !strcmp( st, "/redraw" ) ) { InvalidateRect( MainHwnd, NULL, TRUE ) ; return 1 ; }
 	else if( !strcmp( st, "/refresh" ) ) { RefreshBackground( MainHwnd ) ; return 1 ; }
@@ -4188,8 +4206,8 @@ void ReadInitScript( const char * filename ) {
 #include "kitty_launcher.c"
 #endif
 
-// Creer une arborescence de repertoire a partir du registre
-void MakeDirTree( const char * Directory, const char * s, const char * sd ) {
+// Creer une arborescence de repertoire Ã  partir du registre
+int MakeDirTree( const char * Directory, const char * s, const char * sd ) {
 	char buffer[MAX_VALUE_NAME], fullpath[MAX_VALUE_NAME] ;
 	HKEY hKey;
 	int retCode, i ;
@@ -4202,7 +4220,11 @@ void MakeDirTree( const char * Directory, const char * s, const char * sd ) {
 	FILETIME ftLastWriteTime; 
 	
 	sprintf( fullpath, "%s\\%s", Directory, sd ) ; 
-	MakeDir( fullpath ) ;
+	if( !MakeDir( fullpath ) ) {
+		sprintf( fullpath,"Unable to create directory: %s\\%s !",Directory, sd);
+		MessageBox(NULL,fullpath,"Error",MB_OK|MB_ICONERROR); 
+		return 0 ;
+	}
 	
 	sprintf( buffer, "%s\\%s", TEXT(PUTTY_REG_POS), s ) ;
 
@@ -4236,6 +4258,7 @@ void MakeDirTree( const char * Directory, const char * s, const char * sd ) {
 			}
 		RegCloseKey( hKey ) ;
 		}
+	return 1;
 	}
 
 // Convertit la base de registre en repertoire pour le mode savemode=dir
@@ -4257,10 +4280,10 @@ int Convert2Dir( const char * Directory ) {
 	sprintf( buffer, "%s\\Launcher", Directory ) ; DelDir( buffer) ; MakeDirTree( Directory, "Launcher", "Launcher" ) ;
 	sprintf( buffer, "%s\\Folders", Directory ) ; DelDir( buffer) ; MakeDirTree( Directory, "Folders", "Folders" ) ;
 	
-	sprintf( buffer, "%s\\Sessions", Directory ) ; DelDir( buffer) ; MakeDir( buffer ) ;
+	sprintf( buffer, "%s\\Sessions", Directory ) ; DelDir( buffer) ; { if(!MakeDir( buffer )) MessageBox(NULL,"Unable to create directory for storing sessions","Error",MB_OK|MB_ICONERROR); }
 	sprintf( buffer, "%s\\Sessions", TEXT(PUTTY_REG_POS) ) ;
 		
-	sprintf( fullpath, "%s\\Sessions_Commands", Directory ) ; DelDir( fullpath ) ; MakeDir( fullpath ) ;
+	sprintf( fullpath, "%s\\Sessions_Commands", Directory ) ; DelDir( fullpath ) ; if(!MakeDir( fullpath )) { MessageBox(NULL,"Unable to create directory for storing session commands","Error",MB_OK|MB_ICONERROR); }
 
 	if( RegOpenKeyEx( HKEY_CURRENT_USER, TEXT(buffer), 0, KEY_READ, &hKey) == ERROR_SUCCESS ) {
 		if( RegQueryInfoKey(hKey,achClass,&cchClassName,NULL,&cSubKeys,&cbMaxSubKey
@@ -4270,19 +4293,18 @@ int Convert2Dir( const char * Directory ) {
 				retCode = RegEnumKeyEx(hKey, i, achKey, &cbName, NULL, NULL, NULL, &ftLastWriteTime) ;
 				unmungestr( achKey, buffer,MAX_PATH) ;
 				IniFileFlag = SAVEMODE_REG ;
-				load_settings( buffer, conf/*&cfg*/ ) ;
+				load_settings( buffer, conf ) ;
 				IniFileFlag = SAVEMODE_DIR ;
 				SetInitialSessPath() ;
 				SetCurrentDirectory( Directory ) ;
 				
-				if( DirectoryBrowseFlag ) if( strcmp(conf_get_str(conf,CONF_folder)/*cfg.folder*/, "Default")&&strcmp(conf_get_str(conf,CONF_folder)/*cfg.folder*/, "") ) {
-					//sprintf( fullpath, "%s\\Commands\\%s", Directory, cfg.folder ) ;
-					sprintf( fullpath, "%s\\Sessions\\%s", Directory, conf_get_str(conf,CONF_folder)/*cfg.folder*/ ) ;
-					MakeDir( fullpath ) ;
-					SetSessPath( conf_get_str(conf,CONF_folder)/*cfg.folder*/ ) ; 
+				if( DirectoryBrowseFlag ) if( strcmp(conf_get_str(conf,CONF_folder), "Default")&&strcmp(conf_get_str(conf,CONF_folder), "") ) {
+					sprintf( fullpath, "%s\\Sessions\\%s", Directory, conf_get_str(conf,CONF_folder)) ;
+					if( !MakeDir( fullpath ) ) { MessageBox(NULL,"Unable to create directory for storing session informations","Error",MB_OK|MB_ICONERROR); }
+					SetSessPath( conf_get_str(conf,CONF_folder) ) ; 
 					}
 				
-				save_settings( buffer, conf/*&cfg*/) ;
+				save_settings( buffer, conf) ;
 
 				sprintf( buffer, "%s\\Sessions\\%s\\Commands", TEXT(PUTTY_REG_POS), achKey ) ;
 				if( RegTestKey( HKEY_CURRENT_USER, buffer ) ){
@@ -4296,7 +4318,7 @@ int Convert2Dir( const char * Directory ) {
 		}
 	
 	
-	sprintf( buffer, "%s\\SshHostKeys", Directory ) ; DelDir( buffer) ; MakeDir( buffer ) ;
+	sprintf( buffer, "%s\\SshHostKeys", Directory ) ; DelDir( buffer) ; if( !MakeDir( buffer ) ) { MessageBox(NULL,"Unable to create directory for storing ssh host keys","Error",MB_OK|MB_ICONERROR); }
 	sprintf( buffer, "%s\\SshHostKeys", TEXT(PUTTY_REG_POS) ) ;
 	if( RegOpenKeyEx( HKEY_CURRENT_USER, TEXT(buffer), 0, KEY_READ, &hKey) == ERROR_SUCCESS ) {
 		if( RegQueryInfoKey(hKey,achClass,&cchClassName,NULL,&cSubKeys,&cbMaxSubKey
@@ -4565,46 +4587,44 @@ list={OEM_COMMA}
 {OEM_COMMA}=.\
 */
 	
-	else if( pst[0] == '{' ) {key = 0 ; }
+	else if( pst[0] == '{' ) { key = 0 ; }
 	else { key = key + toupper(pst[0]) ; }
 	
 	return key ;
 	}
-
+	
 void TranslateShortcuts( char * st ) {
 	int i,j,k,r ;
 	char *buffer;
 	if( st==NULL ) return ;
 	if( strlen(st)==0 ) return ;
 	buffer = (char*) malloc( strlen(st)+1 ) ;
-	
 	for( i=0 ; i<strlen(st) ; i++ ) {
 		if( st[i]=='{' ) {
-			if( ( j=poss( "}", st+i ) ) > 0 ) {
+			if( strstr(st+i,"{{")==(st+i) ) {
+				del(st,i+1,1);
+			} else if( strstr(st+i,"{END}")==(st+i) ) {
+				del(st,i+1,1);st[i]='\\';st[i+1]='k';st[i+2]='2';st[i+3]='3';
+				i=i+3;
+			} else if( strstr(st+i,"{HOME}")==(st+i) ) {
+				del(st,i+1,2);st[i]='\\';st[i+1]='k';st[i+2]='2';st[i+3]='4';
+				i=i+3;
+			} else if( strstr(st+i,"{ESCAPE}")==(st+i) ) {
+				del(st,i+1,4);st[i]='\\';st[i+1]='k';st[i+2]='1';st[i+3]='b';
+				i=i+3;
+			} else if( (j=poss( "}", st+i )) > 3 ) {
 				for( k=i ; k<(i+j) ; k++ ) {
-					buffer[k-i]=st[k];
-					buffer[k-i+1]='\0';
-					}
-				r=DefineShortcuts( buffer );
+					buffer[k-i]=st[k] ;
+					buffer[k-i+1]='\0' ;
+				}
+				r=DefineShortcuts( buffer ) ;
 				del(st,i+1,j-1);
 				st[i]=r ;
-				}
 			}
-/*
-		else if( (st[i]=='\\')&&(st[i+1]=='\0') ) { i++ ; }
-		else if( (st[i]=='\\')&&(st[i+2]=='\0') ) { i++ ; }
-		else if( (st[i]=='\\')&&(st[i+1]!='\\') ) {
-			buffer[0]=st[i+1];
-			buffer[1]=st[i+2];
-			buffer[2]='\0' ;
-			sscanf( buffer, "%X", &r );
-			del( st, i+1, 2 ) ;
-			st[i]=r ;
-			}
-*/
 		}
-	free(buffer);
 	}
+	free(buffer);
+}
 	
 void InitShortcuts( void ) {
 	char buffer[4096], list[4096], *pl ;
@@ -4650,6 +4670,8 @@ void InitShortcuts( void ) {
 		shortcuts_tab.rollup = CONTROLKEY+VK_F12 ;
 	if( !readINI(KittyIniFile,"Shortcuts","resetterminal",buffer) || ( (shortcuts_tab.resetterminal=DefineShortcuts(buffer))<=0 ) ) { }
 
+	if( NbShortCuts>0 ) for( i=0 ; i<NbShortCuts ; i++ ) { if( shortcuts_tab2[i].st!=NULL ) { free(shortcuts_tab2[i].st) ; } }
+	NbShortCuts=0 ;
 	if( ReadParameter( "Shortcuts", "list", list ) ) {
 		pl=list ;
 		while( strlen(pl) > 0 ) {
@@ -4662,9 +4684,9 @@ void InitShortcuts( void ) {
 					shortcuts_tab2[NbShortCuts].num = DefineShortcuts( pl );
 					}
 				else shortcuts_tab2[NbShortCuts].num = atoi(pl) ;
-
 				TranslateShortcuts( buffer ) ;
-			
+				if( debug_flag ) { debug_logevent( "Remap key %s to %s", pl, buffer ) ; }
+
 				shortcuts_tab2[NbShortCuts].st=(char*)malloc( strlen(buffer)+1 ) ;
 				strcpy( shortcuts_tab2[NbShortCuts].st, buffer ) ;
 				NbShortCuts++;
@@ -4902,6 +4924,7 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "size", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SizeFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "slidedelay", buffer ) ) { ImageSlideDelay = atoi( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "sshversion", buffer ) ) { set_sshver( buffer ) ; }
+	if( ReadParameter( INIT_SECTION, "maxblinkingtime", buffer ) ) { MaxBlinkingTime=2*atoi(buffer);if(MaxBlinkingTime<0) MaxBlinkingTime=0; }
 	
 	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { if( !stricmp( buffer, "NO" ) ) UserPassSSHNoSave = 1 ; }
 	if( ReadParameter( INIT_SECTION, "ctrltab", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetCtrlTabFlag( 0 ) ; }
@@ -5124,10 +5147,10 @@ void InitWinMain( void ) {
 	double ScaleY = GetDeviceCaps(GetDC(hwnd),LOGPIXELSY)/96.0 ; // La police standard (100%) vaut 96ppp (pixels per pouce)
 	if( ScaleY!=1.0 ) { ConfigBoxWindowHeight = (int)( 597*ScaleY ) ; }
 
-	// Initialisation des parametres a partir du fichier kitty.ini
+	// Initialisation des parametres Ã  partir du fichier kitty.ini
 	LoadParameters() ;
 
-	// Ajoute les répertoires InitialDirectory et ConfigDirectory au PATH
+	// Ajoute les rÃ©pertoires InitialDirectory et ConfigDirectory au PATH
 #ifdef CYGTERMPORT
 	appendPath(InitialDirectory);    // Initialise dans la fonction GetInitialDirectory
 	if( strcmp(InitialDirectory,ConfigDirectory) ) {
@@ -5164,7 +5187,7 @@ void InitWinMain( void ) {
 			LoadRegistryKey( hdlg ) ; 
 			InfoBoxClose( hdlg ) ;
 			}
-		else { // la cle de registre existe deja 
+		else { // la cle de registre existe deja
 			if( WindowsCount( MainHwnd ) == 1 ) { // Si c'est le 1er kitty on sauvegarde la cle de registre avant de charger le fichier kitty.sav
 				HWND hdlg = InfoBox( hinst, NULL ) ;
 				InfoBoxSetText( hdlg, "Initializing registry." ) ;
@@ -5252,10 +5275,10 @@ void InitNameConfigFile( void ) ;
 // Ecriture de l'increment de compteurs
 void WriteCountUpAndPath( void ) ;
 
-// Initialisation spécifique a KiTTY
+// Initialisation spÃ©cifique a KiTTY
 void InitWinMain( void ) ;
 
 
-// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+// Nettoie la clÃ© de PuTTY pour enlever les clÃ©s et valeurs spÃ©cifique Ã  KiTTY
 // Se trouve dans le fichier kitty_registry.c
 BOOL RegCleanPuTTY( void ) ;

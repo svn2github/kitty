@@ -663,7 +663,7 @@ void StringList_Up( char **list, const char * name ) ;
 
 void UpFolderInList( char * name ) ;
 
-void CreateFolderInPath( const char * d ) ;
+int CreateFolderInPath( const char * d ) ;
 static void sessionsaver_handler(union control *ctrl, void *dlg, void *data, int event) ;
 char *stristr (const char *meule_de_foin, const char *aiguille) ;
 void RunPuTTY( HWND hwnd, char * param ) ;
@@ -1385,8 +1385,8 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		   ssd->clearbutton && ctrl == ssd->clearbutton) {
 			SetInitCurrentFolder( "Default" );
 			folder_handler( ctrlFolderList, dlg, data, EVENT_REFRESH ) ;
-			do_defaults("Default Settings", conf/*cfg*/) ;
-			conf_set_str(conf,CONF_host,"");//strcpy(cfg->host,"");
+			do_defaults("Default Settings", conf) ;
+			conf_set_str(conf,CONF_host,"");
 			dlg_editbox_set(ctrlHostnameEdit, dlg,"");
 			if( strlen(ssd->savedsession) > 0 ) {
 				ssd->savedsession[0]='\0' ;
@@ -1409,7 +1409,9 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 					dlg_editbox_set( ctrlSessionEdit, dlg, "" ) ;
 					}
 				else {
-					CreateFolderInPath( ssd->savedsession ) ;
+					if( !CreateFolderInPath( ssd->savedsession ) ) {
+						MessageBox( NULL, "Your are not allowed to create sessions folder directory", "Error", MB_OK|MB_ICONERROR ) ;
+					}
 					ssd->savedsession[0] = '\0';
 					dlg_editbox_set( ctrlSessionEdit, dlg, "" ) ;
 					get_sesslist(&ssd->sesslist, FALSE);
