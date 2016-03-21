@@ -254,9 +254,18 @@ void InitLauncherDir( const char * directory ) {
 	DIR * dir ;
 	struct dirent * de ;
 	FILE * fp ;
-	sprintf( fullpath, "%s\\Sessions\\%s", ConfigDirectory, directory ) ;
-	sprintf( buffer, "%s\\Launcher\\%s", ConfigDirectory, directory ) ;
-	if( !MakeDir( buffer ) ) { MessageBox(NULL,"Unable to create the menu launcher directory","Error",MB_OK|MB_ICONERROR); }
+	
+	if( strlen(directory)>0 ) {
+		sprintf( fullpath, "%s\\Sessions\\%s", ConfigDirectory, directory ) ;
+		sprintf( buffer, "%s\\Launcher\\%s", ConfigDirectory, directory ) ;
+	} else {
+		sprintf( fullpath, "%s\\Sessions", ConfigDirectory ) ;
+		sprintf( buffer, "%s\\Launcher", ConfigDirectory ) ;
+	}
+	if( !MakeDir( buffer ) ) { 
+		//MessageBox(NULL,buffer,"Error",MB_OK|MB_ICONERROR); 
+		MessageBox(NULL,"Unable to create the menu launcher directory","Error",MB_OK|MB_ICONERROR); 
+	}
 	if( (dir=opendir(fullpath)) != NULL ) {
 		while( (de=readdir(dir)) != NULL ) 
 		if( strcmp(de->d_name,".") && strcmp(de->d_name,"..") )	{

@@ -222,8 +222,8 @@ int MakeDir( const char * directory ) {
 		}
 	fullpath[j+1]='\0' ;
 		
-	// On supprime les espaces à la fin
-	while( (fullpath[strlen(fullpath)-1]==' ')||(fullpath[strlen(fullpath)-1]=='	') ) fullpath[strlen(fullpath)-1]='\0';
+	// On supprime les espaces, les / et les \\ à la fin
+	while( (fullpath[strlen(fullpath)-1]==' ')||(fullpath[strlen(fullpath)-1]=='	')||(fullpath[strlen(fullpath)-1]=='/')||(fullpath[strlen(fullpath)-1]=='\\') ) fullpath[strlen(fullpath)-1]='\0';
 
 	for( i=strlen(fullpath), j=strlen(fullpath) ; i>=0 ; i--, j-- ) { // On supprime les espaces avant un '\'
 		if( fullpath[i] == '\\' ) {
@@ -239,14 +239,16 @@ int MakeDir( const char * directory ) {
 	strcpy( fullpath, buffer+j ) ;
 	
 	// On crée les répertoires
-	pst = fullpath ;
-	while( (strlen(pst)>0)&&((p=strstr(pst,"\\"))!=NULL) ) {
-		p[0]='\0' ;
+	if( !existdirectory(fullpath) ) {
+		pst = fullpath ;
+		while( (strlen(pst)>0)&&((p=strstr(pst,"\\"))!=NULL) ) {
+			p[0]='\0' ;
+			_mkdir( fullpath ) ;
+			p[0]='\\' ;
+			pst=p+1;
+			}
 		_mkdir( fullpath ) ;
-		p[0]='\\' ;
-		pst=p+1;
-		}
-	_mkdir( fullpath ) ;
+	}
 		
-	return existdirectory(directory) ;
+	return existdirectory(fullpath) ;
 	}

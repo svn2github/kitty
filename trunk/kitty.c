@@ -1260,13 +1260,13 @@ void CountUp( void ) {
 			{ WriteParameter( INIT_SECTION, "KiPath", buffer) ; }
 			
 	if( ReadParameter( INIT_SECTION, "KiLic", buffer ) == 0 ) { 
-		strcpy( buffer, "KI66" ) ;
+		strcpy( buffer, "KI67" ) ;
 		license_make_with_first( buffer, 25, 97, 0 )  ;
 		license_form( buffer, '-', 5 ) ;
 		WriteParameter( INIT_SECTION, "KiLic", buffer) ; 
 		}
 	else if( !license_test( buffer, '-', 97, 0 ) ) {
-		strcpy( buffer, "KI66" ) ;
+		strcpy( buffer, "KI67" ) ;
 		license_make_with_first( buffer, 25, 97, 0 )  ;
 		license_form( buffer, '-', 5 ) ;
 		WriteParameter( INIT_SECTION, "KiLic", buffer) ; 
