@@ -570,7 +570,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #ifdef RECONNECTPORT
-	fprintf( fp,"ReconnectDelay=%d\n",ReconnectDelay );
+	fprintf( fp,"AutoreconnectFlag=%d\nReconnectDelay=%d\n",AutoreconnectFlag,ReconnectDelay );
 #endif
 #ifdef IVPORT
 	fprintf( fp,"BackgroundImageIVFlag=%d\n",BackgroundImageIVFlag );

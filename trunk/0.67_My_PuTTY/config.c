@@ -3147,7 +3147,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 #endif
 
 #ifdef RECONNECTPORT
-	if( !get_param("PUTTY" ) ) {
+	if( !get_param("PUTTY" ) && GetAutoreconnectFlag() ) {
 		s = ctrl_getset(b, "Connection", "reconnect", "Reconnect options");
 		ctrl_checkbox(s, "Attempt to reconnect on system wakeup", NO_SHORTCUT, HELPCTX(no_help), conf_checkbox_handler, I(CONF_wakeup_reconnect)) ;
 		//dlg_stdcheckbox_handler, I(offsetof(Config,wakeup_reconnect)));

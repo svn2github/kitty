@@ -154,7 +154,7 @@ int createPath(char* dir) {
 	/* what if it already exists */
 	if (!SetCurrentDirectory(dir)) {
 		CreateDirectory(p, NULL);
-		return SetCurrentDirectory(p);
+		return SetCurrentDirectory(p) ;
 	}
 	return 1;
 }
@@ -288,6 +288,14 @@ int loadPath() {
 
 	hFile = CreateFile("putty.conf",GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 
+	/* Test Sessions directory */
+	if(get_param("INIFILE")==SAVEMODE_DIR)
+	if( !existdirectory(sesspath) ) {
+		if( !MakeDir(sesspath) ) {
+			MessageBox( NULL, "Unable to create sessions directory !", "Error", MB_OK|MB_ICONERROR ) ;
+		}
+	}
+
 	/* JK: now we can pre-clean-up */
 	SetCurrentDirectory(oldpath);
 
@@ -407,8 +415,11 @@ char * GetSessPath( void ) {
 	
 int CreateFolderInPath( const char * d ) {
 	char buf[MAX_PATH] ;
+	int res = 0 ;
 	sprintf( buf, "%s\\%s", sesspath, d ) ;
-	return createPath( buf ) ;
+	res = createPath( buf ) ;
+	if( !res ) { MessageBox(NULL,"Unable to create directory", "Error", MB_OK|MB_ICONERROR); }
+	return res ;
 	}
 void SaveDumpPortableConfig( FILE * fp ) {
 	fprintf( fp, "seedpath=%s\n", seedpath ) ;
@@ -719,7 +730,7 @@ void *open_settings_r(const char *sessionname)
 	HANDLE hFile;
 	struct setPack* sp;
 	struct setItem *st1, *st2;
-
+	
 	sp = snew( struct setPack );
 
     if (!sessionname || !*sessionname)
@@ -768,7 +779,7 @@ void *open_settings_r(const char *sessionname)
 			hFile = CreateFile(p, GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 		}
 		else {
-			errorShow("Unable to create default session settings file into directory", sesspath);
+			//errorShow("Unable to create default session settings file into directory", sesspath);
 			hFile = INVALID_HANDLE_VALUE;
 		}
 		SetCurrentDirectory(oldpath);
@@ -789,7 +800,7 @@ void *open_settings_r(const char *sessionname)
 			hFile = CreateFile(p, GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 		}
 		else {
-			errorShow("Unable to create session settings file into directory", sesspath);
+			//errorShow("Unable to create session settings file into directory", sesspath);
 			hFile = INVALID_HANDLE_VALUE;
 		}
 		SetCurrentDirectory(oldpath);

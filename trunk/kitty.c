@@ -318,6 +318,10 @@ void SetCtrlTabFlag( const int flag ) { CtrlTabFlag  = flag ; }
 int PuttyFlag = 0 ;
 
 #ifdef RECONNECTPORT
+// Flag pour inhiber le mécanisme de reconnexion automatique
+static int AutoreconnectFlag = 1 ;
+int GetAutoreconnectFlag( void ) { return AutoreconnectFlag ; }
+int SetAutoreconnectFlag( const int flag ) { AutoreconnectFlag = flag ; }
 // Delai avant de tenter une reconnexion automatique
 static int ReconnectDelay = 5 ;
 int GetReconnectDelay(void) { return ReconnectDelay ; }
@@ -1334,6 +1338,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#KiClassName", "PuTTY" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "maxblinkingtime", "5" ) ;
 #ifdef RECONNECTPORT
+			writeINI( KittyIniFile, INIT_SECTION, "#autoreconnect", "yes" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#ReconnectDelay", "5" ) ;
 #endif
 #ifdef RUTTYPORT
@@ -4895,6 +4900,7 @@ void LoadParameters( void ) {
 		if( internal_delay < 1 ) internal_delay = 1 ;
 		}
 #ifdef RECONNECTPORT
+	if( ReadParameter( INIT_SECTION, "autoreconnect", buffer ) ) { if( !stricmp( buffer, "NO" ) ) AutoreconnectFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "ReconnectDelay", buffer ) ) { 
 		ReconnectDelay = atoi( buffer ) ;
 		if( ReconnectDelay < 1 ) ReconnectDelay = 1 ;
