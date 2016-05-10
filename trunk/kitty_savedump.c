@@ -334,13 +334,6 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "ScriptWait=%s\n",			conf_get_str(conf,CONF_script_waitfor) ) ;
 	fprintf( fp, "ScriptHalt=%s\n",			conf_get_str(conf,CONF_script_halton) ) ;
 #endif
-#ifdef SCPORT
-	fprintf( fp, "try_write_syslog=%d\n",		conf_get_int(conf,CONF_try_write_syslog) ) ; 
-	fprintf( fp, "try_pkcs11_auth=%d\n",		conf_get_int(conf,CONF_try_pkcs11_auth) ) ;
-	fprintf( fp, "pkcs11_libfile=%s\n",		conf_get_filename(conf,CONF_pkcs11_libfile)->path ) ;
-	fprintf( fp, "pkcs11_token_label=%s\n",		conf_get_str(conf,CONF_pkcs11_token_label) ) ;
-	fprintf( fp, "pkcs11_cert_label=%s\n",		conf_get_str(conf,CONF_pkcs11_cert_label) ) ;
-#endif
 	/* Telnet options */
 	fprintf( fp, "termtype=%s\n",			conf_get_str(conf,CONF_termtype ) ) ;
 	fprintf( fp, "termspeed=%s\n",			conf_get_str(conf,CONF_termspeed ) ) ;
@@ -578,9 +571,12 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 #ifdef CYGTERMPORT
 	fprintf( fp,"CygTermFlag=%d\n",cygterm_get_flag() );
 #endif
+#ifdef ADBPORT
+	fprintf( fp,"ADBFlag=%d\n",GetADBFlag() );
+#endif
 	if( PasswordConf!= NULL ) fprintf( fp, "PasswordConf=%s\n", PasswordConf ) ;
-	fprintf( fp, "SessionFilterFlag=%d\nSessionsInDefaultFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nMaxBlinkingTime=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\n"
-	,SessionFilterFlag,SessionsInDefaultFlag,ImageViewerFlag,ImageSlideDelay,MaxBlinkingTime,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine);
+	fprintf( fp, "SessionFilterFlag=%d\nSessionsInDefaultFlag=%d\nDefaultSettingsFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nMaxBlinkingTime=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\n"
+	,SessionFilterFlag,SessionsInDefaultFlag,DefaultSettingsFlag,ImageViewerFlag,ImageSlideDelay,MaxBlinkingTime,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine);
 	fprintf( fp, "AntiIdleCount=%d\nAntiIdleCountMax=%d\nIconeNum=%d\n"
 	,AntiIdleCount,AntiIdleCountMax,IconeNum);
 	fprintf( fp, "AntiIdleStr=%s\nInitialDirectory=%s\nConfigDirectory=%s\nBuildVersionTime=%s\n",AntiIdleStr,InitialDirectory,ConfigDirectory,BuildVersionTime);

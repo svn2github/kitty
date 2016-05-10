@@ -7,10 +7,6 @@
 #include "int64.h"
 #include "misc.h"
 
-#ifdef SCPORT
-#include "pkcs11.h"
-#endif
-
 struct ssh_channel;
 typedef struct ssh_tag *Ssh;
 

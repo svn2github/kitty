@@ -680,9 +680,6 @@ int ctrl_path_elements(char *path);
  * or INT_MAX if the paths are identical. */
 int ctrl_path_compare(char *p1, char *p2);
 
-#ifdef SCPORT
-void sc_conf_filesel_handler11(union control *ctrl, void *dlg, void *data, int event) ;
-#endif
 #ifdef ZMODEMPORT
 /*
  * The standard directory-selector handler expects the main `context'

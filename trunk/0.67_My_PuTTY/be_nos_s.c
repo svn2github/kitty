@@ -14,7 +14,13 @@ Backend *backends[] = {
     &telnet_backend,
     &rlogin_backend,
     &raw_backend,
+#ifdef ADBPORT
+    &adb_backend,
+#endif
     &serial_backend,
+#ifdef CYGTERMPORT
+    &cygterm_backend,
+#endif
     NULL
 };
 

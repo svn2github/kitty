@@ -506,7 +506,7 @@ void *open_settings_w(const char *sessionname, char **errmsg)
 	sessionname = "Default Settings";
 #ifdef PERSOPORT
     	struct setPack* sp;
-		/* JK: if sessionname contains [registry] -> cut it off */
+	/* JK: if sessionname contains [registry] -> cut it off */
 	if( get_param("INIFILE")==SAVEMODE_DIR ) {
 		if ( *(sessionname+strlen(sessionname)-1) == ']') {
 			if( ( p = strrchr(sessionname, '[') ) != NULL )	*(p-1) = '\0';
@@ -1107,11 +1107,7 @@ void del_settings(const char *sessionname)
 #ifdef PERSOPORT
     char *p2;
 
-	/* JK: if sessionname contains [registry] -> cut it off and delete from registry */
-	//if ( *(sessionname+strlen(sessionname)-1) == ']') {
 	if( (get_param("INIFILE")==SAVEMODE_REG)||(get_param("INIFILE")==SAVEMODE_FILE) ) {
-		if( ( p = strrchr(sessionname, '[') ) != NULL ) *(p-1) = '\0';
-
 		p = snewn( 3 * strlen(sessionname) + 1, char ) ;
 
 		mungestr(sessionname, p);
@@ -1141,6 +1137,12 @@ void del_settings(const char *sessionname)
 			sfree(p);
 			}
 		else {
+			/* JK: if sessionname contains [registry] -> cut it off */
+			if( get_param("INIFILE")==SAVEMODE_DIR ) {
+				if ( *(sessionname+strlen(sessionname)-1) == ']') {
+					if( ( p = strrchr(sessionname, '[') ) != NULL )	*(p-1) = '\0';
+				}
+			}
 			p = snewn(3 * strlen(sessionname) + 1, char);
 			mungestr(sessionname, p);
 			p2 = snewn(3 * strlen(p) + 1, char);

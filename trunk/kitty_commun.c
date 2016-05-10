@@ -39,6 +39,13 @@ static int AutoStoreSSHKeyFlag = 0 ;
 int GetAutoStoreSSHKeyFlag(void) { return AutoStoreSSHKeyFlag ; }
 void SetAutoStoreSSHKeyFlag( const int flag ) { AutoStoreSSHKeyFlag = flag ; }
 
+#ifdef ADBPORT
+// Flag pour inhiber le support d'ADB
+static int ADBFlag = 0 ;
+int GetADBFlag(void) { return ADBFlag ; }
+void SetADBFlag( const int flag ) { ADBFlag = flag ; }
+#endif
+
 // Répertoire de sauvegarde de la configuration (savemode=dir)
 char * ConfigDirectory = NULL ;
 

@@ -13,10 +13,6 @@
 #include "putty.h"
 #include "dialog.h"
 
-#ifdef SCPORT
-#include <dirent.h>
-#endif
-
 int ctrl_path_elements(char *path)
 {
     int i = 1;

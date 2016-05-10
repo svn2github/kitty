@@ -15,6 +15,12 @@ extern int debug_flag ;
 int GetAutoStoreSSHKeyFlag(void) ;
 void SetAutoStoreSSHKeyFlag( const int flag ) ;
 
+#ifdef ADBPORT
+// Flag pour inhiber le support d'ADB
+int GetADBFlag(void) ;
+void SetADBFlag( const int flag ) ;
+#endif
+
 // Répertoire de sauvegarde de la configuration (savemode=dir)
 extern char * ConfigDirectory ;
 

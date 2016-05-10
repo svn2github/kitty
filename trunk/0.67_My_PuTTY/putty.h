@@ -339,6 +339,9 @@ enum {
 #ifdef CYGTERMPORT
     PROT_CYGTERM,
 #endif
+#ifdef ADBPORT
+    PROT_ADB,
+#endif
     /* PROT_SERIAL is supported on a subset of platforms, but it doesn't
      * hurt to define it globally. */
     PROT_SERIAL
@@ -958,14 +961,6 @@ void cleanup_exit(int);
    X(STR, NONE, script_waitfor) \
    X(STR, NONE, script_halton) \
 /* #endif */ \
-/* #ifdef SCPORT */ \
-	X(INT, NONE, try_write_syslog)            /* check box (not persistent) */ \
-	X(INT, NONE, try_pkcs11_auth)             /* check box */ \
-	X(FILENAME, NONE, pkcs11_libfile)         /* token lib */ \
-	X(STR, NONE, sclib)                       /* sc's owned struct */ \
-	X(STR, NONE, pkcs11_token_label)          /* token label */ \
-	X(STR, NONE, pkcs11_cert_label)           /* cert label */ \
-/* #endif */ \
 /* #ifdef PERSOPORT */ \
 	X(INT, NONE, bcdelay) \
 	X(INT, NONE, initdelay) \
@@ -1257,6 +1252,14 @@ extern Backend loop_backend;
  */
 
 extern Backend raw_backend;
+
+#ifdef ADBPORT
+/*
+ * Exports from adb.c.
+ */
+
+extern Backend adb_backend;
+#endif
 
 /*
  * Exports from rlogin.c.

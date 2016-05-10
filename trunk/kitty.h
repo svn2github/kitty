@@ -29,7 +29,7 @@ void SetCtrlTabFlag( const int flag ) ;
 #ifdef RECONNECTPORT
 // Flag pour inhiber le mécanisme de reconnexion automatique
 int GetAutoreconnectFlag( void ) ;
-int SetAutoreconnectFlag( const int flag ) ;
+void SetAutoreconnectFlag( const int flag ) ;
 // Delai avant de tenter une reconnexion automatique
 int GetReconnectDelay(void) ;
 #endif
@@ -169,12 +169,25 @@ void SetUserPassSSHNoSave( const int flag ) ;
 
 // Flag pour inhiber le filtre sur la liste des sessions de la boite de configuration
 // extern int SessionFilterFlag ;
+// [ConfigBox] filter=yes
 int GetSessionFilterFlag(void) ;
 void SetSessionFilterFlag( const int flag ) ;
 
 // Flag pour inhiber le comportement ou toutes les sessions appartiennent au folder defaut
+// [ConfigBox] default=yes
 int GetSessionsInDefaultFlag(void) ;
 void SetSessionsInDefaultFlag( const int flag ) ;
+
+// Flag pour inhiber la création automatique de la session Default Settings
+// [ConfigBox] defaultsettings=yes
+int GetDefaultSettingsFlag(void) ;
+void SetDefaultSettingsFlag( const int flag ) ;
+
+#ifdef ADBPORT
+// Flag pour inhiber le support d'ADB
+int GetADBFlag(void) ;
+void SetADBFlag( const int flag ) ;
+#endif
 
 // Chemin vers le programme cthelper.exe
 extern char * CtHelperPath ;
@@ -538,6 +551,11 @@ extern int backend_first_connected ; /* Variable permettant de savoir qu'on a de
 #ifndef IDM_FONTNEGATIVE
 #define IDM_FONTNEGATIVE 0x0430
 #endif
+
+#ifndef IDM_PORTKNOCK
+#define IDM_PORTKNOCK	0x0440
+#endif
+
 
 // Doit etre le dernier
 #ifndef IDM_LAUNCHER

@@ -13,11 +13,6 @@
 #ifdef RUTTYPORT
 #include "script.h"
 #endif  /* rutty */
-#ifdef SCPORT
-#include "pkcs11.h"
-#include "sc.h"
-void sc_conf_filesel_handler11(union control *ctrl, void *dlg, void *data, int event) ;
-#endif
 #ifdef CYGTERMPORT
 int cygterm_get_flag( void ) ;
 #endif
@@ -226,6 +221,14 @@ static void config_host_handler(union control *ctrl, void *dlg,
 	    dlg_label_change(ctrl, dlg, "Command (use - for login shell, ? for exe)");
 	    dlg_editbox_set(ctrl, dlg, conf_get_str(conf, CONF_cygcmd) /*cfg->cygcmd*/);
 #endif
+#ifdef ADBPORT
+        } else if (conf_get_int(conf, CONF_protocol) == PROT_ADB) {
+            char *saved_host = conf_get_str(conf, CONF_host);
+            dlg_label_change(ctrl, dlg, "-a: any, -d: usb, -e: emulator, or :serial");
+            if (!saved_host || !*saved_host)
+                saved_host = "-a";
+            dlg_editbox_set(ctrl, dlg, saved_host);
+#endif
 	} else {
 	    dlg_label_change(ctrl, dlg, HOST_BOX_TITLE);
 	    dlg_editbox_set(ctrl, dlg, conf_get_str(conf, CONF_host));
@@ -237,7 +240,7 @@ static void config_host_handler(union control *ctrl, void *dlg,
 #ifdef CYGTERMPORT
 	else if ( conf_get_int(conf, CONF_protocol) /*cfg->protocol*/ == PROT_CYGTERM) {
 	char *s = dlg_editbox_get(ctrl, dlg);
-	    conf_set_str(conf, CONF_cygcmd, s); /*dlg_editbox_get(ctrl, dlg, cfg->cygcmd, lenof(cfg->cygcmd));*/
+	    conf_set_str(conf, CONF_cygcmd, s);
 	}
 #endif
 	else
@@ -287,7 +290,7 @@ static void config_port_handler(union control *ctrl, void *dlg,
 	if (conf_get_int(conf, CONF_protocol) == PROT_SERIAL)
 	    conf_set_int(conf, CONF_serspeed, i);
 #ifdef CYGTERMPORT
-	else if ( conf_get_int(conf, CONF_protocol) /*cfg->protocol*/ == PROT_CYGTERM) ;
+	else if ( conf_get_int(conf, CONF_protocol) == PROT_CYGTERM) ;
 #endif
 	else
 	    conf_set_int(conf, CONF_port, i);
@@ -777,145 +780,6 @@ struct sessionsaver_data {
     int midsession;
     char *savedsession;     /* the current contents of ssd->editbox */
 };
-
-#ifdef SCPORT
-void *m_label_dlg = NULL;
-void *m_cert_dlg = NULL;
-void *sc_get_label_dialog() {
-  return m_label_dlg;
-}
-void *m_label_ctrl = NULL;
-void *m_cert_ctrl = NULL;
-void *sc_get_label_ctrl() {
-  return m_label_ctrl;
-}
-
-void sc_cert_handler(union control *ctrl, void *dlg, void *data, int event);
-void sc_tokenlabel_handler(union control *ctrl, void *dlg, void *data, int event ) {
-  Conf * conf = conf_copy( data ) ; //Config *cfg = (Config *)data;
-  m_label_dlg = dlg;
-  m_label_ctrl = ctrl;
-  
-  if(event == EVENT_REFRESH) {
-    dlg_update_start(ctrl, dlg);
-    dlg_listbox_clear(ctrl, dlg);
-    if(filename_is_null(conf_get_filename(conf, CONF_pkcs11_libfile) /*cfg->pkcs11_libfile*/)) {
-      conf_set_str(conf,CONF_pkcs11_token_label,"") ; // strcpy(cfg->pkcs11_token_label, "");
-      dlg_listbox_add(ctrl, dlg, "<E: SELECT LIBRARY FIRST!>");
-    } else {
-      int i;
-      CK_RV  rv = 0;
-      HINSTANCE hLib = LoadLibrary((char*)conf_get_filename(conf, CONF_pkcs11_libfile)/*(char *)&cfg->pkcs11_libfile*/);
-      CK_C_GetFunctionList pGFL = (CK_RV (*)(CK_FUNCTION_LIST_PTR_PTR))GetProcAddress(hLib, "C_GetFunctionList");
-      if (pGFL == NULL) {
-        conf_set_str(conf,CONF_pkcs11_token_label,"") ; // strcpy(cfg->pkcs11_token_label, "");
-        dlg_listbox_add(ctrl, dlg, "<E: WRONG LIBRARY!>");
-      } else {
-        CK_FUNCTION_LIST_PTR fl  = 0;
-        rv = pGFL(&fl);
-        if(rv != CKR_OK) {
-          conf_set_str(conf,CONF_pkcs11_token_label,"") ; // strcpy(cfg->pkcs11_token_label, "");
-          dlg_listbox_add(ctrl, dlg, "<E: ACCESS TO LIBARY FAILED!>");
-        } else {
-          unsigned long slot_count = 16;
-          CK_SLOT_ID slots[16];
-          if((fl->C_Initialize(0) != CKR_OK) || (fl->C_GetSlotList(TRUE, slots, &slot_count) != CKR_OK)) {
-            conf_set_str(conf,CONF_pkcs11_token_label,"") ; // strcpy(cfg->pkcs11_token_label, "");
-            dlg_listbox_add(ctrl, dlg, "<E: ACCESS TO LIBARY FAILED!>");
-          } else {
-            if(slot_count == 0) {
-              conf_set_str(conf,CONF_pkcs11_token_label,"") ; // strcpy(cfg->pkcs11_token_label, "");
-              dlg_listbox_add(ctrl, dlg, "<E: NO TOKEN FOUND!>");
-            }
-            for(i=0; i<slot_count; i++) {
-              CK_TOKEN_INFO token_info;
-              CK_SLOT_ID slot = 64;
-              slot = slots[i];
-              fl->C_GetTokenInfo(slot,&token_info);
-              {
-                char buf[40];
-                memset(buf, 0, 40);
-                int j;
-                strncpy(buf, token_info.label, 30);
-                for(j=29;j>0;j--) {
-                  if(buf[j] == ' ') {
-                    buf[j] = '\0';
-                  } else {
-                    break;
-                  }
-                }
-                dlg_listbox_add(ctrl, dlg, buf);
-              }
-            }
-          }
-          fl->C_Finalize(0);
-        }
-      }
-      FreeLibrary(hLib);
-    }
-     dlg_editbox_set(ctrl, dlg, conf_get_str(conf,CONF_pkcs11_token_label) /*cfg->pkcs11_token_label*/);
-    dlg_update_done(ctrl, dlg);
-  } else if (event == EVENT_VALCHANGE) {
-    char buf[70];
-    strcpy( buf, dlg_editbox_get(ctrl, dlg ) ); //dlg_editbox_get(ctrl, dlg, buf, sizeof(buf));
-    if(strncmp(buf, "<E: ", 4) != 0){
-      conf_set_str(conf,CONF_pkcs11_token_label,buf) /*strcpy(cfg->pkcs11_token_label, buf)*/;
-    }
-  }
-  if(m_cert_dlg != NULL) {
-    sc_cert_handler(m_cert_ctrl, m_cert_dlg, data, EVENT_REFRESH);
-  }
-  conf_free(conf);
-}
-
-void sc_cert_handler(union control *ctrl, void *dlg, void *data, int event ) {
-  Conf * conf = conf_copy( data ) ; // Config *cfg = (Config *)data;
-  m_cert_dlg = dlg;
-  m_cert_ctrl = ctrl;
-    
-  if(event == EVENT_REFRESH) {
-    dlg_update_start(ctrl, dlg);
-    dlg_listbox_clear(ctrl, dlg);
-    if(conf_get_str(conf,CONF_pkcs11_token_label)/*cfg->pkcs11_token_label*/ == NULL ||
-       strlen(conf_get_str(conf,CONF_pkcs11_token_label)/*cfg->pkcs11_token_label*/) == 0) {
-      conf_set_str(conf,CONF_pkcs11_token_label,"") /*strcpy(cfg->pkcs11_token_label, "")*/;
-      dlg_listbox_add(ctrl, dlg, "<E: SELECT TOKEN FIRST!>");
-    } else {
-      sc_lib *sclib = calloc(sizeof(sc_lib), 1);
-      sc_init_library(NULL, 0, sclib, conf_get_filename(conf,CONF_pkcs11_libfile)/*&cfg->pkcs11_libfile*/);
-      if(sclib->m_fl) {
-        CK_SESSION_HANDLE session = sc_get_session(NULL, 0, sclib->m_fl, conf_get_str(conf,CONF_pkcs11_token_label)/*cfg->pkcs11_token_label*/);
-        if(session) {
-          char msg[1024] = "";
-          sc_cert_list *pcl;
-          sc_cert_list *cl = sc_get_cert_list(sclib, session, msg);
-          pcl = cl;
-          while(pcl != NULL) {
-            char p_buf[pcl->cert_attr[0].ulValueLen+1];
-            memset(p_buf, 0, pcl->cert_attr[0].ulValueLen+1);
-            strncpy(p_buf, pcl->cert_attr[0].pValue, pcl->cert_attr[0].ulValueLen);
-            dlg_listbox_add(ctrl, dlg, p_buf);
-            pcl = pcl->next;
-          }
-          sc_free_cert_list(cl);
-          sclib->m_fl->C_CloseSession(session);
-        }
-        sclib->m_fl->C_Finalize(0);
-      }
-      free(sclib);
-    }
-    dlg_editbox_set(ctrl, dlg, conf_get_str(conf,CONF_pkcs11_cert_label) /*cfg->pkcs11_cert_label*/);
-    dlg_update_done(ctrl, dlg);
-  } else if (event == EVENT_VALCHANGE) {
-    char buf[70];
-    strcpy(buf,dlg_editbox_get(ctrl, dlg) );//dlg_editbox_get(ctrl, dlg, buf, sizeof(buf));
-    if(strncmp(buf, "<E: ", 4) != 0) {
-      conf_set_str(conf,CONF_pkcs11_cert_label,buf) /*strcpy(cfg->pkcs11_cert_label, buf)*/;
-    }
-  }
-  conf_free(conf);
-}
-#endif
 
 static void sessionsaver_data_free(void *ssdv)
 {
@@ -2256,8 +2120,24 @@ void setup_config_box(struct controlbox *b, int midsession,
 			      "Raw", 'w', I(PROT_RAW),
 			      "Telnet", 't', I(PROT_TELNET),
 			      "Rlogin", 'i', I(PROT_RLOGIN),
+#ifdef ADBPORT
+			      "ADB", 'b', I(PROT_ADB),
+#endif
 			      NULL);
 	} else {
+#ifdef ADBPORT
+	    if( GetADBFlag() )
+	    ctrl_radiobuttons(s, "Connection type:", NO_SHORTCUT, 4,
+			      HELPCTX(session_hostname),
+			      config_protocolbuttons_handler, P(hp),
+			      "Raw", 'w', I(PROT_RAW),
+			      "Telnet", 't', I(PROT_TELNET),
+			      "Rlogin", 'i', I(PROT_RLOGIN),
+			      "SSH", 's', I(PROT_SSH),
+			      "ADB", 'b', I(PROT_ADB),
+			      NULL);
+	    else
+#endif
 	    ctrl_radiobuttons(s, "Connection type:", NO_SHORTCUT, 4,
 			      HELPCTX(session_hostname),
 			      config_protocolbuttons_handler, P(hp),
@@ -2470,7 +2350,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 /* rutty: Session/Scripting panel */
 #ifdef RUTTYPORT
     if( !get_param("PUTTY") && (GetRuTTYFlag()>0) ) {
-	ctrl_settitle(b, "Session/Scripting", "Scripting");
+	ctrl_settitle(b, "Session/Scripting", "Scripting (RuTTY patch)");
 	s = ctrl_getset(b, "Session/Scripting", "Start", NULL);
 	 ctrl_filesel(s, "Script filename:", 'f',
 		"Scr Files (*.scr, *.txt)\0*.scr;*.txt\0All Files (*.*)\0*\0\0\0"
@@ -3667,38 +3547,6 @@ void setup_config_box(struct controlbox *b, int midsession,
 	}
 
 	if (!midsession) {
-#ifdef SCPORT
-          /*
-           * The Connection/SSH/Pkcs11 panel.
-           */
-	   if( !get_param("PUTTY") ) {
-          ctrl_settitle(b, "Connection/SSH/Pkcs11",
-                        "Options controlling PKCS11 SSH authentication");
-          
-          s = ctrl_getset(b, "Connection/SSH/Pkcs11", "methods",
-                          "Authentication methods");
-          ctrl_checkbox(s, "Use Windows event log", NO_SHORTCUT,
-                        HELPCTX(no_help),
-                        conf_checkbox_handler, I(CONF_try_write_syslog)); // dlg_stdcheckbox_handler, I(offsetof(Config,try_write_syslog)));
-          ctrl_checkbox(s, "Attempt \"PKCS#11 smartcard\" auth (SSH-2)", NO_SHORTCUT,
-                        HELPCTX(no_help),
-                        conf_checkbox_handler, I(CONF_try_pkcs11_auth));// dlg_stdcheckbox_handler,I(offsetof(Config,try_pkcs11_auth)));
-
-          s = ctrl_getset(b, "Connection/SSH/Pkcs11", "params",
-                          "Authentication parameters");
-          ctrl_filesel(s, "PKCS#11 library for authentication:", NO_SHORTCUT,
-                       FALSE , FALSE, "Select PKCS#11 library file",
-                       HELPCTX(no_help),
-                       sc_conf_filesel_handler11, I(CONF_pkcs11_libfile)); //sc_dlg_stdfilesel_handler11, I(offsetof(Config, pkcs11_libfile)));
-          ctrl_combobox(s, "Token label:",
-                        NO_SHORTCUT, 70, HELPCTX(no_help),
-                        sc_tokenlabel_handler, P(NULL), P(NULL));
-          ctrl_combobox(s, "Certificate label:",
-                        NO_SHORTCUT, 70, HELPCTX(no_help),
-                        sc_cert_handler, P(NULL), P(NULL));
-/**/
-		}
-#endif
 	    /*
 	     * The Connection/SSH/TTY panel.
 	     */
@@ -3980,31 +3828,6 @@ void setup_config_box(struct controlbox *b, int midsession,
 #endif
 }
 
-#ifdef SCPORT
-void *sc_get_label_dialog();
-void *sc_get_label_ctrl();
-void sc_tokenlabel_handler(union control *ctrl, void *dlg, void *data, int event );
-void sc_conf_filesel_handler11(union control *ctrl, void *dlg, void *data, int event) {
-	
-    int key = ctrl->fileselect.context.i;
-    Conf *conf = (Conf *)data;
-	
-  //int offset = ctrl->fileselect.context.i;
-
-  if (event == EVENT_REFRESH) {
-    dlg_filesel_set(ctrl, dlg, conf_get_filename(conf, key));
-    //dlg_filesel_set(ctrl, dlg, *(Filename *)ATOFFSET(data, offset));
-  } else if (event == EVENT_VALCHANGE) {
-	Filename *filename = dlg_filesel_get(ctrl, dlg);
-	conf_set_filename(conf, key, filename);
-        filename_free(filename);
-    //dlg_filesel_get(ctrl, dlg, (Filename *)ATOFFSET(data, offset));
-  }
-  if(sc_get_label_dialog() != NULL) {
-    sc_tokenlabel_handler(sc_get_label_ctrl(), sc_get_label_dialog(), data, EVENT_REFRESH);
-  }
-}
-#endif
 #ifdef ZMODEMPORT
 /*
  * The standard directory-selector handler expects the main `context'

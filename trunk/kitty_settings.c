@@ -301,14 +301,6 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_s_forced(sesskey, "ScriptWait", conf_get_str(conf, CONF_script_waitfor));
     write_setting_s_forced(sesskey, "ScriptHalt", conf_get_str(conf, CONF_script_halton));
 #endif  /* rutty */
-/* potty :*/
-#ifdef SCPORT
-    write_setting_i_forced(sesskey, "PKCS11SysLog", conf_get_int(conf,CONF_try_write_syslog) );
-    write_setting_i_forced(sesskey, "AuthPKCS11", conf_get_int(conf,CONF_try_pkcs11_auth) /*cfg->try_pkcs11_auth*/);
-    write_setting_filename_forced(sesskey, "PKCS11LibFile", conf_get_filename(conf, CONF_pkcs11_libfile) /*cfg->pkcs11_libfile*/);
-    write_setting_s_forced(sesskey, "PKCS11TokenLabel", conf_get_str(conf, CONF_pkcs11_token_label) /*cfg->pkcs11_token_label*/);
-    write_setting_s_forced(sesskey, "PKCS11CertLabel", conf_get_str(conf, CONF_pkcs11_cert_label) /*cfg->pkcs11_cert_label*/);
-#endif
 #ifdef RECONNECTPORT
     write_setting_i_forced(sesskey, "WakeupReconnect", conf_get_int(conf,CONF_wakeup_reconnect) /*cfg->wakeup_reconnect*/);
     write_setting_i_forced(sesskey, "FailureReconnect", conf_get_int(conf,CONF_failure_reconnect) /*cfg->failure_reconnect*/);
@@ -339,7 +331,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
 	write_setting_filename_forced(sesskey, "HyperlinkBrowser", conf_get_filename(conf, CONF_url_browser));
 	write_setting_i_forced(sesskey, "HyperlinkRegularExpressionUseDefault", conf_get_int(conf, CONF_url_defregex));
 #ifndef NO_HYPERLINK
-	if( !strcmp(conf_get_str(conf, CONF_url_regex),"@°@°@NO REGEX--") ) 
+	if( !strcmp(conf_get_str(conf, CONF_url_regex),"@Â°@Â°@NO REGEX--") ) 
 		write_setting_s_forced(sesskey, "HyperlinkRegularExpression", urlhack_default_regex ) ;
 	else
 		write_setting_s_forced(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
@@ -856,15 +848,6 @@ void load_open_settings_forced(char *filename, Conf *conf) {
 	gpps_forced(sesskey, "ScriptWait", "", conf, CONF_script_waitfor);
 	gpps_forced(sesskey, "ScriptHalt", "", conf, CONF_script_halton);
 #endif  /* rutty */  
-#ifdef SCPORT
-    gppi_forced(sesskey, "PKCS11SysLog", 0, conf, CONF_try_write_syslog );
-    gppi_forced(sesskey, "AuthPKCS11", 0, conf, CONF_try_pkcs11_auth /*&cfg->try_pkcs11_auth*/);
-    gppfile_forced(sesskey, "PKCS11LibFile", conf, CONF_pkcs11_libfile /*&cfg->pkcs11_libfile*/);
-    	conf_set_str( conf, CONF_pkcs11_token_label, "" ) ;
-	gpps_forced(sesskey, "PKCS11TokenLabel", "", conf, CONF_pkcs11_token_label);
-	conf_set_str( conf, CONF_pkcs11_cert_label, "" ) ;
-	gpps_forced(sesskey, "PKCS11CertLabel", "", conf, CONF_pkcs11_cert_label);
-#endif
 #ifdef RECONNECTPORT
     gppi_forced(sesskey, "WakeupReconnect", 0, conf, CONF_wakeup_reconnect /*&cfg->wakeup_reconnect*/);
     gppi_forced(sesskey, "FailureReconnect", 0, conf, CONF_failure_reconnect /*&cfg->failure_reconnect*/);
@@ -984,20 +967,25 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "SaveWindowPos", 0, conf, CONF_save_windowpos /*&cfg->save_windowpos*/); /* BKG */
     gppi_forced(sesskey, "ForegroundOnBell", 0, conf, CONF_foreground_on_bell /*&cfg->foreground_on_bell*/);
 
-    if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
-	sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
-    } else {
-	strcpy( PassKey, "" ) ;
-    }
-    gpps_forced(sesskey, "Password", "", conf, CONF_password );
-    char pst[4096] ;
-    if( strlen(conf_get_str(conf, CONF_password))<=4095 ) { strcpy( pst, conf_get_str(conf, CONF_password) ) ; }
-    else { memcpy( pst, conf_get_str( conf, CONF_password ), 4095 ) ; pst[4095]='\0'; }
-    decryptstring( pst, PassKey ) ;
+    if( strlen(conf_get_str(conf, CONF_host))>0 ) {
+	if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
+		sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
+	} else {
+		strcpy( PassKey, "" ) ;
+	}
+	gpps_forced(sesskey, "Password", "", conf, CONF_password );
+    } else { conf_set_str( conf, CONF_password, "" ) ; } 
 
-    MASKPASS(pst);
-    conf_set_str( conf, CONF_password, pst ) ;
-    memset(pst,0,strlen(pst));
+    if( strlen(conf_get_str(conf, CONF_password))>0 ) {
+	char pst[4096] ;
+	if( strlen(conf_get_str(conf, CONF_password))<=4095 ) { strcpy( pst, conf_get_str(conf, CONF_password) ) ; }
+	else { memcpy( pst, conf_get_str( conf, CONF_password ), 4095 ) ; pst[4095]='\0'; }
+	decryptstring( pst, PassKey ) ;
+
+	MASKPASS(pst);
+	conf_set_str( conf, CONF_password, pst ) ;
+	memset(pst,0,strlen(pst));
+    }
 
     gppi_forced(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps_forced(sesskey, "Comment", "", conf, CONF_comment );

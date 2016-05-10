@@ -35,5 +35,8 @@ Backend *backends[] = {
 #ifdef CYGTERMPORT
     &cygterm_backend,
 #endif
+#ifdef ADBPORT
+    &adb_backend,
+#endif
     NULL
 };

@@ -590,6 +590,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	do_defaults(NULL, conf);
 #ifdef PERSOPORT
 	// On cree la session "Default Settings" si elle n'existe pas
+	if( GetDefaultSettingsFlag() )
 	{ char buffer[1024] ; GetSessionFolderName( "Default Settings", buffer ) ; 
 	if( strlen( buffer ) == 0 ) { save_settings( "Default Settings", conf ) ; }
 	}
@@ -757,6 +758,10 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 		} else if( !strcmp(p, "-norutty") ) {			
 			SetRuTTYFlag( 0 ) ;
 #endif
+#ifdef ADBPORT	
+		} else if( !strcmp(p, "-adb") ) {			
+			SetADBFlag( 1 ) ;
+#endif
 #ifdef ZMODEMPORT
 		} else if( !strcmp(p, "-zmodem") ) {
 			SetZModemFlag( 1 ) ;
@@ -811,6 +816,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			SetConfigBoxHeight( 7 ) ;
 			SetCtrlTabFlag( 0 ) ;
 			SetRuTTYFlag( 0 ) ;
+			SetDefaultSettingsFlag(1);
 #ifdef CYGTERMPORT
 			cygterm_set_flag( 0 ) ;
 #endif
@@ -819,6 +825,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 #endif
 #ifdef RECONNECTPORT
 			SetAutoreconnectFlag( 0 ) ;
+#endif
+#ifdef ADBPORT
+			SetADBFlag(0);
 #endif
 			SetSessionFilterFlag( 0 ) ;
 			PuttyFlag = 1 ;
@@ -1460,6 +1469,9 @@ TrayIcone.hWnd = hwnd ;
 	AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT) FontMenu, "Font settings");
 	
         AppendMenu(m, MF_ENABLED, IDM_SHOWPORTFWD, "Po&rt forwarding");
+	if( strlen(conf_get_str(conf,CONF_portknockingoptions))>0 ) {
+		AppendMenu(m, MF_ENABLED, IDM_PORTKNOCK, "Port &knock");
+	}
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
 	AppendMenu(m, MF_ENABLED, IDM_EXPORTSETTINGS, "Export &current settings" ) ;
         }
@@ -3803,6 +3815,9 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_FONTNEGATIVE:
 		NegativeColours(hwnd) ;
 		break ;
+	  case IDM_PORTKNOCK:
+		ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
+		break;
 	  case IDM_SHOWPORTFWD:
 //debug_log( "%d %d %d %d\n",offset_width, offset_height, font_width, font_height ) ;
 		ShowPortfwd( hwnd, conf ) ; //ShowPortfwd( hwnd, cfg.portfwd ) ;
@@ -4854,16 +4869,15 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
       case WM_SYSKEYUP:
 #endif
 #ifdef RECONNECTPORT
-	if( !back && GetAutoreconnectFlag() && backend_first_connected && !(GetKeyState(VK_CONTROL)&0x8000) && !(GetKeyState(VK_SHIFT)&0x8000) && !(GetKeyState(VK_MENU)&0x8000) && (wParam!=VK_TAB) && (wParam!=VK_LEFT) && (wParam!=VK_UP) && (wParam!=VK_RIGHT) && (wParam!=VK_DOWN) && !((wParam>=VK_F1)&&(wParam<=VK_F16)) ) { 
+	//if( !back && GetAutoreconnectFlag() && backend_first_connected && (WM_COMMAND==WM_KEYDOWN) && !(GetKeyState(VK_CONTROL)&0x8000) && !(GetKeyState(VK_SHIFT)&0x8000) && !(GetKeyState(VK_MENU)&0x8000) && (wParam!=VK_TAB) && (wParam!=VK_LEFT) && (wParam!=VK_UP) && (wParam!=VK_RIGHT) && (wParam!=VK_DOWN) && !((wParam>=VK_F1)&&(wParam<=VK_F16)) ) { 
+	if( !back && GetAutoreconnectFlag() && backend_first_connected && (wParam!=VK_CONTROL) && (wParam!=VK_SHIFT) && (wParam!=VK_MENU) && (wParam!=VK_TAB) && (wParam!=VK_LEFT) && (wParam!=VK_UP) && (wParam!=VK_RIGHT) && (wParam!=VK_DOWN) && !((wParam>=VK_F1)&&(wParam<=VK_F16)) ) { 
  		logevent(NULL, "No connection on key pressed, trying to reconnect...") ; 
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
 		break ;
 	}
 #endif
 #ifdef PERSOPORT
-      
-	//if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) < 0) && (GetKeyState(VK_MENU) >= 0) && (GetKeyState(VK_SHIFT) >= 0) && conf_get_int(conf, CONF_ctrl_tab_switch)) {
-	//if( (message==WM_KEYUP) && (wParam == VK_TAB) && conf_get_int(conf, CONF_ctrl_tab_switch) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
+
 	if( (wParam == VK_TAB) && (GetKeyState(VK_CONTROL) & 0x8000) ) {
 		if( (message==WM_KEYUP) && conf_get_int(conf, CONF_ctrl_tab_switch) && GetCtrlTabFlag() ) {
 			struct ctrl_tab_info info = { (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : -1, hwnd, } ;

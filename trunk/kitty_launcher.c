@@ -400,6 +400,8 @@ void RunConfig( Conf * conf ) {
 		char bufpass[1024] ;
 		strcpy( bufpass, conf_get_str(conf,CONF_password));
 		MASKPASS(bufpass);
+		conf_set_str(conf,CONF_password,bufpass);
+
 		    /*
 		     * Allocate a file-mapping memory chunk for the
 		     * config structure.
@@ -425,6 +427,8 @@ void RunConfig( Conf * conf ) {
 		    inherit_handles = TRUE;
 		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
 		    cl = c;
+		MASKPASS(bufpass);
+		conf_set_str(conf,CONF_password,bufpass);
 		memset(bufpass,0,strlen(bufpass));
 		    
 		GetModuleFileName(NULL, b, sizeof(b) - 1);

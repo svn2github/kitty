@@ -217,14 +217,6 @@
 #define WINHELP_CTX_connection_failure_reconnect "connection.failure_reconnect:config-failure_reconnect"
 #endif
 
-#ifdef SCPORT
-#define WINHELP_CTX_ssh_write_syslog "ssh.write.syslog"
-#define WINHELP_CTX_ssh_auth_pkcs11 "ssh.auth.pkcs11"
-#define WINHELP_CTX_ssh_auth_pkcs11_libfile "ssh.auth.pkcs11libfile"
-#define WINHELP_CTX_ssh_auth_pkcs11_token_label "ssh.auth.pkcs11tokenlabel"
-#define WINHELP_CTX_ssh_auth_pkcs11_cert_label "ssh.auth.pkcs11certlabel"
-#endif
-
 #ifdef ZMODEMPORT
 #define WINHELP_CTX_zmodem_rzcommand "zmodem.rzcommand"
 #define WINHELP_CTX_zmodem_rzoptions "zmodem.rzoptions"

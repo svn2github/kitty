@@ -67,6 +67,7 @@ extern Conf *conf ;
 #define IDM_RESIZE 0x0370
 #define IDM_REPOS 0x0380
 #define IDM_EXPORTSETTINGS 0x0390
+#define IDM_PORTKNOCK	0x0440
 
 
 // Doit etre le dernier
@@ -321,7 +322,7 @@ int PuttyFlag = 0 ;
 // Flag pour inhiber le mécanisme de reconnexion automatique
 static int AutoreconnectFlag = 1 ;
 int GetAutoreconnectFlag( void ) { return AutoreconnectFlag ; }
-int SetAutoreconnectFlag( const int flag ) { AutoreconnectFlag = flag ; }
+void SetAutoreconnectFlag( const int flag ) { AutoreconnectFlag = flag ; }
 // Delai avant de tenter une reconnexion automatique
 static int ReconnectDelay = 5 ;
 int GetReconnectDelay(void) { return ReconnectDelay ; }
@@ -331,7 +332,7 @@ int backend_first_connected = 0 ;
 
 // Flag pour afficher l'image de fond
 #if (defined IMAGEPORT) && (!defined FDJ)
-// Suite a�PuTTY 0.61, le patch covidimus ne fonctionne plus tres bien
+// Suite à PuTTY 0.61, le patch covidimus ne fonctionne plus tres bien
 // Il impose de demarrer les sessions avec -load meme depuis la config box (voir CONFIG.C)
 // Le patch est desactive par defaut
 int BackgroundImageFlag = 0 ;
@@ -357,6 +358,12 @@ void SetZModemFlag( const int flag ) { ZModemFlag = flag ; }
 static int SessionsInDefaultFlag = 1 ;
 int GetSessionsInDefaultFlag(void) { return SessionsInDefaultFlag ; }
 void SetSessionsInDefaultFlag( const int flag ) { SessionsInDefaultFlag = flag ; }
+
+// Flag pour inhiber la creation automatique de la session Default Settings
+// [ConfigBox] defaultsettings=yes
+static int DefaultSettingsFlag = 1 ;
+int GetDefaultSettingsFlag(void) { return DefaultSettingsFlag ; }
+void SetDefaultSettingsFlag( const int flag ) { DefaultSettingsFlag = flag ; }
 
 // Flag pour inhiber le filtre sur la liste des sessions de la boite de configuration
 static int SessionFilterFlag = 1 ;
@@ -1288,6 +1295,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, "ConfigBox", "height", "21" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "filter", "yes" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "#default", "yes" ) ;
+			writeINI( KittyIniFile, "ConfigBox", "#defaultsettings", "yes" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "#noexit", "no" ) ;
 
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -1343,6 +1351,9 @@ void CreateDefaultIniFile( void ) {
 #endif
 #ifdef RUTTYPORT
 			writeINI( KittyIniFile, INIT_SECTION, "#scriptmode", "yes" ) ;
+#endif
+#ifdef RUTTYPORT
+			writeINI( KittyIniFile, INIT_SECTION, "#adb", "yes" ) ;
 #endif
 #ifdef PORTABLE
 			writeINI( KittyIniFile, INIT_SECTION, "savemode", "dir" ) ;
@@ -2496,13 +2507,20 @@ void RunCmd( HWND hwnd ) {
 		}
 	}
 	
-// Gestion de commandes a�distance
+// Gestion de commandes a distance
 static char * RemotePath = NULL ;
 /* Execution de commande en local
 cmd()
 {
 if [ $# -eq 0 ] ; then echo "Usage: cmd command" ; return 0 ; fi
 printf "\033]0;__cm:"$@"\007"
+}
+*/
+/* Envoi d'un fichier sauvegardé en local
+scriptfile()
+{
+if [ $# -eq 0 ] ; then echo "Usage: scriptfile filename" ; return 0 ; fi
+printf "\033]0;__ls:"$@"\007"
 }
 */
 int ManageLocalCmd( HWND hwnd, char * cmd ) {
@@ -2555,6 +2573,10 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		strcpy( RemotePath, cmd+3 ) ;
 		StartNewSession( hwnd, RemotePath ) ;
 		// free( RemotePath ) ; RemotePath = NULL ;
+		return 1 ;
+		}
+	else if( (cmd[0]=='l')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // __ls: envoie un script sauvegardé localement (comme fait le CTRL+F2)
+		RunScriptFile( hwnd, cmd+3 ) ;
 		return 1 ;
 		}
 	else if( (cmd[0]=='c')&&(cmd[1]=='m')&&(cmd[2]==':') ) { // __cm: Execute une commande externe
@@ -3457,40 +3479,6 @@ void SaveCurrentSetting( HWND hwnd ) {
 		save_open_settings_forced( filename, conf ) ;
 		}
 	}
-	
-/*
-int ShowPortfwd( HWND hwnd, Conf * conf ) {
-	char pf[2048]="" ;
-	char *key, *val;
-	for (val = conf_get_str_strs(conf, CONF_portfwd, NULL, &key);
-	val != NULL;
-	val = conf_get_str_strs(conf, CONF_portfwd, key, &key)) {
-		char *p;
-		if (!strcmp(val, "D"))
-			p = dupprintf("D%s\t\n", key+1);
-		else
-			p = dupprintf("%s\t%s\n", key, val);
-		strcat( pf, p ) ;
-		sfree(p);
-		}
-	MessageBox( NULL, pf, "Port forwarding", MB_OK ) ;
-	return SetTextToClipboard( pf ) ;
-	}
-// ANCIENNE PROCEDURE
-int ShowPortfwd( HWND hwnd, char * portfwd ) {
-	char pf[2048], *p ;
-	int i = 0 ;
-	p = portfwd ;
-	while( (p[i]!='\0')||(p[i+1]!='\0') ) {
-		if( p[i]=='\0' ) pf[i]='\n' ;
-		else pf[i]=p[i] ;
-		i++ ;
-		}
-	pf[i] = '\0';
-	MessageBox( NULL, pf, "Port forwarding", MB_OK ) ;
-	return SetTextToClipboard( pf ) ;
-	}
-*/
 
 // Procedures de generation du dump "memoire" (/savedump)
 #ifdef SAVEDUMPPORT
@@ -4983,6 +4971,9 @@ void LoadParameters( void ) {
 	if( readINI( KittyIniFile, "ConfigBox", "default", buffer ) ) {
 		if( !stricmp( buffer, "NO" ) ) SessionsInDefaultFlag = 0 ;
 		}
+	if( readINI( KittyIniFile, "ConfigBox", "defaultsettings", buffer ) ) {
+		if( !stricmp( buffer, "NO" ) ) DefaultSettingsFlag = 0 ;
+		}
 	if( readINI( KittyIniFile, "Print", "height", buffer ) ) {
 		PrintCharSize = atoi( buffer ) ;
 		}
@@ -5001,7 +4992,13 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "cygterm", buffer ) ) {
 		if( !stricmp( buffer, "YES" ) ) cygterm_set_flag( 1 ) ; 
 		if( !stricmp( buffer, "NO" ) ) cygterm_set_flag( 0 ) ; 
-		}
+	}
+#endif
+#ifdef ADBPORT
+	if( ReadParameter( INIT_SECTION, "adb", buffer ) ) {
+		if( !stricmp( buffer, "YES" ) ) SetADBFlag( 1 ) ; 
+		if( !stricmp( buffer, "NO" ) ) SetADBFlag( 0 ) ; 
+	}
 #endif
 #ifdef ZMODEMPORT
 	if( ReadParameter( INIT_SECTION, "zmodem", buffer ) ) { 
@@ -5098,7 +5095,7 @@ void WriteCountUpAndPath( void ) {
 	SearchWinSCP() ;
 	}
 
-// Initialisation specifique a�KiTTY
+// Initialisation specifique a KiTTY
 void appendPath(const char *append) ;
 void InitWinMain( void ) {
 	char buffer[4096];
@@ -5284,7 +5281,9 @@ void WriteCountUpAndPath( void ) ;
 // Initialisation spécifique a KiTTY
 void InitWinMain( void ) ;
 
-
+// Gestion de commandes a distance
+int ManageLocalCmd( HWND hwnd, char * cmd ) ;
+	
 // Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
 // Se trouve dans le fichier kitty_registry.c
 BOOL RegCleanPuTTY( void ) ;
