@@ -41,7 +41,7 @@ void SetAutoStoreSSHKeyFlag( const int flag ) { AutoStoreSSHKeyFlag = flag ; }
 
 #ifdef ADBPORT
 // Flag pour inhiber le support d'ADB
-static int ADBFlag = 0 ;
+static int ADBFlag = 1 ;
 int GetADBFlag(void) { return ADBFlag ; }
 void SetADBFlag( const int flag ) { ADBFlag = flag ; }
 #endif

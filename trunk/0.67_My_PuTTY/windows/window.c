@@ -800,7 +800,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 #endif
 		} else if( !strcmp(p, "-putty") ) {
 			SetAutoStoreSSHKeyFlag( 0 ) ;
-			SetUserPassSSHNoSave( 0 ) ;
+			SetUserPassSSHNoSave( 1 ) ;
 			SetNoKittyFileFlag( 1 ) ;
 			HyperlinkFlag = 0 ;
 			SetIconeFlag( -1 ) ;
@@ -871,8 +871,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 #endif
 		} else if( !strcmp(p, "-convert-dir") ) {
 			return Convert2Dir( ConfigDirectory ) ;
-		} else if( !strcmp(p, "-convert-reg") ) {
+		} else if( !strcmp(p, "-convert-reg") ) {		// NE FONCTIONNE PAS / preferer le parametre -convert1reg
 			return Convert2Reg( ConfigDirectory ) ;
+		} else if( !strcmp(p, "-convert1reg") ) {
+			i++ ;
+			return Convert1Reg(argv[i]) ;
 		} else if( !strcmp(p, "-title") ) {
 			i++ ;
 			conf_set_str( conf, CONF_wintitle, argv[i] ); //strcpy( cfg.wintitle, argv[i] ) ;
@@ -1574,9 +1577,12 @@ else {
 #endif
 
 #endif
+
 #ifdef PORTKNOCKINGPORT
 ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
 #endif
+
+//SaveDump();
 
     start_backend();
 #ifdef RECONNECTPORT
@@ -2966,6 +2972,15 @@ void notify_remote_exit(void *fe)
 	    /* exitcode == INT_MAX indicates that the connection was closed
 	     * by a fatal error, so an error box will be coming our way and
 	     * we should not generate this informational one. */
+		
+#ifdef RECONNECTPORT
+	if( GetAutoreconnectFlag() && backend_first_connected ) {
+		SetConnBreakIcon() ;
+		SetSSHConnected(0);
+		ReadInitScript(NULL);
+		logevent(NULL, "Connection closed by remote host");
+	} else
+#endif
 	    if (exitcode != INT_MAX)
 		MessageBox(hwnd, "Connection closed by remote host",
 			   appname, MB_OK | MB_ICONINFORMATION);

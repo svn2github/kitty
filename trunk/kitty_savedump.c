@@ -165,20 +165,23 @@ void SaveDumpListFile( FILE * fp, const char * directory ) {
 	struct dirent *de ;
 	char buffer[MAX_VALUE_NAME] ;
 	
-	fprintf( fp, "===> Listing directory %s\n", directory ) ;
+	/* fprintf( fp, "	===> Listing directory %s\n", directory ) ; */
 	if( ( dir=opendir( directory ) ) != NULL ) {
 		while( ( de=readdir( dir ) ) != NULL ) {
 			if( strcmp(de->d_name,".")&&strcmp(de->d_name,"..") ) {
 				sprintf( buffer, "%s\\%s", directory, de->d_name ) ;
-				if( GetFileAttributes( buffer ) & FILE_ATTRIBUTE_DIRECTORY ) 
-					strcat( buffer, "\\" ) ;
-				fprintf( fp, "%s\n", buffer ) ;
+				if( GetFileAttributes( buffer ) & FILE_ATTRIBUTE_DIRECTORY ) {  
+					strcat( buffer, "\\" ) ; 
+					fprintf( fp, "%s\n", buffer ) ;
+					SaveDumpListFile( fp, buffer ) ;
 				}
+				else { fprintf( fp, "%s\n", buffer ) ; }
 			}
-		closedir( dir ) ;
 		}
+		closedir( dir ) ;
 	}
-	
+}
+
 void SaveDumpListConf( FILE *fp, const char *directory ) {
 	char buffer[4096], fullpath[MAX_VALUE_NAME] ;
 	FILE *fp2 ;
@@ -542,8 +545,14 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	//FontSpec boldfont; //FontSpec widefont; //FontSpec wideboldfont;
 
 	fprintf( fp, "\n[[KiTTY specific configuration]]\n" ) ;
-	fprintf( fp, "internal_delay=%d\ninit_delay=%d\nautocommand_delay=%d\nbetween_char_delay=%d\nProtectFlag=%d\nIniFileFlag=%d\n"
-	,internal_delay,init_delay,autocommand_delay,between_char_delay,ProtectFlag,IniFileFlag );
+	fprintf( fp, "IniFileFlag=%d - ",IniFileFlag) ;
+	switch(IniFileFlag) {
+		case 0: fprintf( fp, "Registry\n" ) ; break ;
+		case 1: fprintf( fp, "File\n" ) ; break ;
+		case 2: fprintf( fp, "Directory\n" ) ; break ;
+	}
+	
+	fprintf( fp, "internal_delay=%d\ninit_delay=%d\nautocommand_delay=%d\nbetween_char_delay=%d\nProtectFlag=%d\n",internal_delay,init_delay,autocommand_delay,between_char_delay,ProtectFlag );
 	
 	fprintf( fp, "HyperlinkFlag=%d\n", HyperlinkFlag );
 	if( AutoCommand!= NULL ) fprintf( fp, "AutoCommand=%s\n", AutoCommand ) ;
@@ -560,7 +569,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\nCtrlTabFlag=%d\nRuTTYFlag=%d\n"
 	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag,CtrlTabFlag,RuTTYFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
-	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,PuttyFlag);
+	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nUserPassSSHNoSave=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,UserPassSSHNoSave,PuttyFlag);
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #ifdef RECONNECTPORT
 	fprintf( fp,"AutoreconnectFlag=%d\nReconnectDelay=%d\n",AutoreconnectFlag,ReconnectDelay );
@@ -663,6 +672,18 @@ void SaveCurrentConfig( FILE *fp, Conf * conf ) {
 	}
 	unlink( "current.ktx.bcr" );
 }
+
+// Sauvegarde le contenu du fichier kitty.log s'il existe
+SaveDebugFile( char * filename, FILE *fpout ) {
+	FILE *fp;
+	char buffer[4096];
+	if( ( fp = fopen( filename, "r" ) ) != NULL ) {
+		while( fgets( buffer, 4095, fp ) != NULL ) fputs( buffer, fpout ) ;
+		fclose( fp ) ;
+		}
+	fputs( "\n", fpout ) ;
+	fflush( fpout ) ;
+}
 	
 // recupere toute la configuration en un seul fichier
 void SaveDump( void ) {
@@ -677,7 +698,7 @@ void SaveDump( void ) {
 		
 		fputs( "\n@ InitialDirectoryListing @\n\n", fpout ) ;
 		SaveDumpListFile( fpout, InitialDirectory ) ; fflush( fpout ) ;
-
+		
 		fputs( "\n@ Environment variables @\n\n", fpout ) ;
 		SaveDumpEnvironment( fpout ) ; fflush( fpout ) ;
 		
@@ -762,11 +783,16 @@ void SaveDump( void ) {
 		fputs( "\n@ SpecialMenu @\n\n", fpout ) ;
 		SaveSpecialMenu( fpout ) ; fflush( fpout ) ;
 
+		if( existfile("kitty.log") ) { 
+			fputs( "\n@ Debug log file @\n\n", fpout ) ;
+			SaveDebugFile( "kitty.log", fpout ) ; 
+		}
+
 #if (defined IMAGEPORT) && (!defined FDJ)
 		fputs( "\n@ ScreenShot @\n\n", fpout ) ;
 		SaveScreenShot( fpout ) ; fflush( fpout ) ;
 #endif
-
+			
 		fclose( fpout ) ;
 
 		sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;

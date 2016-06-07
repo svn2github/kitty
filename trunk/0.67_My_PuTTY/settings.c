@@ -450,7 +450,6 @@ void save_open_settings(void *sesskey, Conf *conf)
 {
     int i;
     char *p;
-
     write_setting_i(sesskey, "Present", 1);
     write_setting_s(sesskey, "HostName", conf_get_str(conf, CONF_host));
     write_setting_filename(sesskey, "LogFileName", conf_get_filename(conf, CONF_logfilename));
@@ -478,7 +477,6 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_s(sesskey, "TerminalType", conf_get_str(conf, CONF_termtype));
     write_setting_s(sesskey, "TerminalSpeed", conf_get_str(conf, CONF_termspeed));
     wmap(sesskey, "TerminalModes", conf, CONF_ttymodes, TRUE);
-
     /* Address family selection */
     write_setting_i(sesskey, "AddressFamily", conf_get_int(conf, CONF_addressfamily));
 

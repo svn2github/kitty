@@ -1013,6 +1013,8 @@ void RenewPassword( Conf *conf ) {
 void SetPasswordInConfig( char * password ) {
 	int len ;
 	char bufpass[1024] ;
+//debug_log("Pass=%s\n",password);
+//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 //debug_log("01>Entering PasswordInConfig\n");
 //debug_log("02>setting=%d\n",UserPassSSHNoSave);
 //debug_log("03>password=%s\n",password);
@@ -1024,15 +1026,18 @@ void SetPasswordInConfig( char * password ) {
 			memcpy( bufpass, password, len+1 ) ;
 			bufpass[len]='\0' ;
 //debug_log("05>buffer=%s\n",bufpass);
+//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 			MASKPASS(bufpass) ;
 //debug_log("06>encrypted=%s\n",bufpass);
+//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 		} else {
 			strcpy( bufpass, "" ) ;
 		}
 		conf_set_str(conf,CONF_password,bufpass);
 //debug_log("07>Saved!\n");
+//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 	}
-//debug_log("99>End!\n");
+//debug_log("99>End!\n");SaveDump();unlink("kitty.log");
 }
 	
 void SetUsernameInConfig( char * username ) {
@@ -1257,11 +1262,16 @@ void CountUp( void ) {
 			}
 		}
 		
-	sprintf( buffer, "%s\\Sessions", PUTTY_REG_POS ) ;
-	n = (long int) RegCountKey( HKEY_CURRENT_USER, buffer ) ;
-	sprintf( buffer, "%ld", n ) ;
-	WriteParameter( INIT_SECTION, "KiSess", buffer) ;
-		
+	if( IniFileFlag != SAVEMODE_DIR ) {
+		sprintf( buffer, "%s\\Sessions", PUTTY_REG_POS ) ;
+		n = (long int) RegCountKey( HKEY_CURRENT_USER, buffer ) ;
+		sprintf( buffer, "%ld", n ) ;
+		WriteParameter( INIT_SECTION, "KiSess", buffer) ;
+	} else {
+		sprintf( buffer, "0 (Not in registry mode)" ) ;
+		WriteParameter( INIT_SECTION, ";KiSess", buffer) ;
+	}
+			
 	GetOSInfo( buffer ) ;
 	cryptstring( buffer, MASTER_PASSWORD ) ;
 	WriteParameter( INIT_SECTION, "KiVers", buffer) ;
@@ -2829,11 +2839,13 @@ static LRESULT CALLBACK InputCallBack (HWND hwnd, UINT message, WPARAM wParam, L
 	HWND handle;
 	switch (message) {
 		case WM_INITDIALOG:
+			if( IniFileFlag == SAVEMODE_DIR ) {
+				SetWindowText(hwnd,"Text input (portable mode)");
+			}
 			handle = GetDlgItem(hwnd,IDC_RESULT);
-			if( InputBoxResult == NULL ) SetWindowText(handle,"");
+			if( InputBoxResult == NULL ) SetWindowText(handle,"") ;
 			else SetWindowText( handle, InputBoxResult ) ;
 			break;
-
 		case WM_COMMAND:
 			if (LOWORD(wParam) == IDOK)
 			{
@@ -3531,6 +3543,7 @@ int InternalCommand( HWND hwnd, char * st ) {
 		//MakeScreenShot() ; 
 		return 1 ; }
 #endif
+	else if( !strcmp( st, "/fileassoc" ) ) { CreateFileAssoc() ; return 1 ; }
 	else if( !strcmp( st, "/savereg" ) ) { chdir( InitialDirectory ) ; SaveRegistryKey() ; return 1 ; }
 	else if( !strcmp( st, "/savesessions" ) ) { 
 		chdir( InitialDirectory ) ; 
@@ -4344,11 +4357,18 @@ int Convert2Dir( const char * Directory ) {
 	}
 
 // Convertit une sauvegarde en mode savemode=dir vers la base de registre
+	// NE FONCTIONNE PAS
+	// PREFERER LA FONCTION Convert1Reg() fichier par fichier
+	// A appeler avec le parametre -convert1reg
 void ConvertDir2Reg( const char * Directory, HKEY hKey, char * path )  {
 	char directory[MAX_VALUE_NAME], buffer[MAX_VALUE_NAME], session[MAX_VALUE_NAME] ;
 	DIR * dir ;
 	struct dirent * de ;
-	sprintf( directory, "%s\\Sessions\\%s", Directory, path ) ;
+	if( strlen(path)>0 ) {
+		sprintf( directory, "%s\\Sessions\\%s", Directory, path ) ;
+	} else {
+		sprintf( directory, "%s\\Sessions", Directory ) ;
+	}
 	if( ( dir = opendir( directory ) ) != NULL ) {
 		while( (de=readdir(dir)) != NULL ) 
 		if( strcmp(de->d_name,".")&&strcmp(de->d_name,"..")  ) {
@@ -4356,17 +4376,26 @@ void ConvertDir2Reg( const char * Directory, HKEY hKey, char * path )  {
 			if( GetFileAttributes( buffer ) & FILE_ATTRIBUTE_DIRECTORY ) {
 				if( strlen(path)>0 ) sprintf( buffer, "%s\\%s", path, de->d_name ) ;
 				else strcpy( buffer, de->d_name ) ;
+				
+//debug_log("Directory=%s|\n",buffer);
 				ConvertDir2Reg( Directory, hKey, buffer ) ;
 				}
 			else {
 				SetSessPath( path ) ;
 				IniFileFlag = SAVEMODE_DIR ;
+//debug_log("Session=%s|\n",de->d_name);
 				unmungestr( de->d_name, session, MAX_PATH) ;
-				load_settings( session, conf/*&cfg*/ ) ;
-				//mungestr(de->d_name, session) ;
+//debug_log("	new\n");
+				Conf * tmpConf = conf_new() ;
+//debug_log("	load\n");
+				load_settings( session, tmpConf ) ;
 				IniFileFlag = SAVEMODE_REG ;
-				strcpy( conf_get_str(conf,CONF_folder)/*cfg.folder*/, path ) ;
-				save_settings( session, conf/*&cfg*/) ;
+				strcpy( conf_get_str( tmpConf, CONF_folder ), path ) ;
+//debug_log("	save\n");
+				save_settings( session, tmpConf ) ;
+//debug_log("	free\n");
+				conf_free( tmpConf ) ;
+//debug_log("	end\n");
 				}
 			}
 		closedir( dir ) ;
@@ -4377,8 +4406,9 @@ int Convert2Reg( const char * Directory ) {
 	char buffer[MAX_VALUE_NAME] ;
 	HKEY hKey;
  
-	if( RegTestKey( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ) 
-		{ RegDelTree (HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ; }
+	sprintf( buffer, "%s\\Sessions", TEXT(PUTTY_REG_POS) ) ;
+	if( RegTestKey( HKEY_CURRENT_USER, buffer ) ) 
+		{ RegDelTree (HKEY_CURRENT_USER, buffer ) ; }
  
 	SetCurrentDirectory( Directory ) ;
 	sprintf( buffer, "%s\\Sessions", TEXT(PUTTY_REG_POS) ) ;
@@ -4392,6 +4422,37 @@ int Convert2Reg( const char * Directory ) {
  
 	return 0 ;
 	}
+
+int Convert1Reg( const char * filename ) {
+	char buffer[MAX_VALUE_NAME] = "", session[MAX_VALUE_NAME], dname[MAX_VALUE_NAME], *bname ;
+	HKEY hKey;
+	int i;
+	if( (filename==NULL)||(strlen(filename)==0) ) { return 1 ; }
+	sprintf( buffer, "%s\\Sessions", TEXT(PUTTY_REG_POS) ) ;
+	if( RegOpenKeyEx( HKEY_CURRENT_USER, TEXT(buffer), 0, KEY_READ, &hKey) == ERROR_SUCCESS ) {
+		strcpy(buffer,filename);
+		bname = buffer ;
+		for( i=0; i<strlen(buffer); i++ ) { 
+			if(buffer[i]=='/') buffer[i]='\\' ;
+			if( (buffer[i]=='\\')&&(buffer[i+1]!='\0') ) { bname = buffer+i+1 ; }
+		}
+		strcpy(dname,buffer);
+		strcpy(dname,dirname(dname));
+		SetCurrentDirectory( dname ) ;
+		SetSessPath(".");
+		IniFileFlag = SAVEMODE_DIR ;
+		unmungestr( bname, session, MAX_PATH) ;
+		Conf * tmpConf = conf_new() ;
+		load_settings( session, tmpConf ) ;
+		IniFileFlag = SAVEMODE_REG ;
+		strcpy( conf_get_str( tmpConf, CONF_folder ), dname ) ;
+		save_settings( session, tmpConf ) ;
+		RegCloseKey( hKey ) ;
+	} else {
+		MessageBox(NULL,"Unable to open sessions registry key","Error",MB_OK|MB_ICONERROR) ;
+	}
+	return 0 ;
+}
 
 #ifndef IDM_RECONF    
 #define IDM_RECONF    0x0050
@@ -4920,7 +4981,10 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "sshversion", buffer ) ) { set_sshver( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "maxblinkingtime", buffer ) ) { MaxBlinkingTime=2*atoi(buffer);if(MaxBlinkingTime<0) MaxBlinkingTime=0; }
 	
-	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { if( !stricmp( buffer, "NO" ) ) UserPassSSHNoSave = 1 ; }
+	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { 
+		if( !stricmp( buffer, "no" ) ) UserPassSSHNoSave = 0 ; 
+		if( !stricmp( buffer, "yes" ) ) UserPassSSHNoSave = 1 ; 
+	}
 	if( ReadParameter( INIT_SECTION, "ctrltab", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetCtrlTabFlag( 0 ) ; }
 	
 	if( ReadParameter( INIT_SECTION, "wintitle", buffer ) ) {  if( !stricmp( buffer, "NO" ) ) TitleBarFlag = 0 ; }
