@@ -226,7 +226,17 @@ int LoadParametersLight( void ) {
 // Positionne un flag permettant de determiner si on est connecte
 int backend_connected = 0 ;
 
-void SetSSHConnected( int flag ) { backend_connected = flag ; }
+#ifdef RECONNECTPORT
+int backend_first_connected = 0 ; 
+void SetSSHConnected( int flag ) { 
+	backend_connected = flag ; 
+	if( flag ) backend_first_connected = 1 ; 
+	}
+#else
+void SetSSHConnected( int flag ) { 
+	backend_connected = flag ; 
+	}
+#endif
 
 PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) { return memset( ptr, 0, cnt ) ; }
 

@@ -1582,11 +1582,9 @@ else {
 ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
 #endif
 
-//SaveDump();
-
     start_backend();
 #ifdef RECONNECTPORT
-	backend_first_connected = 1 ;
+	if (conf_get_int(conf, CONF_protocol) != PROT_SSH) { backend_first_connected = 1 ; }
 	last_reconnect = time(NULL);
 #endif
 #ifdef HYPERLINKPORT
@@ -1976,8 +1974,8 @@ void set_raw_mouse_mode(void *frontend, int activate)
 void connection_fatal(void *frontend, char *fmt, ...)
 {
     va_list ap;
-    char *stuff, morestuff[100];
 #ifdef RECONNECTPORT
+    char *stuff, *morestuff ;
 	if( GetAutoreconnectFlag() && backend_first_connected ) {
 		SetConnBreakIcon() ;
 		SetSSHConnected(0);
@@ -1986,10 +1984,12 @@ void connection_fatal(void *frontend, char *fmt, ...)
 		va_start(ap, fmt);
 		stuff = dupvprintf(fmt, ap);
 		va_end(ap);
+		morestuff = (char*) malloc( strlen(appname)+strlen(stuff)+100 ) ;
 		sprintf(morestuff, "%.70s Fatal Error: %s", appname, stuff);
 		logevent(NULL, morestuff);
+		free(morestuff);
 		sfree(stuff);
-	
+
 		if( conf_get_int(conf,CONF_failure_reconnect) ) {
 			time_t tnow = time(NULL);
 			queue_toplevel_callback(close_session, NULL);
@@ -2000,8 +2000,10 @@ void connection_fatal(void *frontend, char *fmt, ...)
     va_start(ap, fmt);
     stuff = dupvprintf(fmt, ap);
     va_end(ap);
+    morestuff = (char*) malloc( strlen(appname)+100 ) ;
     sprintf(morestuff, "%.70s Fatal Error", appname);
     MessageBox(hwnd, stuff, morestuff, MB_ICONERROR | MB_OK);
+    free(morestuff);
     sfree(stuff);
 
     if (conf_get_int(conf, CONF_close_on_exit) == FORCE_ON)
@@ -2011,6 +2013,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
     }
  	}
 #else
+    char *stuff, morestuff[100];
     va_start(ap, fmt);
     stuff = dupvprintf(fmt, ap);
     va_end(ap);
@@ -3174,6 +3177,7 @@ else if((UINT_PTR)wParam == TIMER_ANTIIDLE) {  // Envoi de l'anti-idle
 		if(strlen( conf_get_str(conf,CONF_antiidle) ) > 0) SendAutoCommand( hwnd, conf_get_str(conf,CONF_antiidle) ) ;
 		else if( strlen( AntiIdleStr ) > 0 ) SendAutoCommand( hwnd, AntiIdleStr ) ;
 		}
+#ifdef RECONNECTPORT
 	if(!back||!backend_connected) { // On essaie de se reconnecter en cas de problème de connexion
 		if ( conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
 			logevent(NULL, "No connection, trying to reconnect...") ; 
@@ -3181,6 +3185,7 @@ else if((UINT_PTR)wParam == TIMER_ANTIIDLE) {  // Envoi de l'anti-idle
 			}
 			break;
 		}
+#endif
 	}
 else if((UINT_PTR)wParam == TIMER_BLINKTRAYICON) {  // Clignotement de l'icone dans le systeme tray sur reception d'un signal BELL (printf '\007' pour simuler)
 	static int BlinkingState = 0 ;
@@ -4010,7 +4015,9 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
         if(!PuttyFlag && GetMouseShortcutsFlag() ) {
 	if( (message == WM_LBUTTONUP) && ((wParam & MK_SHIFT)&&(wParam & MK_CONTROL) ) ) { // shift + CTRL + bouton gauche => duplicate session
 		if( back ) SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ;
+#ifdef RECONNECTPORT
 		else { if( backend_first_connected ) { SendMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ; } }
+#endif
 		break ;
 		}
 	else if (message == WM_LBUTTONUP && ((wParam & MK_CONTROL) ) ) {// ctrl+bouton gauche => nouvelle icone

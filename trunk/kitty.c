@@ -327,7 +327,6 @@ void SetAutoreconnectFlag( const int flag ) { AutoreconnectFlag = flag ; }
 static int ReconnectDelay = 5 ;
 int GetReconnectDelay(void) { return ReconnectDelay ; }
 void SetReconnectDelay( const int flag ) { ReconnectDelay = flag ; }
-int backend_first_connected = 0 ; 
 #endif
 
 // Flag pour afficher l'image de fond
@@ -1013,31 +1012,18 @@ void RenewPassword( Conf *conf ) {
 void SetPasswordInConfig( char * password ) {
 	int len ;
 	char bufpass[1024] ;
-//debug_log("Pass=%s\n",password);
-//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
-//debug_log("01>Entering PasswordInConfig\n");
-//debug_log("02>setting=%d\n",UserPassSSHNoSave);
-//debug_log("03>password=%s\n",password);
 	if( (!UserPassSSHNoSave)&&(password!=NULL) ) {
 		len = strlen( password ) ;
-//debug_log("04>len=%d\n",len);
 		if( len > 126 ) len = 126 ;
 		if( strlen(password)>0 ) {
 			memcpy( bufpass, password, len+1 ) ;
 			bufpass[len]='\0' ;
-//debug_log("05>buffer=%s\n",bufpass);
-//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 			MASKPASS(bufpass) ;
-//debug_log("06>encrypted=%s\n",bufpass);
-//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 		} else {
 			strcpy( bufpass, "" ) ;
 		}
 		conf_set_str(conf,CONF_password,bufpass);
-//debug_log("07>Saved!\n");
-//debug_log("Pass=%s\n",password);SaveDump();unlink("kitty.log");
 	}
-//debug_log("99>End!\n");SaveDump();unlink("kitty.log");
 }
 	
 void SetUsernameInConfig( char * username ) {

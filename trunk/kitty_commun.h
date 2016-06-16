@@ -45,6 +45,7 @@ int LoadParametersLight( void ) ;
 
 // Positionne un flag permettant de determiner si on est connecte
 extern int backend_connected ;
+extern int backend_first_connected ;
 
 void SetSSHConnected( int flag ) ;
 
