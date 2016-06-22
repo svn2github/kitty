@@ -1952,6 +1952,9 @@ static int find_last_nonempty_line(Terminal * term, tree234 * screen)
     for (i = count234(screen) - 1; i >= 0; i--) {
 	termline *line = index234(screen, i);
 	int j;
+#ifdef HYPERLINKPORT
+	assert(term->erase_char.cc_next == 0);
+#endif
 	for (j = 0; j < line->cols; j++)
 	    if (!termchars_equal(&line->chars[j], &term->erase_char))
 		break;
@@ -2173,6 +2176,9 @@ static void scroll(Terminal *term, int topline, int botline, int lines, int sb)
 		    term->disptop--;
 	    }
             resizeline(term, line, term->cols);
+#ifdef HYPERLINKPORT
+            assert(term->erase_char.cc_next == 0);
+#endif
 	    for (i = 0; i < term->cols; i++)
 		copy_termchar(line, i, &term->erase_char);
 	    line->lattr = LATTR_NORM;
@@ -2465,6 +2471,9 @@ static void erase_lots(Terminal *term,
 		else
 		    ldata->lattr = LATTR_NORM;
 	    } else {
+#ifdef HYPERLINKPORT
+                assert(term->erase_char.cc_next == 0);
+#endif
 		copy_termchar(ldata, start.x, &term->erase_char);
 	    }
 	    if (incpos(start) && start.y < term->rows) {
@@ -2549,6 +2558,9 @@ static void insch(Terminal *term, int n)
 	    move_termchar(ldata,
 			  ldata->chars + term->curs.x + j + n,
 			  ldata->chars + term->curs.x + j);
+#ifdef HYPERLINKPORT
+	assert(term->erase_char.cc_next == 0);
+#endif
 	while (n--)
 	    copy_termchar(ldata, term->curs.x + n, &term->erase_char);
     }
@@ -3089,6 +3101,9 @@ static void term_out(Terminal *term)
 	    if (!term->no_dbackspace) {
 		check_boundary(term, term->curs.x, term->curs.y);
 		check_boundary(term, term->curs.x+1, term->curs.y);
+#ifdef HYPERLINKPORT
+			assert(term->erase_char.cc_next == 0);
+#endif
 		copy_termchar(scrlineptr(term->curs.y),
 			      term->curs.x, &term->erase_char);
 	    }
@@ -5096,12 +5111,14 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 				termline *lp = lineptr(term->disptop + i);
 			
 				for (j = 0; j < term->cols; j++) {
-					urlhack_putchar((char)(lp->chars[j].chr & CHAR_MASK));
-					}
-				unlineptr(lp);
+					unsigned long tchar = lp->chars[j].chr;
+					urlhack_putchar(tchar & CHAR_MASK ? (char)(tchar & CHAR_MASK) : ' ');
+					//urlhack_putchar((char)(lp->chars[j].chr & CHAR_MASK));
 				}
-			urlhack_go_find_me_some_hyperlinks(term->cols);
+				unlineptr(lp);
 			}
+			urlhack_go_find_me_some_hyperlinks(term->cols);
+		}
 		urlhack_region = urlhack_get_link_region(urlhack_region_index);
 		urlhack_toggle_x = urlhack_region.x0;
 		urlhack_toggle_y = urlhack_region.y0;
@@ -5109,7 +5126,7 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
 			urlhack_hover_current = 1;
 		else
 			urlhack_hover_current = urlhack_is_in_this_link_region(urlhack_region, urlhack_mouse_old_x, urlhack_mouse_old_y);
-		}
+	}
 	/* HACK: PuttyTray / Nutty : END */
 #endif
 

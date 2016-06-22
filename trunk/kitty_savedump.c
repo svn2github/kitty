@@ -674,7 +674,7 @@ void SaveCurrentConfig( FILE *fp, Conf * conf ) {
 }
 
 // Sauvegarde le contenu du fichier kitty.log s'il existe
-SaveDebugFile( char * filename, FILE *fpout ) {
+void SaveDebugFile( char * filename, FILE *fpout ) {
 	FILE *fp;
 	char buffer[4096];
 	if( ( fp = fopen( filename, "r" ) ) != NULL ) {

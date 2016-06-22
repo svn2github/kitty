@@ -229,7 +229,7 @@ void SendStrToTerminal( const char * str, const int len ) {
 	char c ;
 	int i ;
 	if( len <= 0 ) return ;
-	term_seen_key_event(term);
+	if( term!=NULL ) term_seen_key_event(term) ;
 	for( i=0 ; i<len ; i++ ) {
 		c=(unsigned char)str[i] ;
 		if (ldisc)
@@ -264,6 +264,7 @@ void resize( int height, int width ) {
 	conf_set_int(conf,CONF_height,h); 
 	conf_set_int(conf,CONF_width,w); 
 	}
+int Convert1Reg( const char * filename ) ;
 //`colours'
 int return_offset_height(void) { return offset_height ; }
 int return_offset_width(void) { return offset_width ; }
@@ -3218,9 +3219,9 @@ else if((UINT_PTR)wParam == TIMER_RECONNECT) {
 	}
 }
 #endif
-else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation                                                                                                               
+else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	timestamp_change_filename() ;
-	}                                   
+	}
 #endif
 	return 0;
       case WM_CREATE:
@@ -3839,8 +3840,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
 		break;
 	  case IDM_SHOWPORTFWD:
-//debug_log( "%d %d %d %d\n",offset_width, offset_height, font_width, font_height ) ;
-		ShowPortfwd( hwnd, conf ) ; //ShowPortfwd( hwnd, cfg.portfwd ) ;
+		ShowPortfwd( hwnd, conf ) ;
 		break ;
 #ifndef NO_TRANSPARENCY
 	  case IDM_TRANSPARUP: // Augmenter l'opacite (diminuer la transparence)
@@ -3983,6 +3983,19 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			ManageWinrol( hwnd, conf_get_int(conf,CONF_resize_action)/*cfg.resize_action*/ ) ;
 		else return DefWindowProc(hwnd, message, wParam, lParam);
 	break;
+	
+	case WM_COPYDATA: {  // Reception d'un de donnees dans un message
+		PCOPYDATASTRUCT pMyCDS = (PCOPYDATASTRUCT) lParam;
+			switch( pMyCDS->dwData ) {	
+				case 1: // Reception d'une chaine de caracteres a envoyer dans le terminal
+					if( pMyCDS->cbData > 0 ) {
+						SendKeyboardPlus( hwnd, (char*)pMyCDS->lpData ) ;
+					}
+					break ;
+			}
+		}
+	break ;
+
 #endif
 #ifdef WTSPORT
 	case WM_WTSSESSION_CHANGE:

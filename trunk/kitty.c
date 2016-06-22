@@ -69,7 +69,6 @@ extern Conf *conf ;
 #define IDM_EXPORTSETTINGS 0x0390
 #define IDM_PORTKNOCK	0x0440
 
-
 // Doit etre le dernier
 #define IDM_LAUNCHER	0x1000
 
@@ -1583,7 +1582,7 @@ void routine_server( void * st ) {
 
 void SendStrToTerminal( const char * str, const int len ) ;
 
-void SendKeyboard( HWND hwnd, char * buffer ) {
+void SendKeyboard( HWND hwnd, const char * buffer ) {
 	int i ; 
 	if( strlen( buffer) > 0 ) {
 		for( i=0; i< strlen( buffer ) ; i++ ) {
@@ -1619,7 +1618,6 @@ void SendKeyboardPlus( HWND hwnd, const char * st ) {
 	int i=0, j=0;
 	//int internal_delay = 10 ;
 	char *buffer = NULL, stb[6] ;
-	
 	if( ( buffer = (char*) malloc( strlen( st ) + 10 ) ) != NULL ) {
 		buffer[0] = '\0' ;
 		do {
@@ -1769,13 +1767,15 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 BOOL CALLBACK SendCommandProc( HWND hwnd, LPARAM lParam ) {
 	char buffer[256] ;
 	GetClassName( hwnd, buffer, 256 ) ;
-	
 	if( !strcmp( buffer, KiTTYClassName ) )
 	if( hwnd != MainHwnd ) {
-		SendKeyboardPlus( hwnd, (char*)lParam ) ;
+		COPYDATASTRUCT data;
+		data.dwData = 1 ;
+		data.cbData = strlen( (char*)lParam ) + 1 ;
+		data.lpData = (char*)lParam ;
+		SendMessage( hwnd, WM_COPYDATA, (WPARAM)(HWND)MainHwnd, (LPARAM) (LPVOID)&data ) ;
 		NbWindows++ ;
 		}
-
 	return TRUE ;
 	}
 
