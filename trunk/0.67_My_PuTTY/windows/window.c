@@ -3092,6 +3092,13 @@ else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	RefreshBackground( hwnd ) ;
 	}
 
+else if((UINT_PTR)wParam == TIMER_DND){
+	KillTimer(hwnd, TIMER_DND) ;
+	recupNomFichierDragDrop(hwnd, &hDropInf) ;
+	if( hDropInf != NULL ) { free(hDropInf) ; hDropInf = NULL ; }
+	InvalidateRect( hwnd, NULL, TRUE ) ;
+	}
+
 else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au demarrage
 
 	KillTimer( hwnd, TIMER_AUTOCOMMAND ) ; 
@@ -3952,7 +3959,6 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
          	break;
 /*
 	case WM_LBUTTONDBLCLK: {
-		MessageBox( hwnd, "ICI","IXI",MB_OK);
 		URLclick( hwnd ) ;
 		}
 		break;
@@ -4905,7 +4911,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 #endif
 #ifdef RECONNECTPORT
 	//if( !back && GetAutoreconnectFlag() && backend_first_connected && (WM_COMMAND==WM_KEYDOWN) && !(GetKeyState(VK_CONTROL)&0x8000) && !(GetKeyState(VK_SHIFT)&0x8000) && !(GetKeyState(VK_MENU)&0x8000) && (wParam!=VK_TAB) && (wParam!=VK_LEFT) && (wParam!=VK_UP) && (wParam!=VK_RIGHT) && (wParam!=VK_DOWN) && !((wParam>=VK_F1)&&(wParam<=VK_F16)) ) { 
-	if( !back && GetAutoreconnectFlag() && backend_first_connected && (wParam!=VK_CONTROL) && (wParam!=VK_SHIFT) && (wParam!=VK_MENU) && (wParam!=VK_TAB) && (wParam!=VK_LEFT) && (wParam!=VK_UP) && (wParam!=VK_RIGHT) && (wParam!=VK_DOWN) && !((wParam>=VK_F1)&&(wParam<=VK_F16)) ) { 
+	if( !back && (message==WM_KEYDOWN) && GetAutoreconnectFlag() && backend_first_connected && (wParam!=VK_CONTROL) && (wParam!=VK_SHIFT) && (wParam!=VK_MENU) && (wParam!=VK_TAB) && (wParam!=VK_LEFT) && (wParam!=VK_UP) && (wParam!=VK_RIGHT) && (wParam!=VK_DOWN) && !((wParam>=VK_F1)&&(wParam<=VK_F16)) ) { 
  		logevent(NULL, "No connection on key pressed, trying to reconnect...") ; 
 		PostMessage( hwnd, WM_COMMAND, IDM_RESTART, 0 ) ;  
 		break ;

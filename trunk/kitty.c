@@ -110,11 +110,14 @@ void xyz_updateMenuItems(Terminal *term);
 #endif
 
 
-
 #define SI_INIT 0
 #define SI_NEXT 1
 #define SI_RANDOM 2
 
+// Stuff for drag-n-drop transfers
+#define TIMER_DND 8777
+int dnd_delay = 250;
+HDROP hDropInf = NULL;
 
 // Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement à la connexion) (en milliseconde)
 int init_delay = 2000 ;
@@ -1315,8 +1318,13 @@ void CreateDefaultIniFile( void ) {
 			
 			writeINI( KittyIniFile, INIT_SECTION, "scriptfilefilter", "All files (*.*)|*.*" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "size", "no" ) ;
+#ifdef FDJ
+			writeINI( KittyIniFile, INIT_SECTION, "shortcuts", "no" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "mouseshortcuts", "no" ) ;
+#else
 			writeINI( KittyIniFile, INIT_SECTION, "shortcuts", "yes" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "mouseshortcuts", "yes" ) ;
+#endif
 #ifdef HYPERLINKPORT
 			writeINI( KittyIniFile, INIT_SECTION, "hyperlink", "no" ) ;
 #endif
@@ -3932,7 +3940,6 @@ int SearchPSCP( void ) {
 				}
 			}
 		}
-
 #ifndef FDJ
 	// kscp dans le meme repertoire
 	sprintf( buffer, "%s\\%s", InitialDirectory, ki ) ;
@@ -3942,7 +3949,6 @@ int SearchPSCP( void ) {
 		return 1 ;
 		}
 #endif
-
 	// pscp dans le repertoire normal de PuTTY
 	sprintf( buffer, "%s\\PuTTY\\%s", getenv("ProgramFiles"), pu ) ;
 	if( existfile( buffer ) ) { 
@@ -4006,19 +4012,16 @@ int SearchPlink( void ) {
 	}
 	
 // Gestion du drap and drop
-void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop, char* listeResult){
+void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop ) {
         HDROP hDropInfo=*leDrop;
         int nb,taille,i;
         taille=0;
         nb=0;
         nb=DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0 );
-        /*if(nb==0)
-            PB1("un appel inutil a la fonction BVisuel::recupNomFichierDragDrop");*/
         char fic[1024];
-        listeResult[0]='\0' ;
         for( i = 0; i < nb; i++ )
         {
-                taille=DragQueryFile(hDropInfo, i, NULL, 0 )+1;
+                taille = DragQueryFile(hDropInfo, i, NULL, 0 )+1;
                 DragQueryFile(hDropInfo, i, fic, taille );
 		if( !strcmp( fic+strlen(fic)-10,"\\kitty.ini" ) ) {
 			char buffer[1024]="", shortname[1024]="" ;
@@ -4027,26 +4030,36 @@ void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop, char* listeResult){
 					sprintf( buffer, "%s -ed %s", shortname, fic ) ;
 					RunCommand( hwnd, buffer ) ;
 					}
-			//bl_WinMain(NULL, NULL, fic, SW_SHOWNORMAL) ;
 			}
-                else { SendOneFile( hwnd, "", fic, NULL ); }
-                    //strcat(listeResult,fic);strcat(listeResult,"\n");
+                else { 
+			if( conf_get_int( conf, CONF_scp_auto_pwd ) !=1 ) { SendOneFile( hwnd, "", fic, NULL ) ; }
+			else { SendOneFile( hwnd, "", fic, RemotePath  ) ; }
+			}
                  }
 	DragFinish(hDropInfo);  //vidage de la mem...
         *leDrop=hDropInfo;  //TOCHECK : transmistion de param...
 	}
 
 void OnDropFiles(HWND hwnd, HDROP hDropInfo) {
-        char listeFicSrces[32768];
-	//if( cfg.protocol == PROT_SSH ) {
-	if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ != PROT_SSH ) {
+	if( conf_get_int(conf,CONF_protocol) != PROT_SSH ) {
 		MessageBox( hwnd, "This function is only available with SSH connections.", "Error", MB_OK|MB_ICONERROR ) ;
 		return ;
 		}
-        recupNomFichierDragDrop(hwnd, &hDropInfo, listeFicSrces);
-	//MessageBox(NULL,listeFicSrces,"Liste :",MB_OK|MB_ICONINFORMATION);
+	if( conf_get_int( conf, CONF_scp_auto_pwd ) !=1 ) { recupNomFichierDragDrop(hwnd, &hDropInfo) ; }
+	else { 
+		if( RemotePath!= NULL ) { free( RemotePath ) ; RemotePath = NULL ; }
+		if( hDropInf != NULL ) { free(hDropInf) ; hDropInf = NULL ; }
+		char cmd[1024] = "printf \"\\033]0;__pw:%s\\007\" `pwd`\\n" ;
+		if( AutoCommand != NULL ) { free(AutoCommand) ; AutoCommand = NULL ; }
+		AutoCommand = (char*) malloc( strlen(cmd) + 10 ) ;
+		strcpy( AutoCommand, cmd );
+		SetTimer(hwnd, TIMER_AUTOCOMMAND,autocommand_delay, NULL);
+		hDropInf = hDropInfo;
+		SetTimer(hwnd, TIMER_DND,dnd_delay, NULL) ;
+		}
 	}
 
+	
 // Appel d'une DLL
 /*
 typedef int (CALLBACK* LPFNDLLFUNC1)(int,char**); 
@@ -4960,8 +4973,14 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "antiidle", buffer ) ) { buffer[127]='\0'; strcpy( AntiIdleStr, buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "antiidledelay", buffer ) ) 
 		{ AntiIdleCountMax = (int)floor(atoi(buffer)/10.0) ; if( AntiIdleCountMax<=0 ) AntiIdleCountMax =1 ; }
-	if( ReadParameter( INIT_SECTION, "shortcuts", buffer ) ) { if( !stricmp( buffer, "NO" ) ) ShortcutsFlag = 0 ; }
-	if( ReadParameter( INIT_SECTION, "mouseshortcuts", buffer ) ) { if( !stricmp( buffer, "NO" ) ) MouseShortcutsFlag = 0 ; }
+	if( ReadParameter( INIT_SECTION, "shortcuts", buffer ) ) { 
+		if( !stricmp( buffer, "NO" ) ) ShortcutsFlag = 0 ; 
+		if( !stricmp( buffer, "YES" ) ) ShortcutsFlag = 1 ; 
+		}
+	if( ReadParameter( INIT_SECTION, "mouseshortcuts", buffer ) ) { 
+		if( !stricmp( buffer, "NO" ) ) MouseShortcutsFlag = 0 ; 
+		if( !stricmp( buffer, "YES" ) ) MouseShortcutsFlag = 1 ; 
+		}
 	if( ReadParameter( INIT_SECTION, "size", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SizeFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "slidedelay", buffer ) ) { ImageSlideDelay = atoi( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "sshversion", buffer ) ) { set_sshver( buffer ) ; }
@@ -5154,6 +5173,7 @@ void InitWinMain( void ) {
 #ifdef FDJ
 	CreateSSHHandler();
 	CreateFileAssoc() ;
+	SetADBFlag(0) ;
 #else
 	if( !RegTestKey(HKEY_CLASSES_ROOT,"kitty.connect.1") ) { CreateFileAssoc() ; }
 #endif
@@ -5188,6 +5208,19 @@ void InitWinMain( void ) {
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( (strlen(buffer)>0) && (strlen(buffer)<128) ) { buffer[127]='\0'; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
+#endif
+
+	// Teste l'integrite du programme
+#ifndef NO_TRANSPARENCY
+	FILE *fp = fopen( "kitty.err.log","r" ) ;
+	if( fp==NULL ) {
+		if( !CheckMD5Integrity() ) {
+			fprintf(stderr,"La signature du programme n'est pas bonne\n");
+			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
+			exit(1);
+			}
+		}
+	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus

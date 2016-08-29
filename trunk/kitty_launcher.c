@@ -814,7 +814,12 @@ int WINAPI Launcher_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int s
 	MSG msg;
 	char buffer[4096] ;
 
-	if( FindWindow("KiTTYLauncher","KiTTYLauncher") ) return 0 ;
+	if( FindWindow("KiTTYLauncher","KiTTYLauncher") ) {
+		if( ReadParameter( "Launcher", "alreadyRunCheck", buffer ) ) {
+			if( !stricmp( buffer, "yes" ) ) return 0 ;
+		}
+		else { return 0 ; }
+	}
 
 	if( strstr( cmdline, "-putty" ) != NULL ) PuttyFlag=1 ;
 	

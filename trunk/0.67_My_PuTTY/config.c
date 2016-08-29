@@ -1213,7 +1213,9 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 #ifdef PERSOPORT
 #if (defined IMAGEPORT) && (!defined FDJ) && (defined STARTBUTTON)
 	else if (ctrl == ssd->startbutton) {
-	    int already_run = 0 ;
+	
+	/*
+	   int already_run = 0 ;
 	
 	   if( dlg_last_focused(ctrl, dlg) == ssd->listbox ) {
 		Conf *conf2 = conf_new() ; 
@@ -1221,9 +1223,9 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		char *oldsavedsession ;
 		oldsavedsession=(char*)malloc(strlen(ssd->savedsession)+1);strcpy(oldsavedsession,ssd->savedsession);
 		if (!load_selected_session(ssd, dlg, conf2, &mbl)) { dlg_beep(dlg); }
-		/* If at this point we have a valid session, go! */
+		// If at this point we have a valid session, go!
 		if (mbl && conf_launchable(conf2)) {
-			conf_copy_into(conf,conf2); /* structure copy */
+			conf_copy_into(conf,conf2); // structure copy
 			conf_set_str(conf,CONF_remote_cmd,"");
 			} else
 			dlg_beep(dlg);
@@ -1236,13 +1238,38 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		}
 	   if( !already_run) {
 		if( strlen(ssd->savedsession)>0 ) {
-			if (conf_launchable(conf)) { if( RunSession( hwnd, CurrentFolder, ssd->savedsession ) ) { already_run=1 ; } }
+			if( conf_launchable(conf) ) { if( RunSession( hwnd, CurrentFolder, ssd->savedsession ) ) { already_run=1 ; } }
 			}
 		if( !already_run && strlen(ssd->savedsession)==0 ) {
 			if(conf_launchable(conf)) { RunConfig(conf) ; already_run=1; }
 			else { dlg_beep(dlg); }
 			}
 		}
+	*/
+	
+	if( conf_launchable(conf) ) { RunConfig(conf) ;	}
+	else if ( strlen(ssd->savedsession)>0 ) { if( !RunSession( hwnd, CurrentFolder, ssd->savedsession ) ) {  dlg_beep(dlg) ; } }
+	else if( dlg_last_focused(ctrl, dlg) == ssd->listbox ) { 
+		Conf *conf2 = conf_new() ; 
+		int mbl = FALSE;
+		char *oldsavedsession ;
+		oldsavedsession=(char*)malloc(strlen(ssd->savedsession)+1);strcpy(oldsavedsession,ssd->savedsession);
+		if (!load_selected_session(ssd, dlg, conf2, &mbl)) { dlg_beep(dlg); }
+		// If at this point we have a valid session, go!
+		if (mbl && conf_launchable(conf2)) {
+			conf_copy_into(conf,conf2); // structure copy
+			conf_set_str(conf,CONF_remote_cmd,"");
+			} else
+			dlg_beep(dlg);
+	    
+		if (conf_launchable(conf)) { RunSession( hwnd, CurrentFolder, ssd->savedsession ) ; }
+		strcpy(ssd->savedsession,oldsavedsession); free(oldsavedsession);
+		//dlg_refresh(ssd->editbox, dlg) ;
+		//sessionsaver_handler( ctrlSessionList, dlg, data, EVENT_REFRESH ) ;
+		conf_free(conf2);	
+	}
+	else { dlg_beep(dlg) ; }
+	
 	}
 #endif
 	else if (!ssd->midsession && // vide le nom de la session
@@ -3332,7 +3359,17 @@ void setup_config_box(struct controlbox *b, int midsession,
 			  conf_checkbox_handler,
 			  I(CONF_ssh_connection_sharing_downstream));
 	}
-
+	
+#ifdef PERSOPORT
+	if (!midsession) {
+	    s = ctrl_getset(b, "Connection/SSH", "pscp", "PSCP integration") ;
+	   ctrl_checkbox(s, "Send file in current directory", NO_SHORTCUT,
+			  HELPCTX(no_help),
+			  conf_checkbox_handler,
+			  I(CONF_scp_auto_pwd));	
+	}
+#endif
+	
 	if (!midsession) {
 	    s = ctrl_getset(b, "Connection/SSH", "protocol", "Protocol options");
 

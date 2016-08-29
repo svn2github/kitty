@@ -990,6 +990,7 @@ void cleanup_exit(int);
         X(INT, NONE, ctrl_tab_switch) /* switch PuTTY windows with CtrlTab */ \
 	X(STR, NONE, comment) \
         X(INT, NONE, acs_in_utf) \
+	X(INT, NONE, scp_auto_pwd) \
 /* #endif */ \
 /* #ifdef IVPORT */ \
     /* Background */ \

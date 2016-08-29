@@ -9,7 +9,7 @@ void SetTransparency( HWND hwnd, int value ) {
 	}
 
 
-// Numéro de version de l'OS
+// NumÃ©ro de version de l'OS
 void GetOSInfo( char * version ) {
 	OSVERSIONINFO osvi;
 	ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
@@ -41,7 +41,7 @@ Windows 2000				5.0
 int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 	char * szTitle = Title ;
 	char szFilter[256] ; strcpy( szFilter, Filter ) ;
-	// on remplace les caractères '|' par des caractères NULL.
+	// on remplace les caractÃ¨res '|' par des caractÃ¨res NULL.
 	int i = 0;
 	while(i < sizeof(szFilter) && szFilter[i] != '\0')
 	{
@@ -51,7 +51,7 @@ int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 		i++;
 	}
 
-	// boîte de dialogue de demande d'ouverture de fichier
+	// boÃ®te de dialogue de demande d'ouverture de fichier
 	//char szFileName[_MAX_PATH + 1] = "";
 	char * szFileName = filename ;
 	szFileName[0] = '\0' ;
@@ -69,7 +69,7 @@ int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 				| OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_EXTENSIONDIFFERENT | OFN_DONTADDTORECENT
 				;
 
-	// si aucun nom de fichier n'a été sélectionné, on abandonne
+	// si aucun nom de fichier n'a Ã©tÃ© sÃ©lectionnÃ©, on abandonne
 	if(!GetOpenFileName(&ofn)) { return 0 ; }
 	else { return 1 ; }
 	}
@@ -77,7 +77,7 @@ int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 int SaveFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 	char * szTitle = Title ;
 	char szFilter[256] ; strcpy( szFilter, Filter ) ;
-	// on remplace les caractères '|' par des caractères NULL.
+	// on remplace les caractÃ¨res '|' par des caractÃ¨res NULL.
 	int i = 0;
 	while(i < sizeof(szFilter) && szFilter[i] != '\0')
 	{
@@ -87,7 +87,7 @@ int SaveFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 		i++;
 	}
 
-	// boîte de dialogue de demande d'ouverture de fichier
+	// boÃ®te de dialogue de demande d'ouverture de fichier
 	//char szFileName[_MAX_PATH + 1] = "";
 	char * szFileName = filename ;
 	szFileName[0] = '\0' ;
@@ -106,7 +106,7 @@ int SaveFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 				| OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_EXTENSIONDIFFERENT | OFN_DONTADDTORECENT
 				;
 
-	// si aucun nom de fichier n'a été sélectionné, on abandonne
+	// si aucun nom de fichier n'a Ã©tÃ© sÃ©lectionnÃ©, on abandonne
 	if(!GetSaveFileName(&ofn)) { return 0 ; }
 	else { return 1 ; }
 	}
@@ -248,7 +248,7 @@ int PrintText( const char * Text ) {
                        					}
                   				}
                   			Index2++ ; 
-                  			LinePrint[Index1] = '\0'; // Impression de la dernière page
+                  			LinePrint[Index1] = '\0'; // Impression de la derniÃ¨re page
                   			TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint)) ;
                	  			EndPage(pd.hDC) ;
                   			EndDoc(pd.hDC) ;
@@ -257,7 +257,7 @@ int PrintText( const char * Text ) {
               				}
               			else { return_code = 1 ;  /* Chaine vide */ }
 				}
-			else { // Problème StartDoc
+			else { // ProblÃ¨me StartDoc
 				szMessage = "ERROR Type 1" ;
 				return_code = 2 ;
 				}
@@ -267,8 +267,8 @@ int PrintText( const char * Text ) {
 			return_code = 3 ;
 			}
 		}
-	else { // Problème PrintDlg
-		//szMessage = "Impression annulé par l'utilisateur" ;
+	else { // ProblÃ¨me PrintDlg
+		//szMessage = "Impression annulÃ©e par l'utilisateur" ;
 		return_code = 4 ;
 		}
 	if (szMessage) { MessageBox (NULL, szMessage, "Print report", MB_OK) ; }

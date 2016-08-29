@@ -816,6 +816,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "CtrlTabSwitch", conf_get_int(conf, CONF_ctrl_tab_switch));
     write_setting_s(sesskey, "Comment", conf_get_str(conf, CONF_comment) );
     write_setting_i(sesskey, "ACSinUTF", conf_get_int(conf, CONF_acs_in_utf));
+    write_setting_i(sesskey, "SCPAutoPwd", conf_get_int(conf, CONF_scp_auto_pwd));
 #endif
 #ifdef PORTKNOCKINGPORT
 	write_setting_s(sesskey, "PortKnocking", conf_get_str(conf, CONF_portknockingoptions) );
@@ -1365,7 +1366,15 @@ void load_open_settings(void *sesskey, Conf *conf)
 		strcpy( PassKey, "" ) ;
 	}
 	gpps(sesskey, "Password", "", conf, CONF_password );
-   } else { conf_set_str( conf, CONF_password, "" ) ; }
+   } else { 
+	//conf_set_str( conf, CONF_password, "" ) ; 
+	if( strlen(conf_get_str(conf, CONF_termtype)) < 1000 ) { 
+		sprintf( PassKey, "%sKiTTY", conf_get_str(conf, CONF_termtype) ) ;
+	} else {
+		strcpy( PassKey, "" ) ;
+	}
+	gpps(sesskey, "Password", "", conf, CONF_password );
+    }
 
     if( strlen(conf_get_str(conf, CONF_password))>0 ) {
 	char pst[4096] ;
@@ -1390,6 +1399,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps(sesskey, "Comment", "", conf, CONF_comment );
     gppi(sesskey, "ACSinUTF", 0, conf, CONF_acs_in_utf);
+    gppi(sesskey, "SCPAutoPwd", 0, conf, CONF_scp_auto_pwd);
 #endif
 #ifdef PORTKNOCKINGPORT
 	gpps(sesskey, "PortKnocking", "", conf, CONF_portknockingoptions );

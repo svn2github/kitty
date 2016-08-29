@@ -238,6 +238,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	CountUp();
 	fprintf( fp, "MASTER_PASSWORD=%s\n", MASTER_PASSWORD ) ;
 	fprintf( fp, "[[PuTTY structure configuration]]\n" ) ;
+	fprintf( fp, "sessionname=%s\n", 		conf_get_str(conf,CONF_sessionname) ) ;
 	/* Basic options */
 	fprintf( fp, "host=%s\n", 			conf_get_str(conf,CONF_host) ) ;
 	fprintf( fp, "port=%d\n", 			conf_get_int(conf,CONF_port) ) ;
@@ -277,7 +278,6 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "password=%s\n",			bufpass ) ;
 	memset(bufpass,0,strlen(bufpass));
 
-	fprintf( fp, "sessionname=%s\n", 		conf_get_str(conf,CONF_sessionname) ) ;
 	fprintf( fp, "antiidle=%s\n",			conf_get_str(conf,CONF_antiidle) ) ;
 	fprintf( fp, "autocommand=%s\n",		conf_get_str(conf,CONF_autocommand) ) ;
 	fprintf( fp, "autocommandout=%s\n",		conf_get_str(conf,CONF_autocommandout) ) ;
@@ -508,6 +508,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "ctrl_tab_switch=%d\n", 		conf_get_int(conf, CONF_ctrl_tab_switch));
 	fprintf( fp, "comment=%s\n",			conf_get_str(conf,CONF_comment) ) ;
 	fprintf( fp, "acs_in_utf=%d\n", 		conf_get_int(conf, CONF_acs_in_utf));		
+	fprintf( fp, "scp_auto_pwd=%d\n", 		conf_get_int(conf, CONF_scp_auto_pwd));
 #ifdef RECONNECTPORT
 	fprintf( fp, "wakeup_reconnect=%d\n",		conf_get_int(conf,CONF_wakeup_reconnect) ) ;
 	fprintf( fp, "failure_reconnect=%d\n",		conf_get_int(conf,CONF_failure_reconnect) ) ;

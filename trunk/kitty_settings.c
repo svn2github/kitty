@@ -425,6 +425,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "CtrlTabSwitch", conf_get_int(conf, CONF_ctrl_tab_switch));
     write_setting_s_forced(sesskey, "Comment", conf_get_str(conf, CONF_comment) );
     write_setting_i_forced(sesskey, "ACSinUTF", conf_get_int(conf, CONF_acs_in_utf));
+    write_setting_i_forced(sesskey, "SCPAutoPwd", conf_get_int(conf, CONF_scp_auto_pwd));
 #endif
 #ifdef PORTKNOCKINGPORT
 	write_setting_s_forced(sesskey, "PortKnocking", conf_get_str(conf, CONF_portknockingoptions) );
@@ -990,6 +991,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps_forced(sesskey, "Comment", "", conf, CONF_comment );
     gppi_forced(sesskey, "ACSinUTF", 0, conf, CONF_acs_in_utf);
+    gppi_forced(sesskey, "SCPAutoPwd", 0, conf, CONF_scp_auto_pwd);
 #endif
 #ifdef PORTKNOCKINGPORT
 	gpps_forced(sesskey, "PortKnocking", "", conf, CONF_portknockingoptions );

@@ -101,6 +101,13 @@ void SetShortcutsFlag( const int flag ) ;
 int GetMouseShortcutsFlag(void) ;
 void SetMouseShortcutsFlag( const int flag ) ;
 
+// Stuff for drag-n-drop
+#ifndef TIMER_DND
+#define TIMER_DND 8777
+#endif
+extern HDROP hDropInf;
+void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop) ;
+
 // Pointeur sur la commande autocommand
 extern char * AutoCommand ;
 
