@@ -33,7 +33,7 @@ int del( char * ch, const int start, const int length ) ;
 int poss( const char * c, const char * ch ) ;
 int posi( const char * c, const char * ch, const int ipos ) ;
 
-// Test l'existance du répertoire, sinon le crée
+// Test l'existance du rÃ©pertoire, sinon le crÃ©Ã©
 void test_dir( Filename *filename ) {
 	int i ; char * name ;
 	if( filename == NULL ) return ;
@@ -386,7 +386,7 @@ void log_eventlog(void *handle, const char *event)
  * Set of blanking areas must be in increasing order.
  */
 void log_packet(void *handle, int direction, int type,
-		char *texttype, const void *data, int len,
+		const char *texttype, const void *data, int len,
 		int n_blanks, const struct logblank_t *blanks,
 		const unsigned long *seq,
                 unsigned downstream_id, const char *additional_log_text)

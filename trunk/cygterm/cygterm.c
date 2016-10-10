@@ -435,6 +435,7 @@ Backend cygterm_backend = {
 	cygterm_provide_logctx,
 	cygterm_unthrottle,
 	cygterm_cfg_info,
+	NULL /* test_for_upstream */,
 	"cygterm",
 	PROT_CYGTERM,
 	1
