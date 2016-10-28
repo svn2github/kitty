@@ -830,9 +830,6 @@ void *open_settings_r(const char *sessionname)
 		}
 		sfree(p);
 		st1 = snew( struct setItem );
-			st1->key = NULL;
-			st1->value = NULL;
-			st1->next = NULL;
 		sp->fromFile = 1;
 		sp->handle = st1;
 		
@@ -865,7 +862,6 @@ void *open_settings_r(const char *sessionname)
 			st1->next = st2;
 			st1 = st2;
 		}
-		if( sp->handle == st1 ) if( st1->value == NULL ) { sp->handle = NULL ; }
 		CloseHandle(hFile);
 	}
 	else {
@@ -919,11 +915,11 @@ char *read_setting_s(void *handle, const char *key)
 	ret = NULL ;
 
 	if (((struct setPack*) handle)->fromFile) {
+		
 		p = snewn(3 * strlen(key) + 1, char);
 		mungestr(key, p);
 
 		st = ((struct setPack*) handle)->handle;
-		if(st!=NULL)
 		while (st->key) {
 			if ( strcmp(st->key, p) == 0) {
 				ret = snewn(strlen(st->value)+11, char);
@@ -931,7 +927,6 @@ char *read_setting_s(void *handle, const char *key)
 				//return st->value;
 				return ret;
 			}
-
 			st = st->next;
 		}
 	}
@@ -975,7 +970,6 @@ int read_setting_i(void *handle, const char *key, int defvalue)
 
 	if (((struct setPack*) handle)->fromFile) {
 		st = ((struct setPack*) handle)->handle;
-		if(st!=NULL)
 		while (st->key) {
 			if ( strcmp(st->key, key) == 0) {
 				return atoi(st->value);				
@@ -1692,16 +1686,6 @@ return 0 ;
 #endif
 }
 
-int have_ssh_host_key(const char *hostname, int port,
-		      const char *keytype)
-{
-    /*
-     * If we have a host key, verify_host_key will return 0 or 2.
-     * If we don't have one, it'll return 1.
-     */
-    return verify_host_key(hostname, port, keytype, "") != 1;
-}
-
 void store_host_key(const char *hostname, int port,
 		    const char *keytype, const char *key)
 {
@@ -1948,7 +1932,7 @@ static int transform_jumplist_registry
     int ret;
     HKEY pjumplist_key, psettings_tmp;
     DWORD type;
-    DWORD value_length;
+    int value_length;
     char *old_value, *new_value;
     char *piterator_old, *piterator_new, *piterator_tmp;
 

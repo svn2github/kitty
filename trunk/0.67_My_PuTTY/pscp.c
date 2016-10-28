@@ -48,9 +48,9 @@ static void *backhandle;
 static Conf *conf;
 int sent_eof = FALSE;
 
-static void source(const char *src);
-static void rsource(const char *src);
-static void sink(const char *targ, const char *src);
+static void source(char *src);
+static void rsource(char *src);
+static void sink(char *targ, char *src);
 
 #ifdef PERSOPORT
 void SetAutoStoreSSHKey( void ) ;
@@ -70,14 +70,23 @@ int ManagePortKnocking( char* host, char *portstr ) ;
  */
 #define MAX_SCP_BUFSIZE 16384
 
-void ldisc_echoedit_update(void *handle) { }
+void ldisc_send(void *handle, char *buf, int len, int interactive)
+{
+    /*
+     * This is only here because of the calls to ldisc_send(NULL,
+     * 0) in ssh.c. Nothing in PSCP actually needs to use the ldisc
+     * as an ldisc. So if we get called with any real data, I want
+     * to know about it.
+     */
+    assert(len == 0);
+}
 
 static void tell_char(FILE * stream, char c)
 {
     fputc(c, stream);
 }
 
-static void tell_str(FILE *stream, const char *str)
+static void tell_str(FILE * stream, char *str)
 {
     unsigned int i;
 
@@ -85,7 +94,7 @@ static void tell_str(FILE *stream, const char *str)
 	tell_char(stream, str[i]);
 }
 
-static void tell_user(FILE *stream, const char *fmt, ...)
+static void tell_user(FILE * stream, char *fmt, ...)
 {
     char *str, *str2;
     va_list ap;
@@ -101,7 +110,7 @@ static void tell_user(FILE *stream, const char *fmt, ...)
 /*
  *  Print an error message and perform a fatal exit.
  */
-void fatalbox(const char *fmt, ...)
+void fatalbox(char *fmt, ...)
 {
     char *str, *str2;
     va_list ap;
@@ -116,7 +125,7 @@ void fatalbox(const char *fmt, ...)
 
     cleanup_exit(1);
 }
-void modalfatalbox(const char *fmt, ...)
+void modalfatalbox(char *fmt, ...)
 {
     char *str, *str2;
     va_list ap;
@@ -131,7 +140,7 @@ void modalfatalbox(const char *fmt, ...)
 
     cleanup_exit(1);
 }
-void nonfatal(const char *fmt, ...)
+void nonfatal(char *fmt, ...)
 {
     char *str, *str2;
     va_list ap;
@@ -144,7 +153,7 @@ void nonfatal(const char *fmt, ...)
     sfree(str2);
     errs++;
 }
-void connection_fatal(void *frontend, const char *fmt, ...)
+void connection_fatal(void *frontend, char *fmt, ...)
 {
     char *str, *str2;
     va_list ap;
@@ -312,7 +321,7 @@ static void ssh_scp_init(void)
 /*
  *  Print an error message and exit after closing the SSH link.
  */
-static void bump(const char *fmt, ...)
+static void bump(char *fmt, ...)
 {
     char *str, *str2;
     va_list ap;
@@ -547,7 +556,7 @@ static void do_cmd(char *host, char *user, char *cmd)
 /*
  *  Update statistic information about current file.
  */
-static void print_stats(const char *name, uint64 size, uint64 done,
+static void print_stats(char *name, uint64 size, uint64 done,
 			time_t start, time_t now)
 {
     float ratebs;
@@ -620,6 +629,30 @@ static char *colon(char *str)
 }
 
 /*
+ * Return a pointer to the portion of str that comes after the last
+ * slash (or backslash or colon, if `local' is TRUE).
+ */
+static char *stripslashes(char *str, int local)
+{
+    char *p;
+
+    if (local) {
+        p = strchr(str, ':');
+        if (p) str = p+1;
+    }
+
+    p = strrchr(str, '/');
+    if (p) str = p+1;
+
+    if (local) {
+	p = strrchr(str, '\\');
+	if (p) str = p+1;
+    }
+
+    return str;
+}
+
+/*
  * Determine whether a string is entirely composed of dots.
  */
 static int is_dots(char *str)
@@ -672,10 +705,6 @@ int sftp_senddata(char *buf, int len)
     back->send(backhandle, buf, len);
     return 1;
 }
-int sftp_sendbuffer(void)
-{
-    return back->sendbuffer(backhandle);
-}
 
 /* ----------------------------------------------------------------------
  * sftp-based replacement for the hacky `pscp -ls'.
@@ -686,7 +715,7 @@ static int sftp_ls_compare(const void *av, const void *bv)
     const struct fxp_name *b = (const struct fxp_name *) bv;
     return strcmp(a->filename, b->filename);
 }
-void scp_sftp_listdir(const char *dirname)
+void scp_sftp_listdir(char *dirname)
 {
     struct fxp_handle *dirh;
     struct fxp_names *names;
@@ -785,7 +814,7 @@ static struct fxp_handle *scp_sftp_filehandle;
 static struct fxp_xfer *scp_sftp_xfer;
 static uint64 scp_sftp_fileoffset;
 
-int scp_source_setup(const char *target, int shouldbedir)
+int scp_source_setup(char *target, int shouldbedir)
 {
     if (using_sftp) {
 	/*
@@ -851,7 +880,7 @@ int scp_send_filetimes(unsigned long mtime, unsigned long atime)
     }
 }
 
-int scp_send_filename(const char *name, uint64 size, int permissions)
+int scp_send_filename(char *name, uint64 size, int permissions)
 {
     if (using_sftp) {
 	char *fullname;
@@ -1006,7 +1035,7 @@ void scp_restore_remotepath(char *data)
 	scp_sftp_remotepath = data;
 }
 
-int scp_send_dirname(const char *name, int modes)
+int scp_send_dirname(char *name, int modes)
 {
     if (using_sftp) {
 	char *fullname;
@@ -1081,7 +1110,7 @@ int scp_send_enddir(void)
  * right at the start, whereas scp_sink_init is called to
  * initialise every level of recursion in the protocol.
  */
-int scp_sink_setup(const char *source, int preserve, int recursive)
+int scp_sink_setup(char *source, int preserve, int recursive)
 {
     if (using_sftp) {
 	char *newsource;
@@ -1651,12 +1680,12 @@ static void run_err(const char *fmt, ...)
 /*
  *  Execute the source part of the SCP protocol.
  */
-static void source(const char *src)
+static void source(char *src)
 {
     uint64 size;
     unsigned long mtime, atime;
     long permissions;
-    const char *last;
+    char *last;
     RFile *f;
     int attr;
     uint64 i;
@@ -1676,7 +1705,7 @@ static void source(const char *src)
 	    /*
 	     * Avoid . and .. directories.
 	     */
-	    const char *p;
+	    char *p;
 	    p = strrchr(src, '/');
 	    if (!p)
 		p = strrchr(src, '\\');
@@ -1729,12 +1758,11 @@ static void source(const char *src)
     stat_starttime = time(NULL);
     stat_lasttime = 0;
 
-#define PSCP_SEND_BLOCK 4096
     for (i = uint64_make(0,0);
 	 uint64_compare(i,size) < 0;
-	 i = uint64_add32(i,PSCP_SEND_BLOCK)) {
-	char transbuf[PSCP_SEND_BLOCK];
-	int j, k = PSCP_SEND_BLOCK;
+	 i = uint64_add32(i,4096)) {
+	char transbuf[4096];
+	int j, k = 4096;
 
 	if (uint64_compare(uint64_add32(i, k),size) > 0) /* i + k > size */ 
 	    k = (uint64_subtract(size, i)).lo; 	/* k = size - i; */
@@ -1765,9 +1793,9 @@ static void source(const char *src)
 /*
  *  Recursively send the contents of a directory.
  */
-static void rsource(const char *src)
+static void rsource(char *src)
 {
-    const char *last;
+    char *last;
     char *save_target;
     DirHandle *dir;
 
@@ -1809,7 +1837,7 @@ static void rsource(const char *src)
 /*
  * Execute the sink part of the SCP protocol.
  */
-static void sink(const char *targ, const char *src)
+static void sink(char *targ, char *src)
 {
     char *destfname;
     int targisdir = 0;
@@ -2015,26 +2043,23 @@ static void sink(const char *targ, const char *src)
  */
 static void toremote(int argc, char *argv[])
 {
-    char *src, *wtarg, *host, *user;
-    const char *targ;
+    char *src, *targ, *host, *user;
     char *cmd;
     int i, wc_type;
 
     uploading = 1;
 
-    wtarg = argv[argc - 1];
+    targ = argv[argc - 1];
 
     /* Separate host from filename */
-    host = wtarg;
-    wtarg = colon(wtarg);
-    if (wtarg == NULL)
-	bump("wtarg == NULL in toremote()");
-    *wtarg++ = '\0';
-    /* Substitute "." for empty target */
-    if (*wtarg == '\0')
+    host = targ;
+    targ = colon(targ);
+    if (targ == NULL)
+	bump("targ == NULL in toremote()");
+    *targ++ = '\0';
+    if (*targ == '\0')
 	targ = ".";
-    else
-        targ = wtarg;
+    /* Substitute "." for empty target */
 
     /* Separate host and username */
     user = host;
@@ -2110,8 +2135,7 @@ static void toremote(int argc, char *argv[])
  */
 static void tolocal(int argc, char *argv[])
 {
-    char *wsrc, *host, *user;
-    const char *src, *targ;
+    char *src, *targ, *host, *user;
     char *cmd;
 
     uploading = 0;
@@ -2119,20 +2143,18 @@ static void tolocal(int argc, char *argv[])
     if (argc != 2)
 	bump("More than one remote source not supported");
 
-    wsrc = argv[0];
+    src = argv[0];
     targ = argv[1];
 
     /* Separate host from filename */
-    host = wsrc;
-    wsrc = colon(wsrc);
-    if (wsrc == NULL)
+    host = src;
+    src = colon(src);
+    if (src == NULL)
 	bump("Local to local copy not supported");
-    *wsrc++ = '\0';
-    /* Substitute "." for empty filename */
-    if (*wsrc == '\0')
+    *src++ = '\0';
+    if (*src == '\0')
 	src = ".";
-    else
-        src = wsrc;
+    /* Substitute "." for empty filename */
 
     /* Separate username and hostname */
     user = host;
@@ -2165,25 +2187,21 @@ static void tolocal(int argc, char *argv[])
  */
 static void get_dir_list(int argc, char *argv[])
 {
-    char *wsrc, *host, *user;
-    const char *src;
-    char *cmd, *p;
-    const char *q;
+    char *src, *host, *user;
+    char *cmd, *p, *q;
     char c;
 
-    wsrc = argv[0];
+    src = argv[0];
 
     /* Separate host from filename */
-    host = wsrc;
-    wsrc = colon(wsrc);
-    if (wsrc == NULL)
+    host = src;
+    src = colon(src);
+    if (src == NULL)
 	bump("Local file listing not supported");
-    *wsrc++ = '\0';
-    /* Substitute "." for empty filename */
-    if (*wsrc == '\0')
+    *src++ = '\0';
+    if (*src == '\0')
 	src = ".";
-    else
-        src = wsrc;
+    /* Substitute "." for empty filename */
 
     /* Separate username and hostname */
     user = host;
@@ -2282,7 +2300,7 @@ void version(void)
     cleanup_exit(1);
 }
 
-void cmdline_error(const char *p, ...)
+void cmdline_error(char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "pscp: ");
@@ -2376,8 +2394,6 @@ int psftp_main(int argc, char *argv[])
     argc -= i;
     argv += i;
     back = NULL;
-
-    platform_psftp_post_option_setup();
 
     if (list) {
 	if (argc != 1)

@@ -28,7 +28,6 @@ typedef struct terminal_tag Terminal;
 #include "misc.h"
 
 #ifdef PERSOPORT
-#include <stdint.h>
 void debug_log( const char *fmt, ...) ;
 int switch_private_key_flag( void ) ;
 #endif
@@ -169,7 +168,7 @@ enum {
 
 struct sesslist {
     int nsessions;
-    const char **sessions;
+    char **sessions;
     char *buffer;		       /* so memory can be freed later */
 };
 
@@ -210,14 +209,7 @@ typedef enum {
     /* Pseudo-specials used for constructing the specials menu. */
     TS_SEP,	    /* Separator */
     TS_SUBMENU,	    /* Start a new submenu with specified name */
-    TS_EXITMENU,    /* Exit current submenu or end of specials */
-    /* Starting point for protocols to invent special-action codes
-     * that can't live in this enum at all, e.g. because they change
-     * with every session.
-     *
-     * Of course, this must remain the last value in this
-     * enumeration. */
-    TS_LOCALSTART
+    TS_EXITMENU	    /* Exit current submenu or end of specials */
 } Telnet_Special;
 
 struct telnet_special {
@@ -291,20 +283,7 @@ enum {
     KEX_DHGROUP14,
     KEX_DHGEX,
     KEX_RSA,
-    KEX_ECDH,
     KEX_MAX
-};
-
-enum {
-    /*
-     * SSH-2 host key algorithms
-     */
-    HK_WARN,
-    HK_RSA,
-    HK_DSA,
-    HK_ECDSA,
-    HK_ED25519,
-    HK_MAX
 };
 
 enum {
@@ -317,7 +296,6 @@ enum {
     CIPHER_AES,			       /* (SSH-2 only) */
     CIPHER_DES,
     CIPHER_ARCFOUR,
-    CIPHER_CHACHA20,
     CIPHER_MAX			       /* no. ciphers (inc warn) */
 };
 
@@ -327,9 +305,9 @@ enum {
      * three-way settings whose values are `always yes', `always
      * no', and `decide by some more complex automated means'. This
      * is true of line discipline options (local echo and line
-     * editing), proxy DNS, proxy terminal logging, Close On Exit, and
-     * SSH server bug workarounds. Accordingly I supply a single enum
-     * here to deal with them all.
+     * editing), proxy DNS, Close On Exit, and SSH server bug
+     * workarounds. Accordingly I supply a single enum here to deal
+     * with them all.
      */
     FORCE_ON, FORCE_OFF, AUTO
 };
@@ -339,7 +317,7 @@ enum {
      * Proxy types.
      */
     PROXY_NONE, PROXY_SOCKS4, PROXY_SOCKS5,
-    PROXY_HTTP, PROXY_TELNET, PROXY_CMD, PROXY_FUZZ
+    PROXY_HTTP, PROXY_TELNET, PROXY_CMD
 };
 
 enum {
@@ -422,7 +400,7 @@ struct keyvalwhere {
      * Two fields which define a string and enum value to be
      * equivalent to each other.
      */
-    const char *s;
+    char *s;
     int v;
 
     /*
@@ -510,13 +488,13 @@ enum {
 
 struct backend_tag {
     const char *(*init) (void *frontend_handle, void **backend_handle,
-			 Conf *conf, const char *host, int port,
-                         char **realhost, int nodelay, int keepalive);
+			 Conf *conf, char *host, int port, char **realhost,
+			 int nodelay, int keepalive);
     void (*free) (void *handle);
     /* back->reconfig() passes in a replacement configuration. */
     void (*reconfig) (void *handle, Conf *conf);
     /* back->send() returns the current amount of buffered data. */
-    int (*send) (void *handle, const char *buf, int len);
+    int (*send) (void *handle, char *buf, int len);
     /* back->sendbuffer() does the same thing but without attempting a send */
     int (*sendbuffer) (void *handle);
     void (*size) (void *handle, int width, int height);
@@ -536,10 +514,7 @@ struct backend_tag {
      */
     void (*unthrottle) (void *handle, int);
     int (*cfg_info) (void *handle);
-    /* Only implemented in the SSH protocol: check whether a
-     * connection-sharing upstream exists for a given configuration. */
-    int (*test_for_upstream)(const char *host, int port, Conf *conf);
-    const char *name;
+    char *name;
     int protocol;
     int default_port;
 };
@@ -690,10 +665,10 @@ void write_clip(void *frontend, wchar_t *, int *, int, int);
 void get_clip(void *frontend, wchar_t **, int *);
 void optimised_move(void *frontend, int, int, int);
 void set_raw_mouse_mode(void *frontend, int);
-void connection_fatal(void *frontend, const char *, ...);
-void nonfatal(const char *, ...);
-void fatalbox(const char *, ...);
-void modalfatalbox(const char *, ...);
+void connection_fatal(void *frontend, char *, ...);
+void fatalbox(char *, ...);
+void nonfatal(char *, ...);
+void modalfatalbox(char *, ...);
 #ifdef macintosh
 #pragma noreturn(fatalbox)
 #pragma noreturn(modalfatalbox)
@@ -703,7 +678,7 @@ void begin_session(void *frontend);
 void sys_cursor(void *frontend, int x, int y);
 void request_paste(void *frontend);
 void frontend_keypress(void *frontend);
-void frontend_echoedit_update(void *frontend, int echo, int edit);
+void ldisc_update(void *frontend, int echo, int edit);
 /* It's the backend's responsibility to invoke this at the start of a
  * connection, if necessary; it can also invoke it later if the set of
  * special commands changes. It does not need to invoke it at session
@@ -725,7 +700,7 @@ char *get_ttymode(void *frontend, const char *mode);
  * 0  = `user cancelled' (FIXME distinguish "give up entirely" and "next auth"?)
  * <0 = `please call back later with more in/inlen'
  */
-int get_userpass_input(prompts_t *p, const unsigned char *in, int inlen);
+int get_userpass_input(prompts_t *p, unsigned char *in, int inlen);
 #define OPTIMISE_IS_SCROLL 1
 
 void set_iconic(void *frontend, int iconic);
@@ -776,14 +751,12 @@ void cleanup_exit(int);
     X(STR, NONE, proxy_username) \
     X(STR, NONE, proxy_password) \
     X(STR, NONE, proxy_telnet_command) \
-    X(INT, NONE, proxy_log_to_term) \
-   /* SSH options */ \
+    /* SSH options */ \
     X(STR, NONE, remote_cmd) \
     X(STR, NONE, remote_cmd2) /* fallback if remote_cmd fails; never loaded or saved */ \
     X(INT, NONE, nopty) \
     X(INT, NONE, compression) \
     X(INT, INT, ssh_kexlist) \
-    X(INT, INT, ssh_hklist) \
     X(INT, NONE, ssh_rekey_time) /* in minutes */ \
     X(STR, NONE, ssh_rekey_data) /* string encoding e.g. "100K", "2M", "1G" */ \
     X(INT, NONE, tryagent) \
@@ -791,20 +764,7 @@ void cleanup_exit(int);
     X(INT, NONE, change_username) /* allow username switching in SSH-2 */ \
     X(INT, INT, ssh_cipherlist) \
     X(FILENAME, NONE, keyfile) \
-    /* \
-     * Which SSH protocol to use. \
-     * For historical reasons, the current legal values for CONF_sshprot \
-     * are: \
-     *  0 = SSH-1 only \
-     *  3 = SSH-2 only \
-     * We used to also support \
-     *  1 = SSH-1 with fallback to SSH-2 \
-     *  2 = SSH-2 with fallback to SSH-1 \
-     * and we continue to use 0/3 in storage formats rather than the more \
-     * obvious 1/2 to avoid surprises if someone saves a session and later \
-     * downgrades PuTTY. So it's easier to use these numbers internally too. \
-     */ \
-    X(INT, NONE, sshprot) \
+    X(INT, NONE, sshprot) /* use v1 or v2 when both available */ \
     X(INT, NONE, ssh2_des_cbc) /* "des-cbc" unrecommended SSH-2 cipher */ \
     X(INT, NONE, ssh_no_userauth) /* bypass "ssh-userauth" (SSH-2 only) */ \
     X(INT, NONE, ssh_show_banner) /* show USERAUTH_BANNERs (SSH-2 only) */ \
@@ -866,8 +826,6 @@ void cleanup_exit(int);
     X(INT, NONE, erase_to_scrollback) \
     X(INT, NONE, compose_key) \
     X(INT, NONE, ctrlaltkeys) \
-    X(INT, NONE, osx_option_meta) \
-    X(INT, NONE, osx_command_meta) \
     X(STR, NONE, wintitle) /* initial window title */ \
     /* Terminal options */ \
     X(INT, NONE, savelines) \
@@ -1188,12 +1146,12 @@ void random_destroy_seed(void);
 Backend *backend_from_name(const char *name);
 Backend *backend_from_proto(int proto);
 char *get_remote_username(Conf *conf); /* dynamically allocated */
-char *save_settings(const char *section, Conf *conf);
+char *save_settings(char *section, Conf *conf);
 void save_open_settings(void *sesskey, Conf *conf);
-void load_settings(const char *section, Conf *conf);
+void load_settings(char *section, Conf *conf);
 void load_open_settings(void *sesskey, Conf *conf);
 void get_sesslist(struct sesslist *, int allocate);
-void do_defaults(const char *, Conf *);
+void do_defaults(char *, Conf *);
 void registry_cleanup(void);
 
 /*
@@ -1251,7 +1209,7 @@ void term_provide_logctx(Terminal *term, void *logctx);
 void term_set_focus(Terminal *term, int has_focus);
 char *term_get_ttymode(Terminal *term, const char *mode);
 int term_get_userpass_input(Terminal *term, prompts_t *p,
-			    const unsigned char *in, int inlen);
+			    unsigned char *in, int inlen);
 
 #ifdef KEYMAPPINGPORT
 int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl, int alt);
@@ -1278,7 +1236,7 @@ struct logblank_t {
     int type;
 };
 void log_packet(void *logctx, int direction, int type,
-		const char *texttype, const void *data, int len,
+		char *texttype, const void *data, int len,
 		int n_blanks, const struct logblank_t *blanks,
 		const unsigned long *sequence,
                 unsigned downstream_id, const char *additional_log_text);
@@ -1336,15 +1294,13 @@ void cygterm_setup_config_box(struct controlbox *b, int midsession);
 void *ldisc_create(Conf *, Terminal *, Backend *, void *, void *);
 void ldisc_configure(void *, Conf *);
 void ldisc_free(void *);
-void ldisc_send(void *handle, const char *buf, int len, int interactive);
-void ldisc_echoedit_update(void *handle);
+void ldisc_send(void *handle, char *buf, int len, int interactive);
 
 /*
  * Exports from ldiscucs.c.
  */
-void lpage_send(void *, int codepage, const char *buf, int len,
-                int interactive);
-void luni_send(void *, const wchar_t * widebuf, int len, int interactive);
+void lpage_send(void *, int codepage, char *buf, int len, int interactive);
+void luni_send(void *, wchar_t * widebuf, int len, int interactive);
 
 /*
  * Exports from sshrand.c.
@@ -1385,7 +1341,7 @@ void ser_setup_config_box(struct controlbox *b, int midsession,
 /*
  * Exports from version.c.
  */
-extern const char ver[];
+extern char ver[];
 
 /*
  * Exports from unicode.c.
@@ -1398,7 +1354,7 @@ int is_dbcs_leadbyte(int codepage, char byte);
 int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
 	     wchar_t *wcstr, int wclen);
 int wc_to_mb(int codepage, int flags, const wchar_t *wcstr, int wclen,
-	     char *mbstr, int mblen, const char *defchr, int *defused,
+	     char *mbstr, int mblen, char *defchr, int *defused,
 	     struct unicode_data *ucsdata);
 wchar_t xlat_uskbd2cyrllic(int ch);
 int check_compose(int first, int second);
@@ -1463,26 +1419,14 @@ void pgp_fingerprints(void);
  *    back via the provided function with a result that's either 0
  *    or +1'.
  */
-int verify_ssh_host_key(void *frontend, char *host, int port,
-                        const char *keytype, char *keystr, char *fingerprint,
+int verify_ssh_host_key(void *frontend, char *host, int port, char *keytype,
+                        char *keystr, char *fingerprint,
                         void (*callback)(void *ctx, int result), void *ctx);
 /*
- * have_ssh_host_key() just returns true if a key of that type is
- * already cached and false otherwise.
- */
-int have_ssh_host_key(const char *host, int port, const char *keytype);
-/*
- * askalg and askhk have the same set of return values as
- * verify_ssh_host_key.
- *
- * (askhk is used in the case where we're using a host key below the
- * warning threshold because that's all we have cached, but at least
- * one acceptable algorithm is available that we don't have cached.)
+ * askalg has the same set of return values as verify_ssh_host_key.
  */
 int askalg(void *frontend, const char *algtype, const char *algname,
 	   void (*callback)(void *ctx, int result), void *ctx);
-int askhk(void *frontend, const char *algname, const char *betteralgs,
-          void (*callback)(void *ctx, int result), void *ctx);
 /*
  * askappend can return four values:
  * 
@@ -1499,8 +1443,7 @@ int askappend(void *frontend, Filename *filename,
  * that aren't equivalents to things in windlg.c et al.
  */
 extern int console_batch_mode;
-int console_get_userpass_input(prompts_t *p, const unsigned char *in,
-                               int inlen);
+int console_get_userpass_input(prompts_t *p, unsigned char *in, int inlen);
 void console_provide_logctx(void *logctx);
 int is_interactive(void);
 
@@ -1520,21 +1463,16 @@ void printer_finish_job(printer_job *);
  * Exports from cmdline.c (and also cmdline_error(), which is
  * defined differently in various places and required _by_
  * cmdline.c).
- *
- * Note that cmdline_process_param takes a const option string, but a
- * writable argument string. That's not a mistake - that's so it can
- * zero out password arguments in the hope of not having them show up
- * avoidably in Unix 'ps'.
  */
-int cmdline_process_param(const char *, char *, int, Conf *);
+int cmdline_process_param(char *, char *, int, Conf *);
 void cmdline_run_saved(Conf *);
 void cmdline_cleanup(void);
-int cmdline_get_passwd_input(prompts_t *p, const unsigned char *in, int inlen);
+int cmdline_get_passwd_input(prompts_t *p, unsigned char *in, int inlen);
 #define TOOLTYPE_FILETRANSFER 1
 #define TOOLTYPE_NONNETWORK 2
 extern int cmdline_tooltype;
 
-void cmdline_error(const char *, ...);
+void cmdline_error(char *, ...);
 
 /*
  * Exports from config.c.
@@ -1592,7 +1530,7 @@ void filename_free(Filename *fn);
 int filename_serialise(const Filename *f, void *data);
 Filename *filename_deserialise(void *data, int maxsize, int *used);
 char *get_username(void);	       /* return value needs freeing */
-char *get_random_data(int bytes, const char *device); /* used in cmdgen.c */
+char *get_random_data(int bytes);      /* used in cmdgen.c */
 char filename_char_sanitise(char c);   /* rewrite special pathname chars */
 
 /*
@@ -1690,7 +1628,6 @@ unsigned long schedule_timer(int ticks, timer_fn_t fn, void *ctx);
 void expire_timer_context(void *ctx);
 int run_timers(unsigned long now, unsigned long *next);
 void timer_change_notify(unsigned long next);
-unsigned long timing_last_clock(void);
 
 /*
  * Exports from callback.c.

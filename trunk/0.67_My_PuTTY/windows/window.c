@@ -336,14 +336,8 @@ const int share_can_be_downstream = TRUE;
 const int share_can_be_upstream = TRUE;
 
 /* Dummy routine, only required in plink. */
-void frontend_echoedit_update(void *frontend, int echo, int edit)
+void ldisc_update(void *frontend, int echo, int edit)
 {
-}
-
-int frontend_is_utf8(void *frontend)
-{
-    return ucsdata.line_codepage == CP_UTF8;
-
 }
 
 char *get_ttymode(void *frontend, const char *mode)
@@ -448,9 +442,6 @@ static void close_session(void *ignored_context)
 
     session_closed = TRUE;
     sprintf(morestuff, "%.70s (inactive)", appname);
-#ifdef PERSOPORT
-	sprintf(morestuff, "%s (inactive)", conf_get_str(conf,CONF_wintitle)) ;
-#endif
     set_icon(NULL, morestuff);
     set_title(NULL, morestuff);
 
@@ -497,9 +488,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     MSG msg;
     HRESULT hr;
     int guess_width, guess_height;
-	
-    dll_hijacking_protection();
-
 #ifdef ZMODEMPORT
 	struct netscheduler_tag *netsc = NULL ;
 #endif
@@ -511,11 +499,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     sk_init();
 
     InitCommonControls();
-
-    /* Set Explicit App User Model Id so that jump lists don't cause
-       PuTTY to hang on to removable media. */
-
-    set_explicit_app_user_model_id();
 
     /* Ensure a Maximize setting in Explorer doesn't maximise the
      * config box. */
@@ -574,7 +557,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      * Protect our process
      */
     {
-#if !defined UNPROTECT && !defined NO_SECURITY
+#ifndef UNPROTECT
         char *error = NULL;
         if (! setprocessacl(error)) {
             char *message = dupprintf("Could not restrict process ACL: %s",
@@ -1028,7 +1011,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 				if (c == ':')
 					conf_set_int( conf,CONF_port,atoi(p)); //cfg.port = atoi(p);
 				else if( (c == '/')&&(strlen(p)>0) ) {
-					conf_set_int( conf,CONF_port,22); // cfg.port = -1;
+					conf_set_int( conf,CONF_port,-1); // cfg.port = -1;
 					char * buf;
 					buf=(char*)malloc(strlen(p)+10);
 					strcpy(buf,p);
@@ -1048,7 +1031,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 					free(buf);
 					}
 				else
-					conf_set_int( conf,CONF_port,22) ; //cfg.port = -1;
+					conf_set_int( conf,CONF_port,-1) ; //cfg.port = -1;
 				char * buf;
 				buf=(char*)malloc( strlen(q)+10 );
 				strncpy(buf,q,strlen(q)+1);
@@ -1455,7 +1438,7 @@ TrayIcone.hWnd = hwnd ;
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 	    AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
 	    AppendMenu(m, MF_ENABLED, IDM_DUPSESS, "&Duplicate Session");
-	    AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT_PTR) savedsess_menu,
+	    AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT) savedsess_menu,
 		       "Sa&ved Sessions");
 	    AppendMenu(m, MF_ENABLED, IDM_RECONF, "Chan&ge Settings...");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
@@ -1893,7 +1876,7 @@ void update_specials_menu(void *frontend)
 		saved_menu = new_menu; /* XXX lame stacking */
 		new_menu = CreatePopupMenu();
 		AppendMenu(saved_menu, MF_POPUP | MF_ENABLED,
-			   (UINT_PTR) new_menu, specials[i].name);
+			   (UINT) new_menu, specials[i].name);
 		break;
 	      case TS_EXITMENU:
 		nesting--;
@@ -1918,14 +1901,13 @@ void update_specials_menu(void *frontend)
     for (j = 0; j < lenof(popup_menus); j++) {
 	if (specials_menu) {
 	    /* XXX does this free up all submenus? */
-	    DeleteMenu(popup_menus[j].menu, (UINT_PTR)specials_menu,
-                       MF_BYCOMMAND);
+	    DeleteMenu(popup_menus[j].menu, (UINT)specials_menu, MF_BYCOMMAND);
 	    DeleteMenu(popup_menus[j].menu, IDM_SPECIALSEP, MF_BYCOMMAND);
 	}
 	if (new_menu) {
 	    InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
 		       MF_BYCOMMAND | MF_POPUP | MF_ENABLED,
-		       (UINT_PTR) new_menu, "S&pecial Command");
+		       (UINT) new_menu, "S&pecial Command");
 	    InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
 		       MF_BYCOMMAND | MF_SEPARATOR, IDM_SPECIALSEP, 0);
 	}
@@ -1990,7 +1972,7 @@ void set_raw_mouse_mode(void *frontend, int activate)
 /*
  * Print a message box and close the connection.
  */
-void connection_fatal(void *frontend, const char *fmt, ...)
+void connection_fatal(void *frontend, char *fmt, ...)
 {
     va_list ap;
 #ifdef RECONNECTPORT
@@ -2051,7 +2033,7 @@ void connection_fatal(void *frontend, const char *fmt, ...)
 /*
  * Report an error at the command-line parsing stage.
  */
-void cmdline_error(const char *fmt, ...)
+void cmdline_error(char *fmt, ...)
 {
     va_list ap;
     char *stuff, morestuff[100];
@@ -3417,7 +3399,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		    unsigned int sessno = ((lParam - IDM_SAVED_MIN)
 					   / MENU_SAVED_STEP) + 1;
 		    if (sessno < (unsigned)sesslist.nsessions) {
-			const char *session = sesslist.sessions[sessno];
+			char *session = sesslist.sessions[sessno];
 			cl = dupprintf("putty @%s", session);
 #ifdef PERSOPORT
 			GetSessionFolderName( conf_get_str(conf,CONF_sessionname), conf_get_str(conf,CONF_folder) ) ;
@@ -3578,7 +3560,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		 */
 		if (ldisc) {
                     ldisc_configure(ldisc, conf);
-		    ldisc_echoedit_update(ldisc);
+		    ldisc_send(ldisc, NULL, 0, 0);
                 }
 		if (pal)
 		    DeleteObject(pal);
@@ -3754,7 +3736,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_RESET:
 	    term_pwron(term, TRUE);
 	    if (ldisc)
-		ldisc_echoedit_update(ldisc);
+		ldisc_send(ldisc, NULL, 0, 0);
 	    break;
 	  case IDM_ABOUT:
 	    showabout(hwnd);
@@ -7758,7 +7740,7 @@ void optimised_move(void *frontend, int to, int from, int lines)
 /*
  * Print a message box and perform a fatal exit.
  */
-void fatalbox(const char *fmt, ...)
+void fatalbox(char *fmt, ...)
 {
     va_list ap;
     char *stuff, morestuff[100];
@@ -7775,7 +7757,7 @@ void fatalbox(const char *fmt, ...)
 /*
  * Print a modal (Really Bad) message box and perform a fatal exit.
  */
-void modalfatalbox(const char *fmt, ...)
+void modalfatalbox(char *fmt, ...)
 {
     va_list ap;
     char *stuff, morestuff[100];
@@ -7793,7 +7775,7 @@ void modalfatalbox(const char *fmt, ...)
 /*
  * Print a message box and don't close the connection.
  */
-void nonfatal(const char *fmt, ...)
+void nonfatal(char *fmt, ...)
 {
     va_list ap;
     char *stuff, morestuff[100];
@@ -8275,7 +8257,7 @@ int from_backend_eof(void *frontend)
     return TRUE;   /* do respond to incoming EOF with outgoing */
 }
 
-int get_userpass_input(prompts_t *p, const unsigned char *in, int inlen)
+int get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
 {
     int ret;
     ret = cmdline_get_passwd_input(p, in, inlen);

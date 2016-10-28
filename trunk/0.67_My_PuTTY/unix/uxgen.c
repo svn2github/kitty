@@ -3,27 +3,21 @@
  */
 
 #include <stdio.h>
-#include <errno.h>
-
 #include <fcntl.h>
 #include <unistd.h>
 
 #include "putty.h"
 
-char *get_random_data(int len, const char *device)
+char *get_random_data(int len)
 {
     char *buf = snewn(len, char);
     int fd;
     int ngot, ret;
 
-    if (!device)
-        device = "/dev/random";
-
-    fd = open(device, O_RDONLY);
+    fd = open("/dev/random", O_RDONLY);
     if (fd < 0) {
 	sfree(buf);
-	fprintf(stderr, "puttygen: %s: open: %s\n",
-                device, strerror(errno));
+	perror("puttygen: unable to open /dev/random");
 	return NULL;
     }
 
@@ -33,8 +27,7 @@ char *get_random_data(int len, const char *device)
 	if (ret < 0) {
 	    close(fd);
             sfree(buf);
-            fprintf(stderr, "puttygen: %s: read: %s\n",
-                    device, strerror(errno));
+	    perror("puttygen: unable to read /dev/random");
 	    return NULL;
 	}
 	ngot += ret;

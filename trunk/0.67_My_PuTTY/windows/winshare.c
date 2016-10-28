@@ -14,13 +14,13 @@
 #include "proxy.h"
 #include "ssh.h"
 
-#include "wincapi.h"
 #include "winsecur.h"
+#include "wincapi.h"
 
 #ifdef COVERITY
 /*
  * The hack I use to build for Coverity scanning, using winegcc and
- * Makefile.mgw, didn't provide some defines in wincrypt.h last time I
+ * Makefile.cyg, didn't provide some defines in wincrypt.h last time I
  * looked. Therefore, define them myself here, but enclosed in #ifdef
  * COVERITY to ensure I don't make up random nonsense values for any
  * real build.

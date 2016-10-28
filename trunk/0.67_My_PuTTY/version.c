@@ -12,13 +12,13 @@
 
 #ifdef PERSOPORT
 #include <string.h>
-const char ver[] = "Custom build" ;
-const char sshver[] = "PuTTY-KiTTY\0                        " ;
+char ver[] = "Custom build" ;
+char sshver[] = "PuTTY-KiTTY\0                        " ;
 
 void set_sshver( char * vers ) { vers[36]='\0'; strcpy( sshver, vers ) ; }
 #else
-const char ver[] = TEXTVER;
-const char sshver[] = SSHVER;
+char ver[] = TEXTVER;
+char sshver[] = SSHVER;
 #endif
 
 /*

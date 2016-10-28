@@ -260,7 +260,6 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "proxy_username=%s\n", 		conf_get_str(conf,CONF_proxy_username) ) ;
 	fprintf( fp, "proxy_password=%s\n", 		conf_get_str(conf,CONF_proxy_password) ) ;
 	fprintf( fp, "proxy_telnet_command=%s\n", 	conf_get_str(conf,CONF_proxy_telnet_command) ) ;
-	fprintf( fp, "proxy_log_to_term=%d\n", 		conf_get_int(conf,CONF_proxy_log_to_term) ) ;
 
 	/* PERSOPORT Options */
 		// fprintf( fp, "bcdelay=%d\n", 			conf_get_int(conf,CONF_bcdelay) ) ;		// Non present systematiquement
@@ -399,10 +398,6 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "erase_to_scrollback=%d\n",	conf_get_int(conf,CONF_erase_to_scrollback) ) ;
 	fprintf( fp, "compose_key=%d\n", 		conf_get_int(conf,CONF_compose_key) ) ;
 	fprintf( fp, "ctrlaltkeys=%d\n", 		conf_get_int(conf,CONF_ctrlaltkeys) ) ;
-#ifdef OSX_META_KEY_CONFIG
-	fprintf( fp, "osx_option_meta=%d\n", 		conf_get_int(conf,CONF_osx_option_meta) ) ;
-	fprintf( fp, "osx_command_meta=%d\n", 		conf_get_int(conf,CONF_osx_command_meta) ) ;
-#endif
 	fprintf( fp, "wintitle=%s\n",			conf_get_str(conf,CONF_wintitle) ) ;
 	/* Terminal options */
 	fprintf( fp, "savelines=%d\n", 			conf_get_int(conf,CONF_savelines) ) ;

@@ -10,7 +10,7 @@
 #define LINKDLL 
 #endif
 
-extern "C" const char * get_param_str( const char * val ) {
+extern "C" char * get_param_str( const char * val ) {
 	if( !stricmp( val, "CLASS" ) ) return "KiTTY" ;
 	return NULL ;
 	}

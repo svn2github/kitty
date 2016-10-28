@@ -13,18 +13,16 @@
 #include "network.h"
 #include "proxy.h"
 
-Socket make_handle_socket(HANDLE send_H, HANDLE recv_H, HANDLE stderr_H,
-                          Plug plug, int overlapped);
+Socket make_handle_socket(HANDLE send_H, HANDLE recv_H, Plug plug,
+                          int overlapped);
 
-Socket platform_new_connection(SockAddr addr, const char *hostname,
+Socket platform_new_connection(SockAddr addr, char *hostname,
 			       int port, int privport,
 			       int oobinline, int nodelay, int keepalive,
 			       Plug plug, Conf *conf)
 {
     char *cmd;
-    HANDLE us_to_cmd, cmd_from_us;
-    HANDLE us_from_cmd, cmd_to_us;
-    HANDLE us_from_cmd_err, cmd_err_to_us;
+    HANDLE us_to_cmd, us_from_cmd, cmd_to_us, cmd_from_us;
     SECURITY_ATTRIBUTES sa;
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
@@ -39,7 +37,9 @@ Socket platform_new_connection(SockAddr addr, const char *hostname,
 
     {
 	char *msg = dupprintf("Starting local proxy command: %s", cmd);
-	plug_log(plug, 2, NULL, 0, msg, 0);
+	/* We're allowed to pass NULL here, because we're part of the Windows
+	 * front end so we know logevent doesn't expect any data. */
+	logevent(NULL, msg);
 	sfree(msg);
     }
 
@@ -66,25 +66,8 @@ Socket platform_new_connection(SockAddr addr, const char *hostname,
 	return ret;
     }
 
-    if (flags & FLAG_STDERR) {
-        /* If we have a sensible stderr, the proxy command can send
-         * its own standard error there, so we won't interfere. */
-        us_from_cmd_err = cmd_err_to_us = NULL;
-    } else {
-        /* If we don't have a sensible stderr, we should catch the
-         * proxy command's standard error to put in our event log. */
-        if (!CreatePipe(&us_from_cmd_err, &cmd_err_to_us, &sa, 0)) {
-            Socket ret = new_error_socket
-                ("Unable to create pipes for proxy command", plug);
-            sfree(cmd);
-            return ret;
-        }
-    }
-
     SetHandleInformation(us_to_cmd, HANDLE_FLAG_INHERIT, 0);
     SetHandleInformation(us_from_cmd, HANDLE_FLAG_INHERIT, 0);
-    if (us_from_cmd_err != NULL)
-        SetHandleInformation(us_from_cmd_err, HANDLE_FLAG_INHERIT, 0);
 
     si.cb = sizeof(si);
     si.lpReserved = NULL;
@@ -95,7 +78,7 @@ Socket platform_new_connection(SockAddr addr, const char *hostname,
     si.lpReserved2 = NULL;
     si.hStdInput = cmd_from_us;
     si.hStdOutput = cmd_to_us;
-    si.hStdError = cmd_err_to_us;
+    si.hStdError = NULL;
     CreateProcess(NULL, cmd, NULL, NULL, TRUE,
 		  CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
 		  NULL, NULL, &si, &pi);
@@ -107,9 +90,5 @@ Socket platform_new_connection(SockAddr addr, const char *hostname,
     CloseHandle(cmd_from_us);
     CloseHandle(cmd_to_us);
 
-    if (cmd_err_to_us != NULL)
-        CloseHandle(cmd_err_to_us);
-
-    return make_handle_socket(us_to_cmd, us_from_cmd, us_from_cmd_err,
-                              plug, FALSE);
+    return make_handle_socket(us_to_cmd, us_from_cmd, plug, FALSE);
 }

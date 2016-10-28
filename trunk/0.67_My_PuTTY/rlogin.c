@@ -48,9 +48,17 @@ static void rlogin_log(Plug plug, int type, SockAddr addr, int port,
 		       const char *error_msg, int error_code)
 {
     Rlogin rlogin = (Rlogin) plug;
-    backend_socket_log(rlogin->frontend, type, addr, port,
-                       error_msg, error_code,
-                       rlogin->conf, !rlogin->firstbyte);
+    char addrbuf[256], *msg;
+
+    sk_getaddr(addr, addrbuf, lenof(addrbuf));
+
+    if (type == 0)
+	msg = dupprintf("Connecting to %s port %d", addrbuf, port);
+    else
+	msg = dupprintf("Failed to connect to %s: %s", addrbuf, error_msg);
+
+    logevent(rlogin->frontend, msg);
+    sfree(msg);
 }
 
 static int rlogin_closing(Plug plug, const char *error_msg, int error_code,
@@ -153,7 +161,7 @@ static void rlogin_startup(Rlogin rlogin, const char *ruser)
  */
 static const char *rlogin_init(void *frontend_handle, void **backend_handle,
 			       Conf *conf,
-			       const char *host, int port, char **realhost,
+			       char *host, int port, char **realhost,
 			       int nodelay, int keepalive)
 {
     static const struct plug_function_table fn_table = {
@@ -186,8 +194,16 @@ static const char *rlogin_init(void *frontend_handle, void **backend_handle,
     /*
      * Try to find host.
      */
-    addr = name_lookup(host, port, realhost, conf, addressfamily,
-                       rlogin->frontend, "rlogin connection");
+    {
+	char *buf;
+	buf = dupprintf("Looking up host \"%s\"%s", host,
+			(addressfamily == ADDRTYPE_IPV4 ? " (IPv4)" :
+			 (addressfamily == ADDRTYPE_IPV6 ? " (IPv6)" :
+			  "")));
+	logevent(rlogin->frontend, buf);
+	sfree(buf);
+    }
+    addr = name_lookup(host, port, realhost, conf, addressfamily);
     if ((err = sk_addr_error(addr)) != NULL) {
 	sk_addr_free(addr);
 	return err;
@@ -263,7 +279,7 @@ static void rlogin_reconfig(void *handle, Conf *conf)
 /*
  * Called to send data down the rlogin connection.
  */
-static int rlogin_send(void *handle, const char *buf, int len)
+static int rlogin_send(void *handle, char *buf, int len)
 {
     Rlogin rlogin = (Rlogin) handle;
 
@@ -409,7 +425,6 @@ Backend rlogin_backend = {
     rlogin_provide_logctx,
     rlogin_unthrottle,
     rlogin_cfg_info,
-    NULL /* test_for_upstream */,
     "rlogin",
     PROT_RLOGIN,
     513
