@@ -32,21 +32,21 @@ void write_setting_i_forced(void *handle, const char *key, int value) ;
 void write_setting_s_forced(void *handle, const char *key, const char *value) ;
 void write_setting_filename_forced(void *handle, const char *key, Filename *value) ;
 void write_setting_fontspec_forced(void *handle, const char *key, FontSpec *font) ;
-void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,int include_values) ;
-void wprefs_forced(void *sesskey, char *name,const struct keyvalwhere *mapping, int nvals,Conf *conf, int primary) ;
+static void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,int include_values) ;
+static void wprefs_forced(void *sesskey, const char *name, const struct keyvalwhere *mapping, int nvals, Conf *conf, int primary) ;
 
 int read_setting_i_forced(void *handle, const char *key, int defvalue) ;
 char *read_setting_s_forced(void *handle, const char *key) ;
 Filename *read_setting_filename_forced(void *handle, const char *key) ;
-void gppi_forced(void *handle, char *name, int def, Conf *conf, int primary) ;
-void gpps_forced(void *handle, const char *name, const char *def, Conf *conf, int primary) ;
-void gppfile_forced(void *handle, const char *name, Conf *conf, int primary) ;
-char *gpps_raw_forced(void *handle, const char *name, const char *def) ;
-int gppi_raw_forced(void *handle, char *name, int def) ;
-void gppfont_forced(void *handle, const char *name, Conf *conf, int primary) ;
-int gppmap_forced(void *handle, char *name, Conf *conf, int primary) ;
-void gprefs_forced(void *sesskey, char *name, char *def,const struct keyvalwhere *mapping, int nvals,Conf *conf, int primary) ;
 
+static void gppi_forced(void *handle, const char *name, int def, Conf *conf, int primary) ;
+static int gppi_raw_forced(void *handle, const char *name, int def) ;
+static void gppfile_forced(void *handle, const char *name, Conf *conf, int primary) ;
+static void gpps_forced(void *handle, const char *name, const char *def, Conf *conf, int primary) ;
+static char *gpps_raw_forced(void *handle, const char *name, const char *def) ;
+static void gppfont_forced(void *handle, const char *name, Conf *conf, int primary)  ;
+static int gppmap_forced(void *handle, const char *name, Conf *conf, int primary) ;
+static void gprefs_forced(void *sesskey, const char *name, const char *def, const struct keyvalwhere *mapping, int nvals, Conf *conf, int primary) ;
 
  
 /* Fonction principale */
@@ -69,7 +69,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     {
 	const Backend *b = backend_from_proto(conf_get_int(conf, CONF_protocol));
 	if (b)
-	    p = b->name;
+	    p =(char*) b->name;
     }
     write_setting_s_forced(sesskey, "Protocol", p);
     write_setting_i_forced(sesskey, "PortNumber", conf_get_int(conf, CONF_port));
@@ -98,6 +98,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_s_forced(sesskey, "ProxyUsername", conf_get_str(conf, CONF_proxy_username));
     write_setting_s_forced(sesskey, "ProxyPassword", conf_get_str(conf, CONF_proxy_password));
     write_setting_s_forced(sesskey, "ProxyTelnetCommand", conf_get_str(conf, CONF_proxy_telnet_command));
+    write_setting_i_forced(sesskey, "ProxyLogToTerm", conf_get_int(conf, CONF_proxy_log_to_term));
     wmap_forced(sesskey, "Environment", conf, CONF_environmt, TRUE);
     write_setting_s_forced(sesskey, "UserName", conf_get_str(conf, CONF_username));
     write_setting_i_forced(sesskey, "UserNameFromEnvironment", conf_get_int(conf, CONF_username_from_env));
@@ -110,6 +111,7 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "ChangeUsername", conf_get_int(conf, CONF_change_username));
     wprefs_forced(sesskey, "Cipher", ciphernames, CIPHER_MAX, conf, CONF_ssh_cipherlist);
     wprefs_forced(sesskey, "KEX", kexnames, KEX_MAX, conf, CONF_ssh_kexlist);
+    wprefs_forced(sesskey, "HostKey", hknames, HK_MAX, conf, CONF_ssh_hklist);
     write_setting_i_forced(sesskey, "RekeyTime", conf_get_int(conf, CONF_ssh_rekey_time));
     write_setting_s_forced(sesskey, "RekeyBytes", conf_get_str(conf, CONF_ssh_rekey_data));
     write_setting_i_forced(sesskey, "SshNoAuth", conf_get_int(conf, CONF_ssh_no_userauth));
@@ -149,6 +151,10 @@ void save_open_settings_forced(char *filename, Conf *conf) {
     write_setting_i_forced(sesskey, "AltOnly", conf_get_int(conf, CONF_alt_only));
     write_setting_i_forced(sesskey, "ComposeKey", conf_get_int(conf, CONF_compose_key));
     write_setting_i_forced(sesskey, "CtrlAltKeys", conf_get_int(conf, CONF_ctrlaltkeys));
+#ifdef OSX_META_KEY_CONFIG
+    write_setting_i_forced(sesskey, "OSXOptionMeta", conf_get_int(conf, CONF_osx_option_meta));
+    write_setting_i_forced(sesskey, "OSXCommandMeta", conf_get_int(conf, CONF_osx_command_meta));
+#endif
     write_setting_i_forced(sesskey, "TelnetKey", conf_get_int(conf, CONF_telnet_keyboard));
     write_setting_i_forced(sesskey, "TelnetRet", conf_get_int(conf, CONF_telnet_newline));
     write_setting_i_forced(sesskey, "LocalEcho", conf_get_int(conf, CONF_localecho));
@@ -452,7 +458,6 @@ void load_open_settings_forced(char *filename, Conf *conf) {
 	confDef = conf_new() ;
 	do_defaults( "Default Settings" , confDef);
 		
-		
 #ifdef PERSOPORT
     /*
      * HACK: PuTTY-url
@@ -469,7 +474,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     conf_set_str(conf, CONF_ssh_nc_host, "");
     gpps_forced(sesskey, "HostName", "", conf, CONF_host);
     gppfile_forced(sesskey, "LogFileName", conf, CONF_logfilename);
-    gppi_forced(sesskey, "LogType", 0, conf, CONF_logtype);
+    gppi_forced(sesskey, "LogType", 0, conf, CONF_logtype);		//
     gppi_forced(sesskey, "LogFileClash", LGXF_ASK, conf, CONF_logxfovr);
     gppi_forced(sesskey, "LogFlush", 1, conf, CONF_logflush);
     gppi_forced(sesskey, "SSHLogOmitPasswords", 1, conf, CONF_logomitpass);
@@ -541,6 +546,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gpps_forced(sesskey, "ProxyPassword", "", conf, CONF_proxy_password);
     gpps_forced(sesskey, "ProxyTelnetCommand", "connect %host %port\\n",
 	 conf, CONF_proxy_telnet_command);
+    gppi_forced(sesskey, "ProxyLogToTerm", FORCE_OFF, conf, CONF_proxy_log_to_term);
     gppmap_forced(sesskey, "Environment", conf, CONF_environmt);
     gpps_forced(sesskey, "UserName", "", conf, CONF_username);
     gppi_forced(sesskey, "UserNameFromEnvironment", 0, conf, CONF_username_from_env);
@@ -554,23 +560,58 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gprefs_forced(sesskey, "Cipher", "\0",
 	   ciphernames, CIPHER_MAX, conf, CONF_ssh_cipherlist);
     {
-	/* Backward-compatibility: we used to have an option to
+	/* Backward-compatibility: before 0.58 (when the "KEX"
+	 * preference was first added), we had an option to
 	 * disable gex under the "bugs" panel after one report of
 	 * a server which offered it then choked, but we never got
 	 * a server version string or any other reports. */
-	char *default_kexes;
+	const char *default_kexes,
+	           *normal_default = "ecdh,dh-gex-sha1,dh-group14-sha1,rsa,"
+		       "WARN,dh-group1-sha1",
+		   *bugdhgex2_default = "ecdh,dh-group14-sha1,rsa,"
+		       "WARN,dh-group1-sha1,dh-gex-sha1";
+	char *raw;
 	i = 2 - gppi_raw_forced(sesskey, "BugDHGEx2", 0);
 	if (i == FORCE_ON)
-	    default_kexes = "dh-group14-sha1,dh-group1-sha1,rsa,WARN,dh-gex-sha1";
+            default_kexes = bugdhgex2_default;
 	else
-	    default_kexes = "dh-gex-sha1,dh-group14-sha1,dh-group1-sha1,rsa,WARN";
-	gprefs_forced(sesskey, "KEX", default_kexes,
-	       kexnames, KEX_MAX, conf, CONF_ssh_kexlist);
+            default_kexes = normal_default;
+	/* Migration: after 0.67 we decided we didn't like
+	 * dh-group1-sha1. If it looks like the user never changed
+	 * the defaults, quietly upgrade their settings to demote it.
+	 * (If they did, they're on their own.) */
+	raw = gpps_raw_forced(sesskey, "KEX", default_kexes);
+	assert(raw != NULL);
+	/* Lack of 'ecdh' tells us this was saved by 0.58-0.67
+	 * inclusive. If it was saved by a later version, we need
+	 * to leave it alone. */
+	if (strcmp(raw, "dh-group14-sha1,dh-group1-sha1,rsa,"
+		   "WARN,dh-gex-sha1") == 0) {
+	    /* Previously migrated from BugDHGEx2. */
+	    sfree(raw);
+	    raw = dupstr(bugdhgex2_default);
+	} else if (strcmp(raw, "dh-gex-sha1,dh-group14-sha1,"
+			  "dh-group1-sha1,rsa,WARN") == 0) {
+	    /* Untouched old default setting. */
+	    sfree(raw);
+	    raw = dupstr(normal_default);
+	}
+	gprefs_from_str(raw, kexnames, KEX_MAX, conf, CONF_ssh_kexlist);
+	sfree(raw);
     }
+    gprefs_forced(sesskey, "HostKey", "ed25519,ecdsa,rsa,dsa,WARN",
+           hknames, HK_MAX, conf, CONF_ssh_hklist);
     gppi_forced(sesskey, "RekeyTime", 60, conf, CONF_ssh_rekey_time);
     gpps_forced(sesskey, "RekeyBytes", "1G", conf, CONF_ssh_rekey_data);
+    {
     /* SSH-2 only by default */
-    gppi_forced(sesskey, "SshProt", 3, conf, CONF_sshprot);
+	int sshprot = gppi_raw_forced(sesskey, "SshProt", 3);
+	/* Old sessions may contain the values correponding to the fallbacks
+	 * we used to allow; migrate them */
+	if (sshprot == 1)      sshprot = 0; /* => "SSH-1 only" */
+	else if (sshprot == 2) sshprot = 3; /* => "SSH-2 only" */
+	conf_set_int(conf, CONF_sshprot, sshprot);
+    }
     gpps_forced(sesskey, "LogHost", "", conf, CONF_loghost);
     gppi_forced(sesskey, "SSH2DES", 0, conf, CONF_ssh2_des_cbc);
     gppi_forced(sesskey, "SshNoAuth", 0, conf, CONF_ssh_no_userauth);
@@ -617,6 +658,10 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "AltOnly", 0, conf, CONF_alt_only);
     gppi_forced(sesskey, "ComposeKey", 0, conf, CONF_compose_key);
     gppi_forced(sesskey, "CtrlAltKeys", 1, conf, CONF_ctrlaltkeys);
+#ifdef OSX_META_KEY_CONFIG
+    gppi_forced(sesskey, "OSXOptionMeta", 1, conf, CONF_osx_option_meta);
+    gppi_forced(sesskey, "OSXCommandMeta", 0, conf, CONF_osx_command_meta);
+#endif
     gppi_forced(sesskey, "TelnetKey", 0, conf, CONF_telnet_keyboard);
     gppi_forced(sesskey, "TelnetRet", 1, conf, CONF_telnet_newline);
     gppi_forced(sesskey, "LocalEcho", AUTO, conf, CONF_localecho);
@@ -675,6 +720,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "TermWidth", 80, conf, CONF_width);
     gppi_forced(sesskey, "TermHeight", 24, conf, CONF_height);
     gppfont_forced(sesskey, "Font", conf, CONF_font);
+
 #ifdef PERSOPORT
     /*
      * HACK: PuTTY-url
@@ -999,8 +1045,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
 // END COPY/PASTE
 	conf_set_str( conf, CONF_folder, "Default") ;
 	fclose(sesskey) ;
-	
-	
+		
 	conf_free( confDef ) ;
 }
 
@@ -1067,10 +1112,9 @@ void write_setting_fontspec_forced(void *handle, const char *name, FontSpec *fon
     sfree(settingname);
 }
 
-void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,
-                 int include_values)
-{
-    char *buf, *p, *q, *key, *realkey, *val;
+static void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,int include_values) {
+    char *buf, *p, *key, *realkey;
+    const char *val, *q;
     int len;
 
     len = 1;			       /* allow for NUL */
@@ -1095,9 +1139,13 @@ void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,
              * conceptually incoherent legacy storage format (key
              * "D<port>", value empty).
              */
+            char *L;
+
             realkey = key;             /* restore it at end of loop */
             val = "";
-            key = dupcat("D", key+1, NULL);
+            key = dupstr(key);
+            L = strchr(key, 'L');
+            if (L) *L = 'D';
         } else {
             realkey = NULL;
         }
@@ -1109,12 +1157,14 @@ void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,
 		*p++ = '\\';
 	    *p++ = *q;
 	}
-	*p++ = '=';
-	for (q = val; *q; q++) {
-	    if (*q == '=' || *q == ',' || *q == '\\')
-		*p++ = '\\';
-	    *p++ = *q;
-	}
+        if (include_values) {
+            *p++ = '=';
+            for (q = val; *q; q++) {
+                if (*q == '=' || *q == ',' || *q == '\\')
+                    *p++ = '\\';
+                *p++ = *q;
+            }
+        }
 
         if (realkey) {
             free(key);
@@ -1126,7 +1176,7 @@ void wmap_forced(void *handle, char const *outkey, Conf *conf, int primary,
     sfree(buf);
 }
 
-void wprefs_forced(void *sesskey, char *name,const struct keyvalwhere *mapping, int nvals,Conf *conf, int primary) {
+static void wprefs_forced(void *sesskey, const char *name, const struct keyvalwhere *mapping, int nvals, Conf *conf, int primary) {
     char *buf, *p;
     int i, maxlen;
 
@@ -1252,16 +1302,19 @@ FontSpec *read_setting_fontspec_forced(void *handle, const char *name)
     return ret;
 }
 
-void gppi_forced(void *handle, char *name, int def, Conf *conf, int primary) {
-	conf_set_int(conf, primary, gppi_raw_forced(handle, name, def));
+
+
+
+static void gppi_forced(void *handle, const char *name, int def, Conf *conf, int primary) {
+    conf_set_int(conf, primary, gppi_raw_forced(handle, name, def));
 }
 
-int gppi_raw_forced(void *handle, char *name, int def) {
+static int gppi_raw_forced(void *handle, const char *name, int def) {
     def = platform_default_i(name, def);
     return read_setting_i_forced(handle, name, def);
 }
 
-void gppfile_forced(void *handle, const char *name, Conf *conf, int primary) {
+static void gppfile_forced(void *handle, const char *name, Conf *conf, int primary) {
     Filename *result = read_setting_filename_forced(handle, name);
     if (!result)
 	result = platform_default_filename(name);
@@ -1269,14 +1322,13 @@ void gppfile_forced(void *handle, const char *name, Conf *conf, int primary) {
     filename_free(result);
 }
 
-void gpps_forced(void *handle, const char *name, const char *def, Conf *conf, int primary) {
+static void gpps_forced(void *handle, const char *name, const char *def, Conf *conf, int primary) {
     char *val = gpps_raw_forced(handle, name, def);
     conf_set_str(conf, primary, val);
     sfree(val);
-
 }
 
-char *gpps_raw_forced(void *handle, const char *name, const char *def) {
+static char *gpps_raw_forced(void *handle, const char *name, const char *def) {
     char *ret = read_setting_s_forced(handle, name);
     if (!ret)
 	ret = platform_default_s(name);
@@ -1285,7 +1337,7 @@ char *gpps_raw_forced(void *handle, const char *name, const char *def) {
     return ret;
 }
 
-void gppfont_forced(void *handle, const char *name, Conf *conf, int primary) {
+static void gppfont_forced(void *handle, const char *name, Conf *conf, int primary) {
     FontSpec *result = read_setting_fontspec_forced(handle, name);
     if (!result)
         result = platform_default_fontspec(name);
@@ -1293,7 +1345,7 @@ void gppfont_forced(void *handle, const char *name, Conf *conf, int primary) {
     fontspec_free(result);
 }
 
-int gppmap_forced(void *handle, char *name, Conf *conf, int primary) {
+static int gppmap_forced(void *handle, const char *name, Conf *conf, int primary) {
     char *buf, *p, *q, *key, *val;
 
     /*
@@ -1330,7 +1382,7 @@ int gppmap_forced(void *handle, char *name, Conf *conf, int primary) {
 	    val = q;
 	*q = '\0';
 
-        if (primary == CONF_portfwd && buf[0] == 'D') {
+        if (primary == CONF_portfwd && strchr(buf, 'D') != NULL) {
             /*
              * Backwards-compatibility hack: dynamic forwardings are
              * indexed in the data store as a third type letter in the
@@ -1340,9 +1392,10 @@ int gppmap_forced(void *handle, char *name, Conf *conf, int primary) {
              * _listening_ on a local port, and are hence mutually
              * exclusive on the same port number. So here we translate
              * the legacy storage format into the sensible internal
-             * form.
+             * form, by finding the D and turning it into a L.
              */
-            char *newkey = dupcat("L", buf+1, NULL);
+            char *newkey = dupstr(buf);
+            *strchr(newkey, 'D') = 'L';
             conf_set_str_str(conf, primary, newkey, "D");
             sfree(newkey);
         } else {
@@ -1354,82 +1407,12 @@ int gppmap_forced(void *handle, char *name, Conf *conf, int primary) {
     return TRUE;
 }
 
-void gprefs_forced(void *sesskey, char *name, char *def,const struct keyvalwhere *mapping, int nvals,Conf *conf, int primary) {
-    char *commalist;
-    char *p, *q;
-    int i, j, n, v, pos;
-    unsigned long seen = 0;	       /* bitmap for weeding dups etc */
-
+static void gprefs_forced(void *sesskey, const char *name, const char *def, const struct keyvalwhere *mapping, int nvals, Conf *conf, int primary) {
     /*
      * Fetch the string which we'll parse as a comma-separated list.
      */
-    commalist = gpps_raw_forced(sesskey, name, def);
-
-    /*
-     * Go through that list and convert it into values.
-     */
-    n = 0;
-    p = commalist;
-    while (1) {
-        while (*p && *p == ',') p++;
-        if (!*p)
-            break;                     /* no more words */
-
-        q = p;
-        while (*p && *p != ',') p++;
-        if (*p) *p++ = '\0';
-
-        v = key2val(mapping, nvals, q);
-        if (v != -1 && !(seen & (1 << v))) {
-	    seen |= (1 << v);
-            conf_set_int_int(conf, primary, n, v);
-            n++;
-	}
-    }
-
-    sfree(commalist);
-
-    /*
-     * Now go through 'mapping' and add values that weren't mentioned
-     * in the list we fetched. We may have to loop over it multiple
-     * times so that we add values before other values whose default
-     * positions depend on them.
-     */
-    while (n < nvals) {
-        for (i = 0; i < nvals; i++) {
-	    assert(mapping[i].v < 32);
-
-	    if (!(seen & (1 << mapping[i].v))) {
-                /*
-                 * This element needs adding. But can we add it yet?
-                 */
-                if (mapping[i].vrel != -1 && !(seen & (1 << mapping[i].vrel)))
-                    continue;          /* nope */
-
-                /*
-                 * OK, we can work out where to add this element, so
-                 * do so.
-                 */
-                if (mapping[i].vrel == -1) {
-                    pos = (mapping[i].where < 0 ? n : 0);
-                } else {
-                    for (j = 0; j < n; j++)
-                        if (conf_get_int_int(conf, primary, j) ==
-                            mapping[i].vrel)
-                            break;
-                    assert(j < n);     /* implied by (seen & (1<<vrel)) */
-                    pos = (mapping[i].where < 0 ? j : j+1);
-                }
-
-                /*
-                 * And add it.
-                 */
-                for (j = n-1; j >= pos; j--)
-                    conf_set_int_int(conf, primary, j+1,
-                                     conf_get_int_int(conf, primary, j));
-                conf_set_int_int(conf, primary, pos, mapping[i].v);
-                n++;
-            }
-        }
-    }
+    char *value = gpps_raw_forced(sesskey, name, def);
+    gprefs_from_str(value, mapping, nvals, conf, primary);
+    sfree(value);
 }
+

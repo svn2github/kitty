@@ -8,6 +8,7 @@
 #include "psftp.h"
 #include "ssh.h"
 #include "int64.h"
+#include "winsecur.h"
 
 #ifdef PERSOPORT
 
@@ -45,7 +46,7 @@ void SetUsernameInConfig( char * username ) {
 
 char *get_ttymode(void *frontend, const char *mode) { return NULL; }
 
-int get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
+int get_userpass_input(prompts_t *p, const unsigned char *in, int inlen)
 {
     int ret;
     ret = cmdline_get_passwd_input(p, in, inlen);
@@ -121,7 +122,7 @@ struct RFile {
     HANDLE h;
 };
 
-RFile *open_existing_file(char *name, uint64 *size,
+RFile *open_existing_file(const char *name, uint64 *size,
 			  unsigned long *mtime, unsigned long *atime,
                           long *perms)
 {
@@ -136,8 +137,12 @@ RFile *open_existing_file(char *name, uint64 *size,
     ret = snew(RFile);
     ret->h = h;
 
-    if (size)
-        size->lo=GetFileSize(h, &(size->hi));
+    if (size) {
+        DWORD lo, hi;
+        lo = GetFileSize(h, &hi);
+        size->lo = lo;
+        size->hi = hi;
+    }
 
     if (mtime || atime) {
 	FILETIME actime, wrtime;
@@ -175,7 +180,7 @@ struct WFile {
     HANDLE h;
 };
 
-WFile *open_new_file(char *name, long perms)
+WFile *open_new_file(const char *name, long perms)
 {
     HANDLE h;
     WFile *ret;
@@ -191,7 +196,7 @@ WFile *open_new_file(char *name, long perms)
     return ret;
 }
 
-WFile *open_existing_wfile(char *name, uint64 *size)
+WFile *open_existing_wfile(const char *name, uint64 *size)
 {
     HANDLE h;
     WFile *ret;
@@ -204,8 +209,12 @@ WFile *open_existing_wfile(char *name, uint64 *size)
     ret = snew(WFile);
     ret->h = h;
 
-    if (size)
-	size->lo=GetFileSize(h, &(size->hi));
+    if (size) {
+        DWORD lo, hi;
+        lo = GetFileSize(h, &hi);
+        size->lo = lo;
+        size->hi = hi;
+    }
 
     return ret;
 }
@@ -255,7 +264,10 @@ int seek_file(WFile *f, uint64 offset, int whence)
 	return -1;
     }
 
-    SetFilePointer(f->h, offset.lo, &(offset.hi), movemethod);
+    {
+        LONG lo = offset.lo, hi = offset.hi;
+        SetFilePointer(f->h, lo, &hi, movemethod);
+    }
     
     if (GetLastError() != NO_ERROR)
 	return -1;
@@ -266,14 +278,16 @@ int seek_file(WFile *f, uint64 offset, int whence)
 uint64 get_file_posn(WFile *f)
 {
     uint64 ret;
+    LONG lo, hi = 0;
 
-    ret.hi = 0L;
-    ret.lo = SetFilePointer(f->h, 0L, &(ret.hi), FILE_CURRENT);
+    lo = SetFilePointer(f->h, 0L, &hi, FILE_CURRENT);
+    ret.lo = lo;
+    ret.hi = hi;
 
     return ret;
 }
 
-int file_type(char *name)
+int file_type(const char *name)
 {
     DWORD attr;
     attr = GetFileAttributes(name);
@@ -291,7 +305,7 @@ struct DirHandle {
     char *name;
 };
 
-DirHandle *open_directory(char *name)
+DirHandle *open_directory(const char *name)
 {
     HANDLE h;
     WIN32_FIND_DATA fdat;
@@ -350,7 +364,7 @@ void close_directory(DirHandle *dir)
     sfree(dir);
 }
 
-int test_wildcard(char *name, int cmdline)
+int test_wildcard(const char *name, int cmdline)
 {
     HANDLE fh;
     WIN32_FIND_DATA fdat;
@@ -374,13 +388,13 @@ struct WildcardMatcher {
     char *srcpath;
 };
 
-/*
- * Return a pointer to the portion of str that comes after the last
- * slash (or backslash or colon, if `local' is TRUE).
- */
-static char *stripslashes(char *str, int local)
+char *stripslashes(const char *str, int local)
 {
     char *p;
+
+    /*
+     * On Windows, \ / : are all path component separators.
+     */
 
     if (local) {
         p = strchr(str, ':');
@@ -395,10 +409,10 @@ static char *stripslashes(char *str, int local)
 	if (p) str = p+1;
     }
 
-    return str;
+    return (char *)str;
 }
 
-WildcardMatcher *begin_wildcard_matching(char *name)
+WildcardMatcher *begin_wildcard_matching(const char *name)
 {
     HANDLE h;
     WIN32_FIND_DATA fdat;
@@ -458,7 +472,7 @@ void finish_wildcard_matching(WildcardMatcher *dir)
     sfree(dir);
 }
 
-int vet_filename(char *name)
+int vet_filename(const char *name)
 {
     if (strchr(name, '/') || strchr(name, '\\') || strchr(name, ':'))
 	return FALSE;
@@ -469,12 +483,12 @@ int vet_filename(char *name)
     return TRUE;
 }
 
-int create_directory(char *name)
+int create_directory(const char *name)
 {
     return CreateDirectory(name, NULL) != 0;
 }
 
-char *dir_file_cat(char *dir, char *file)
+char *dir_file_cat(const char *dir, const char *file)
 {
     return dupcat(dir, "\\", file, NULL);
 }
@@ -725,7 +739,7 @@ static DWORD WINAPI command_read_thread(void *param)
     return 0;
 }
 
-char *ssh_sftp_get_cmdline(char *prompt, int no_fds_ok)
+char *ssh_sftp_get_cmdline(const char *prompt, int no_fds_ok)
 {
     int ret;
     struct command_read_ctx actx, *ctx = &actx;
@@ -767,6 +781,25 @@ char *ssh_sftp_get_cmdline(char *prompt, int no_fds_ok)
     return ctx->line;
 }
 
+void platform_psftp_post_option_setup(void)
+{
+#if !defined UNPROTECT && !defined NO_SECURITY
+    /*
+     * Protect our process.
+     */
+    {
+        char *error = NULL;
+        if (!setprocessacl(error)) {
+            char *message = dupprintf("Could not restrict process ACL: %s",
+                                      error);
+            logevent(NULL, message);
+            sfree(message);
+            sfree(error);
+        }
+    }
+#endif
+}
+
 /* ----------------------------------------------------------------------
  * Main program. Parse arguments etc.
  */
@@ -778,6 +811,8 @@ int main(int argc, char *argv[])
 	DirectoryBrowseFlag = 0 ;
 	LoadParametersLight() ;
 #endif
+    dll_hijacking_protection();
+
     ret = psftp_main(argc, argv);
 
     return ret;
@@ -785,6 +820,6 @@ int main(int argc, char *argv[])
 
 /*
 Probleme sftp ne mache plus
-coince à la ligne     n = WaitForMultipleObjects(nallhandles, handles, FALSE, ticks);
+coince Ã  la ligne     n = WaitForMultipleObjects(nallhandles, handles, FALSE, ticks);
 	dans la fonction int do_eventsel_loop(HANDLE other_event)
 */
