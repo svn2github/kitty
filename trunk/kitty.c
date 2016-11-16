@@ -256,7 +256,7 @@ static HINSTANCE hInstIcons =  NULL ;
 HINSTANCE GethInstIcons(void) { return hInstIcons ; }
 void SethInstIcons( const HINSTANCE h ) { hInstIcons = h ; }
 
-// Fichier contenant les icones a�charger
+// Fichier contenant les icones à charger
 static char * IconFile = NULL ;
 
 // Flag pour l'affichage de la taille de la fenetre
@@ -395,6 +395,9 @@ char * WinSCPPath = NULL ;
 
 // Chemin vers le programme pscp.exe
 char * PSCPPath = NULL ;
+
+// Options pour le programme pscp.exe
+char PSCPOptions[1024] = "-scp -r"  ;
 
 // Chemin vers le programme plink.exe
 char * PlinkPath = NULL ;
@@ -1135,7 +1138,7 @@ void QueryKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out ) {
 						//fprintf( fp_out, "dword:%08x", *(int*)(lpData) ) ;
 						//sprintf( str, "\"%s\"=dword:%08x", achValue, *(int*)(lpData) ) ;
 						//sprintf( str, "\"%s\"=dword:%08x", achValue, (int)(*(LPBYTE)(lpData)) ) ;
-						sprintf( str, "\"%s\"=dword:%08x", achValue, *((DWORD*)lpData) ) ;
+						sprintf( str, "\"%s\"=dword:%08x", achValue, (unsigned int) *((DWORD*)lpData) ) ;
 						break;
 					case REG_EXPAND_SZ:
 					case REG_MULTI_SZ:
@@ -1295,7 +1298,8 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, "ConfigBox", "#default", "yes" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "#defaultsettings", "yes" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "#noexit", "no" ) ;
-
+			writeINI( KittyIniFile, "ConfigBox", "windowheight", "593" ) ;
+			
 #if (defined IMAGEPORT) && (!defined FDJ)
 			writeINI( KittyIniFile, INIT_SECTION, "backgroundimage", "no" ) ;
 #endif
@@ -1336,6 +1340,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#uploaddir", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#remotedir", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#PSCPPath", "" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#PSCPOptions", "-scp -r" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#PlinkPath", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#WinSCPPath", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#CtHelperPath", "" ) ;
@@ -2051,7 +2056,10 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	if( nb_pscp_run<4 ) { sprintf( buffer, "start %s ", pscppath ) ; nb_pscp_run++ ; }
 	else { sprintf( buffer, "%s ", pscppath ) ; nb_pscp_run = 0 ; }
 	
-	strcat( buffer, "-scp -r " ) ; //strcat( buffer, "-batch " ) ;
+	if( strlen(PSCPOptions)>0 ) {
+		strcat( buffer, PSCPOptions ) ; strcat( buffer, " " ) ;
+	}
+	//strcat( buffer, "-scp -r " ) ; //strcat( buffer, "-batch " ) ;
 	
 	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
 	
@@ -2268,7 +2276,11 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 	if( nb_pscp_run<4 ) { sprintf( buffer, "start %s ", pscppath ) ; nb_pscp_run++ ; }
 	else { sprintf( buffer, "%s ", pscppath ) ; nb_pscp_run = 0 ; }
 
-	strcat( buffer, "-scp -r " ) ; 
+	
+	if( strlen(PSCPOptions)>0 ) {
+		strcat( buffer, PSCPOptions ) ; strcat( buffer, " " ) ;
+	}
+	//strcat( buffer, "-scp -r " ) ; 
 	
 	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
 	
@@ -2380,7 +2392,10 @@ void GetFile( HWND hwnd ) {
 				else { return ; }
 				//else { strcpy( dir, InitialDirectory ) ; }
 
-				sprintf( buffer, "start %s -scp ", pscppath ) ;
+				sprintf( buffer, "start %s ", pscppath ) ;
+				if( strlen(PSCPOptions)>0 ) {
+					strcat( buffer, PSCPOptions ) ; strcat( buffer, " " ) ;
+				}
 				if( conf_get_int(conf,CONF_sshprot) == 2 ) {
 					sprintf( b1, "-%d", conf_get_int(conf,CONF_sshprot) ) ; strcat( buffer, b1 ); 
 					strcat( buffer, " " ) ;
@@ -4207,9 +4222,7 @@ void ReadInitScript( const char * filename ) {
 		}
 	}
 
-#ifdef LAUNCHERPORT
 #include "kitty_launcher.c"
-#endif
 
 // Creer une arborescence de repertoire à partir du registre
 int MakeDirTree( const char * Directory, const char * s, const char * sd ) {
@@ -4421,7 +4434,8 @@ int Convert2Reg( const char * Directory ) {
  
 	return 0 ;
 	}
-
+	
+char *dirname(char *path);
 int Convert1Reg( const char * filename ) {
 	char buffer[MAX_VALUE_NAME] = "", session[MAX_VALUE_NAME], dname[MAX_VALUE_NAME], *bname ;
 	HKEY hKey;
@@ -5007,6 +5021,15 @@ void LoadParameters( void ) {
 			PSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( PSCPPath, buffer ) ;
 			}
 		}
+	if( ReadParameter( INIT_SECTION, "PSCPOptions", buffer ) ) {
+		if( strlen(PSCPOptions)>0 ) { strcpy( PSCPOptions, "" ) ; }
+		if( strlen(buffer)>0 ) {
+			strcpy( PSCPOptions, buffer ) ;
+			PSCPOptions[1023] = '\0' ;
+		}
+	}
+		
+		
 #ifdef HYPERLINKPORT
 #ifndef NO_HYPERLINK
 	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  

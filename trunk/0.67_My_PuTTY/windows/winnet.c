@@ -125,6 +125,7 @@ static tree234 *sktree;
 
 #ifdef PERSOPORT
 #include "kitty.h"
+int get_param( const char * val ) ;
 #endif
 #ifdef ZMODEMPORT
 static int curpass;
@@ -2021,7 +2022,7 @@ static void netscheduler_schedule(struct netscheduler_tag *netscheduler)
     }
 
     next = schedule_timer(netscheduler->interval * TICKSPERSEC,
-			  netscheduler_timer, netscheduler);
+			 (void *) netscheduler_timer, netscheduler);
     if (!netscheduler->pending || next < netscheduler->next) {
 	netscheduler->next = next;
 	netscheduler->pending = TRUE;

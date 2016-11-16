@@ -342,6 +342,10 @@ void stdouterr_sent(struct handle *h, int new_backlog)
 const int share_can_be_downstream = TRUE;
 const int share_can_be_upstream = TRUE;
 
+#ifdef PORTKNOCKINGPORT
+int ManagePortKnocking( char* host, char *portknockseq ) ;
+#endif
+
 #ifdef PERSOPORT
 char * AutoCommand = NULL ;
 void ManageAutocommand( struct handle *h ) {
@@ -358,9 +362,7 @@ void ManageAutocommand( struct handle *h ) {
 		}
 	if( c != '\n' ) stdin_gotdata(h, "\n", 1 ) ;
 	}
-	
-int ManagePortKnocking( char* host, char *portknockseq ) ;
-	
+
 int plink_main(int argc, char **argv) ;
 	
 int main(int argc, char **argv) {

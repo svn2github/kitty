@@ -15,7 +15,7 @@ int SaveFileName( HWND hFrame, char * filename, char * Title, char * Filter ) ;
 void CenterDlgInParent(HWND hDlg) ;
 
 // Envoi vers l'imprimante
-int PrintText( const char * Text ) ;
+int PrintText( HWND hwnd, const char * Text ) ;
 
 // Impression du texte dans le bloc-notes
 void ManagePrint( HWND hwnd ) ;
@@ -26,7 +26,7 @@ int SetTextToClipboard( const char * buf ) ;
 // Execute une commande	
 void RunCommand( HWND hwnd, char * cmd ) ;
 
-// Démarre l'éditeur embarqué
+// DÃ©marre l'Ã©diteur embarquÃ©
 void RunPuttyEd( HWND hwnd, char * filename ) ;
 
 // Verifie si une mise a jour est disponible sur le site web

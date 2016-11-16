@@ -1,4 +1,4 @@
-//#ifdef ZMODEMPORT
+#ifdef ZMODEMPORT
 
 #include "putty.h"
 #include "terminal.h"
@@ -393,4 +393,4 @@ int xyz_ReceiveData(Terminal *term, const u_char *buffer, int len)
 	return 0 ;
 }
 
-//#endif
+#endif

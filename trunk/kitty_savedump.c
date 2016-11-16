@@ -140,6 +140,9 @@ void PrintWindowSettings( FILE * fp ) {
 	fprintf( fp, "IsWindowUnicode=%d\n", IsWindowUnicode( MainHwnd ) ) ;
 	fprintf( fp, "IsWindowVisible=%d\n", IsWindowVisible( MainHwnd ) ) ;
 	fprintf( fp, "IsZoomed=%d\n", IsZoomed( MainHwnd ) ) ;
+		
+	fprintf( fp, "ScaleX=%d\n", GetDeviceCaps(GetDC(MainHwnd),LOGPIXELSX) ) ;
+	fprintf( fp, "ScaleY=%d\n", GetDeviceCaps(GetDC(MainHwnd),LOGPIXELSY) ) ;
 	}
 
 DWORD PrintAllProcess( FILE * fp ) {

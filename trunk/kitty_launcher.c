@@ -1,3 +1,5 @@
+#ifdef LAUNCHERPORT
+
 // define recupere de WIN_RES.H
 #ifndef IDI_PUTTY_LAUNCH
 #define IDI_PUTTY_LAUNCH 9901
@@ -387,150 +389,6 @@ void DisplayContextMenu( HWND hwnd, HMENU menu ) {
 
 	}
 	
-void RunConfig( Conf * conf ) {
-	
-		char b[2048];
-		char c[180], *cl;
-		int freecl = FALSE;
-		BOOL inherit_handles;
-		STARTUPINFO si;
-		PROCESS_INFORMATION pi;
-		HANDLE filemap = NULL;
-
-		char bufpass[1024] ;
-		strcpy( bufpass, conf_get_str(conf,CONF_password));
-		MASKPASS(bufpass);
-		conf_set_str(conf,CONF_password,bufpass);
-
-		    /*
-		     * Allocate a file-mapping memory chunk for the
-		     * config structure.
-		     */
-		    SECURITY_ATTRIBUTES sa;
-		    void *p;
-		    int size;
-		    size = conf_serialised_size(conf);
-		    sa.nLength = sizeof(sa);
-		    sa.lpSecurityDescriptor = NULL;
-		    sa.bInheritHandle = TRUE;
-		    filemap = CreateFileMapping(INVALID_HANDLE_VALUE,
-						&sa,
-						PAGE_READWRITE,
-						0, size, NULL);
-		    if (filemap && filemap != INVALID_HANDLE_VALUE) {
-			p = MapViewOfFile(filemap, FILE_MAP_WRITE, 0, 0, size);
-			if (p) {
-			    conf_serialise(conf, p);
-			    UnmapViewOfFile(p);
-			}
-		    }
-		    inherit_handles = TRUE;
-		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
-		    cl = c;
-		MASKPASS(bufpass);
-		conf_set_str(conf,CONF_password,bufpass);
-		memset(bufpass,0,strlen(bufpass));
-		    
-		GetModuleFileName(NULL, b, sizeof(b) - 1);
-		si.cb = sizeof(si);
-		si.lpReserved = NULL;
-		si.lpDesktop = NULL;
-		si.lpTitle = NULL;
-		si.dwFlags = 0;
-		si.cbReserved2 = 0;
-		si.lpReserved2 = NULL;
-		CreateProcess(b, cl, NULL, NULL, inherit_handles,
-			      NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
-                CloseHandle(pi.hProcess);
-                CloseHandle(pi.hThread);
-
-		if (filemap)
-		    CloseHandle(filemap);
-		if (freecl)
-		    sfree(cl);
-	}
-
-void RunPuTTY( HWND hwnd, char * param ) {
-	char buffer[4096]="",shortname[1024]="" ; ;
-	if( GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) 
-		if( GetShortPathName( buffer, shortname, 1023 ) ) {
-			if( strlen(param) > 0 ) 
-				sprintf( buffer, "%s %s", shortname, param ) ;
-			else 
-				strcpy( buffer, shortname ) ;
-			RunCommand( hwnd, buffer ) ;
-			}
-	}
-
-int RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
-	char buffer[4096]="", shortname[1024]="" ;
-	char *session=NULL ;
-	int return_code=0 ;
-	
-	if( session_in==NULL ) return 0 ;
-	if( strlen(session_in) <= 0 ) return 0 ;
-		
-	if( !GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) return 0 ;
-	if( !GetShortPathName( buffer, shortname, 1023 ) ) return 0 ;
-
-	session = (char*)malloc(strlen(session_in)+100) ;
-	
-	if( (IniFileFlag==SAVEMODE_REG)||(IniFileFlag==SAVEMODE_FILE) ) {
-		mungestr(session_in, session) ;
-		sprintf( buffer, "%s\\Sessions\\%s", TEXT(PUTTY_REG_POS), session ) ;
-		if( RegTestKey(HKEY_CURRENT_USER, buffer) ) {
-			strcpy( session, session_in ) ;
-			if( session[strlen(session)-1] == '&' ) {
-				session[strlen(session)-1]='\0' ;
-				while( (session[strlen(session)-1]==' ')||(session[strlen(session)-1]=='\t') ) session[strlen(session)-1]='\0' ;
-				if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\" -send-to-tray", shortname, session ) ;
-				else sprintf( buffer, "%s -load \"%s\" -send-to-tray", shortname, session ) ;
-				}
-			else {
-				if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\"", shortname, session ) ;
-				else sprintf( buffer, "%s -load \"%s\"", shortname, session ) ;
-				}
-			RunCommand( hwnd, buffer ) ;
-			return_code = 1 ;
-			}
-		else { RunCommand( hwnd, session_in ) ; }
-		}
-	else if( IniFileFlag==SAVEMODE_DIR ) {
-		if( DirectoryBrowseFlag ) {
-			if( strcmp(folder_in,"")&&strcmp(folder_in,"Default") ) {
-				strcat( shortname, " -folder \"" ) ;
-				strcat( shortname, folder_in ) ;
-				strcat( shortname, "\"" ) ;
-				}
-			}
-
-		strcpy( session, session_in ) ;
-		if( session[strlen(session)-1] == '&' ) {
-			session[strlen(session)-1]='\0' ;
-			while( (session[strlen(session)-1]==' ')||(session[strlen(session)-1]=='\t') ) session[strlen(session)-1]='\0' ;
-			if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\" -send-to-tray", shortname, session ) ;
-			else sprintf( buffer, "%s -load \"%s\" -send-to-tray", shortname, session ) ;
-			}
-		else {
-			if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\"", shortname, session ) ;
-			else sprintf( buffer, "%s -load \"%s\"", shortname, session ) ;
-			//else sprintf( buffer, "%s @%s", shortname, session ) ;
-			}
-/*		if( DirectoryBrowseFlag ) {
-			if( strcmp(folder_in,"")&&strcmp(folder_in,"Default") ) {
-				strcat( buffer, " -folder \"" ) ;
-				strcat( buffer, folder_in ) ;
-				strcat( buffer, "\"" ) ;
-				}
-			}*/
-//MessageBox( hwnd, buffer, "Info", MB_OK ) ;
-		RunCommand( hwnd, buffer ) ;
-		return_code = 1 ;
-		}
-
-	free( session ) ;
-	return return_code ;
-	}
 	
 // Gestion Hide/UnHide all
 static int CurrentVisibleWin = -1 ; /* -1 = toutes visibles */
@@ -860,3 +718,148 @@ int WINAPI Launcher_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int s
 	return msg.wParam;
 	}
 
+#endif
+void RunConfig( Conf * conf ) {
+	
+		char b[2048];
+		char c[180], *cl;
+		int freecl = FALSE;
+		BOOL inherit_handles;
+		STARTUPINFO si;
+		PROCESS_INFORMATION pi;
+		HANDLE filemap = NULL;
+
+		char bufpass[1024] ;
+		strcpy( bufpass, conf_get_str(conf,CONF_password));
+		MASKPASS(bufpass);
+		conf_set_str(conf,CONF_password,bufpass);
+
+		    /*
+		     * Allocate a file-mapping memory chunk for the
+		     * config structure.
+		     */
+		    SECURITY_ATTRIBUTES sa;
+		    void *p;
+		    int size;
+		    size = conf_serialised_size(conf);
+		    sa.nLength = sizeof(sa);
+		    sa.lpSecurityDescriptor = NULL;
+		    sa.bInheritHandle = TRUE;
+		    filemap = CreateFileMapping(INVALID_HANDLE_VALUE,
+						&sa,
+						PAGE_READWRITE,
+						0, size, NULL);
+		    if (filemap && filemap != INVALID_HANDLE_VALUE) {
+			p = MapViewOfFile(filemap, FILE_MAP_WRITE, 0, 0, size);
+			if (p) {
+			    conf_serialise(conf, p);
+			    UnmapViewOfFile(p);
+			}
+		    }
+		    inherit_handles = TRUE;
+		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
+		    cl = c;
+		MASKPASS(bufpass);
+		conf_set_str(conf,CONF_password,bufpass);
+		memset(bufpass,0,strlen(bufpass));
+		    
+		GetModuleFileName(NULL, b, sizeof(b) - 1);
+		si.cb = sizeof(si);
+		si.lpReserved = NULL;
+		si.lpDesktop = NULL;
+		si.lpTitle = NULL;
+		si.dwFlags = 0;
+		si.cbReserved2 = 0;
+		si.lpReserved2 = NULL;
+		CreateProcess(b, cl, NULL, NULL, inherit_handles,
+			      NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
+
+		if (filemap)
+		    CloseHandle(filemap);
+		if (freecl)
+		    sfree(cl);
+	}
+
+void RunPuTTY( HWND hwnd, char * param ) {
+	char buffer[4096]="",shortname[1024]="" ; ;
+	if( GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) 
+		if( GetShortPathName( buffer, shortname, 1023 ) ) {
+			if( strlen(param) > 0 ) 
+				sprintf( buffer, "%s %s", shortname, param ) ;
+			else 
+				strcpy( buffer, shortname ) ;
+			RunCommand( hwnd, buffer ) ;
+			}
+	}
+
+int RunSession( HWND hwnd, const char * folder_in, char * session_in ) {
+	char buffer[4096]="", shortname[1024]="" ;
+	char *session=NULL ;
+	int return_code=0 ;
+	
+	if( session_in==NULL ) return 0 ;
+	if( strlen(session_in) <= 0 ) return 0 ;
+		
+	if( !GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) return 0 ;
+	if( !GetShortPathName( buffer, shortname, 1023 ) ) return 0 ;
+
+	session = (char*)malloc(strlen(session_in)+100) ;
+	
+	if( (IniFileFlag==SAVEMODE_REG)||(IniFileFlag==SAVEMODE_FILE) ) {
+		mungestr(session_in, session) ;
+		sprintf( buffer, "%s\\Sessions\\%s", TEXT(PUTTY_REG_POS), session ) ;
+		if( RegTestKey(HKEY_CURRENT_USER, buffer) ) {
+			strcpy( session, session_in ) ;
+			if( session[strlen(session)-1] == '&' ) {
+				session[strlen(session)-1]='\0' ;
+				while( (session[strlen(session)-1]==' ')||(session[strlen(session)-1]=='\t') ) session[strlen(session)-1]='\0' ;
+				if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\" -send-to-tray", shortname, session ) ;
+				else sprintf( buffer, "%s -load \"%s\" -send-to-tray", shortname, session ) ;
+				}
+			else {
+				if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\"", shortname, session ) ;
+				else sprintf( buffer, "%s -load \"%s\"", shortname, session ) ;
+				}
+			RunCommand( hwnd, buffer ) ;
+			return_code = 1 ;
+			}
+		else { RunCommand( hwnd, session_in ) ; }
+		}
+	else if( IniFileFlag==SAVEMODE_DIR ) {
+		if( DirectoryBrowseFlag ) {
+			if( strcmp(folder_in,"")&&strcmp(folder_in,"Default") ) {
+				strcat( shortname, " -folder \"" ) ;
+				strcat( shortname, folder_in ) ;
+				strcat( shortname, "\"" ) ;
+				}
+			}
+
+		strcpy( session, session_in ) ;
+		if( session[strlen(session)-1] == '&' ) {
+			session[strlen(session)-1]='\0' ;
+			while( (session[strlen(session)-1]==' ')||(session[strlen(session)-1]=='\t') ) session[strlen(session)-1]='\0' ;
+			if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\" -send-to-tray", shortname, session ) ;
+			else sprintf( buffer, "%s -load \"%s\" -send-to-tray", shortname, session ) ;
+			}
+		else {
+			if( PuttyFlag )	sprintf( buffer, "%s -putty -load \"%s\"", shortname, session ) ;
+			else sprintf( buffer, "%s -load \"%s\"", shortname, session ) ;
+			//else sprintf( buffer, "%s @%s", shortname, session ) ;
+			}
+/*		if( DirectoryBrowseFlag ) {
+			if( strcmp(folder_in,"")&&strcmp(folder_in,"Default") ) {
+				strcat( buffer, " -folder \"" ) ;
+				strcat( buffer, folder_in ) ;
+				strcat( buffer, "\"" ) ;
+				}
+			}*/
+//MessageBox( hwnd, buffer, "Info", MB_OK ) ;
+		RunCommand( hwnd, buffer ) ;
+		return_code = 1 ;
+		}
+
+	free( session ) ;
+	return return_code ;
+	}

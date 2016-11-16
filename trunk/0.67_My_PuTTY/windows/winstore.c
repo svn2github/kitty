@@ -1449,7 +1449,9 @@ int verify_host_key(const char *hostname, int port,
 	}
 	else {
 		/* JK: there are no hostkeys as files -> try registry -> nothing to do here now */
-		errorShow("Unable to jump into ssh host keys directory", sshkpath);
+		if (!createPath(sshkpath)) {
+			errorShow("Unable to verify key and jump into ssh host keys directory ", sshkpath );
+		}
 	}
 	}
 	
@@ -1553,7 +1555,11 @@ int verify_host_key(const char *hostname, int port,
 				}
 			}
 			FindClose(hFile);
-			if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory", sshkpath); }
+			if( !SetCurrentDirectory(sshkpath) ) { 
+				if (!createPath(sshkpath)) {
+					errorShow("Unable to save key to file and jump into ssh host keys directory ", sshkpath); 
+				}
+			}
 
 			p = snewn(3*strlen(regname) + 1 + 16, char);
 			packstr(regname, p);
@@ -1731,7 +1737,7 @@ else {
 		if( !createPath(sshkpath) ) { errorShow("Unable to create directory for storing ssh host keys", sshkpath); }
 	}
 	FindClose(hFile);
-	if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory", sshkpath); }
+	if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory ", sshkpath); }
 
 	p = snewn(3*strlen(regname) + 1, char);
 	packstr(regname, p);

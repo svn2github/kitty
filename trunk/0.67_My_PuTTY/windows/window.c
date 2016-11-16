@@ -265,6 +265,7 @@ void resize( int height, int width ) {
 	conf_set_int(conf,CONF_width,w); 
 	}
 int Convert1Reg( const char * filename ) ;
+void SendKeyboardPlus( HWND hwnd, const char * st ) ;
 //`colours'
 int return_offset_height(void) { return offset_height ; }
 int return_offset_width(void) { return offset_width ; }
@@ -288,6 +289,11 @@ int WINAPI Agent_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show
 #endif
 
 #ifdef WTSPORT
+typedef enum _WTS_VIRTUAL_CLASS { 
+  WTSVirtualClientData,
+  WTSVirtualFileHandle
+} WTS_VIRTUAL_CLASS; 		// WTS_VIRTUAL_CLASS n'est pas défini dans le fichier wtsapi32.h !!!
+
 #include <wtsapi32.h>
 #endif
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -377,12 +383,14 @@ static void start_backend(void)
 		       &realhost,
 		       conf_get_int(conf, CONF_tcp_nodelay),
 		       conf_get_int(conf, CONF_tcp_keepalives));
+
     back->provide_logctx(backhandle, logctx);
     if (error) {
 	char *str = dupprintf("%s Error", appname);
 	sprintf(msg, "Unable to open connection to\n"
 		"%.800s\n" "%s", conf_dest(conf), error);
 	MessageBox(NULL, msg, str, MB_ICONERROR | MB_OK);
+
 	sfree(str);
 #ifdef RECONNECTPORT
 	if( GetAutoreconnectFlag() && conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
@@ -1115,7 +1123,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	// Creation du fichier kitty.ini par defaut si besoin
 	CreateDefaultIniFile() ;
 #endif
-
 	cmdline_run_saved(conf);
 
 	if (loaded_session || got_host)
@@ -1317,7 +1324,7 @@ TrayIcone.hWnd = hwnd ;
 		// when we're handling our own border here.
 	}
 
-	hwnd = CreateWindowExW(exwinmode|WS_EX_ACCEPTFILES, uappname, winname,
+	hwnd = CreateWindowExW(exwinmode|WS_EX_ACCEPTFILES, uappname, (wchar_t *)winname,
 			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
 			      guess_width, guess_height,
 			      NULL, NULL, inst, NULL);
@@ -1490,9 +1497,11 @@ TrayIcone.hWnd = hwnd ;
 	AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT) FontMenu, "Font settings");
 	
         AppendMenu(m, MF_ENABLED, IDM_SHOWPORTFWD, "Po&rt forwarding");
+#ifdef PORTKNOCKINGPORT
 	if( strlen(conf_get_str(conf,CONF_portknockingoptions))>0 ) {
 		AppendMenu(m, MF_ENABLED, IDM_PORTKNOCK, "Port &knock");
 	}
+#endif
 	AppendMenu(m, MF_SEPARATOR, 0, 0);
 	AppendMenu(m, MF_ENABLED, IDM_EXPORTSETTINGS, "Export &current settings" ) ;
         }
@@ -2010,7 +2019,7 @@ void connection_fatal(void *frontend, const char *fmt, ...)
 		sfree(stuff);
 
 		if( conf_get_int(conf,CONF_failure_reconnect) ) {
-			time_t tnow = time(NULL);
+			//time_t tnow = time(NULL);
 			queue_toplevel_callback(close_session, NULL);
 			logevent(NULL, "Lost connection, trying to reconnect...") ;
 			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
@@ -3491,7 +3500,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    {
 		Conf *prev_conf;
 		int init_lvl = 1;
-		int reconfig_result;
+		int reconfig_result=0;
 		if (reconfiguring)
 		    break;
 		else
@@ -3861,9 +3870,11 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_FONTNEGATIVE:
 		NegativeColours(hwnd) ;
 		break ;
+#ifdef PORTKNOCKINGPORT
 	  case IDM_PORTKNOCK:
 		ManagePortKnocking(conf_get_str(conf,CONF_host),conf_get_str(conf,CONF_portknockingoptions));
 		break;
+#endif
 	  case IDM_SHOWPORTFWD:
 		ShowPortfwd( hwnd, conf ) ;
 		break ;
@@ -6770,7 +6781,7 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 	    }
 	    if (xkey) {
 #ifdef KEYMAPPINGPORT
-		p += format_arrow_key(p, term, xkey, shift_state, left_alt);
+		p += format_arrow_key((char*)p, term, xkey, shift_state, left_alt);
 #else
 		p += format_arrow_key(p, term, xkey, shift_state);
 #endif

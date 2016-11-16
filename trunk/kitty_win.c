@@ -1,5 +1,6 @@
 #include "kitty_win.h"
 
+void logevent(void *frontend, const char *);
 
 // Modifie la transparence
 void SetTransparency( HWND hwnd, int value ) {
@@ -37,6 +38,29 @@ Windows XP				5.1
 Windows 2000				5.0
 */
 
+/*
+https://msdn.microsoft.com/en-us/library/aa383745%28v=vs.85%29.aspx#faster_builds_with_smaller_header_files
+Minimum system required					Minimum value for _WIN32_WINNT and WINVER
+Windows 8.1						_WIN32_WINNT_WINBLUE (0x0602)
+Windows 8						_WIN32_WINNT_WIN8 (0x0602)
+Windows 7						_WIN32_WINNT_WIN7 (0x0601)
+Windows Server 2008					_WIN32_WINNT_WS08 (0x0600)
+Windows Vista						_WIN32_WINNT_VISTA (0x0600)
+Windows Server 2003 with SP1, Windows XP with SP2	_WIN32_WINNT_WS03 (0x0502)
+Windows Server 2003, Windows XP				_WIN32_WINNT_WINXP (0x0501)
+
+Minimum version required		Minimum value of _WIN32_IE
+Internet Explorer 10.0			_WIN32_IE_IE100 (0x0A00)
+Internet Explorer 9.0			_WIN32_IE_IE90 (0x0900)
+Internet Explorer 8.0			_WIN32_IE_IE80 (0x0800)
+Internet Explorer 7.0			_WIN32_IE_IE70 (0x0700)
+Internet Explorer 6.0 SP2		_WIN32_IE_IE60SP2 (0x0603)
+Internet Explorer 6.0 SP1		_WIN32_IE_IE60SP1 (0x0601)
+Internet Explorer 6.0			_WIN32_IE_IE60 (0x0600)
+Internet Explorer 5.5			_WIN32_IE_IE55 (0x0550)
+Internet Explorer 5.01			_WIN32_IE_IE501 (0x0501)
+Internet Explorer 5.0, 5.0a, 5.0b	_WIN32_IE_IE50 (0x0500)
+*/
 
 int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) {
 	char * szTitle = Title ;
@@ -191,7 +215,7 @@ int PrintCharSize = 100 ;
 int PrintMaxLinePerPage = 60 ;
 int PrintMaxCharPerLine = 85 ;
 
-int PrintText( const char * Text ) {
+int PrintText( HWND hwnd, const char * Text ) {
 	int return_code = 0 ; 
 	PRINTDLG	pd;
 	DOCINFO		di;
@@ -208,17 +232,23 @@ int PrintText( const char * Text ) {
 	di.cbSize = sizeof(DOCINFO);
 	di.lpszDocName = "Test";
 
-	pd.lStructSize = sizeof(PRINTDLG);
-	pd.Flags = PD_PAGENUMS | PD_RETURNDC;
-	pd.nFromPage = 1;
-	pd.nToPage = 1;
+	ZeroMemory(&pd, sizeof(pd));
+	pd.lStructSize = sizeof(pd);
+	pd.hDevMode = NULL ;
+	pd.hDevNames = NULL ;
+	pd.hwndOwner = hwnd ;
+	//pd.Flags = PD_RETURNDEFAULT | PD_RETURNDC ;
+	pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC | PD_NOPAGENUMS | PD_NOSELECTION | PD_HIDEPRINTTOFILE | PD_NOWARNING | PD_ALLPAGES ;
+	pd.nCopies = 1 ;
+	pd.nFromPage = 0xFFFF;
+	pd.nToPage = 0xFFFF;
 	pd.nMinPage = 1;
-	pd.nMaxPage = 1;
+	pd.nMaxPage = 0xFFFF;
 	szMessage = 0;
 
 	if( PrintDlg( &pd ) ) {
-		if( pd.hDC ) {
-			if (StartDoc (pd.hDC, &di) != SP_ERROR)	{
+		if( pd.hDC!=NULL ) {
+			if (StartDoc(pd.hDC, &di) != SP_ERROR)	{
 				TextLen = strlen( Text ) ;
 				if( TextLen > 0 ) {
 					LinePrint = (char*) malloc( TextLen + 2 ) ;
@@ -231,22 +261,22 @@ int PrintText( const char * Text ) {
 							LinePrint[Index1] = '\0' ;
                       					TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint) ) ;
 							Index1 = 0 ;
-                    					}
-						else if( Index1>=PrintMaxCharPerLine ) {
+						} else if( Index1>=PrintMaxCharPerLine ) {
 							Index2++ ;
 							LinePrint[Index1+1] = '\0' ;
                       					TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint) ) ;
 							Index1 = 0 ;
-							}
-                    				else { Index1++ ; }
-                    				if( Index2 >= PrintMaxLinePerPage ) {
+						} else { 
+							Index1++ ; 
+						}
+						if( Index2 >= PrintMaxLinePerPage ) {
                   	   				EndPage( pd.hDC ) ;
                        					//EndDoc(pd.hDC) ;
                        					//StartDoc(pd.hDC, &di) ;
 							StartPage( pd.hDC ) ;
                        					Index2 = 2 ;
-                       					}
-                  				}
+						}
+					}
                   			Index2++ ; 
                   			LinePrint[Index1] = '\0'; // Impression de la dernière page
                   			TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint)) ;
@@ -254,27 +284,27 @@ int PrintText( const char * Text ) {
                   			EndDoc(pd.hDC) ;
                   			szMessage = "Print successful";
 					free( LinePrint ) ;
-              				}
-              			else { return_code = 1 ;  /* Chaine vide */ }
+				} else { 
+					return_code = 1 ;  /* Chaine vide */ 
 				}
-			else { // Problème StartDoc
+			} else { // Problème StartDoc
 				szMessage = "ERROR Type 1" ;
 				return_code = 2 ;
-				}
 			}
-		else { // Probleme pd.hDC
+			DeleteDC(pd.hDC);
+		} else { // Probleme pd.hDC
 			szMessage = "ERROR Type 2." ;
 			return_code = 3 ;
-			}
 		}
-	else { // Problème PrintDlg
+	} else { // Problème PrintDlg
 		//szMessage = "Impression annulée par l'utilisateur" ;
 		return_code = 4 ;
-		}
+	}
+	
 	if (szMessage) { MessageBox (NULL, szMessage, "Print report", MB_OK) ; }
 	
 	return return_code ;
-	}
+}
 
 // Impression du texte dans le bloc-notes
 void ManagePrint( HWND hwnd ) {
@@ -284,7 +314,7 @@ void ManagePrint( HWND hwnd ) {
 		
 		if( (hglb = GetClipboardData( CF_TEXT ) ) != NULL ) {
 			if( ( pst = GlobalLock( hglb ) ) != NULL ) {
-				PrintText( pst ) ;
+				PrintText( hwnd, pst ) ;
 				GlobalUnlock( hglb ) ;
 				}
 			}
