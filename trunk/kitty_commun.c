@@ -39,6 +39,11 @@ static int AutoStoreSSHKeyFlag = 0 ;
 int GetAutoStoreSSHKeyFlag(void) { return AutoStoreSSHKeyFlag ; }
 void SetAutoStoreSSHKeyFlag( const int flag ) { AutoStoreSSHKeyFlag = flag ; }
 
+// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
+static int UserPassSSHNoSave = 0 ;
+int GetUserPassSSHNoSave(void) { return UserPassSSHNoSave ; }
+void SetUserPassSSHNoSave( const int flag ) { UserPassSSHNoSave = flag ; }
+
 #ifdef ADBPORT
 // Flag pour inhiber le support d'ADB
 static int ADBFlag = 1 ;

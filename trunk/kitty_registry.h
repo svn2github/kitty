@@ -15,16 +15,16 @@
 char * GetValueData(HKEY hkTopKey, char * lpSubKey, const char * lpValueName, char * rValue) ;
 
 
-// Teste l'existance d'une clé
+// Teste l'existance d'une clÃ©
 int RegTestKey( HKEY hMainKey, LPCTSTR lpSubKey ) ;
 
 // Retourne le nombre de sous-keys
 int RegCountKey( HKEY hMainKey, LPCTSTR lpSubKey ) ;
 
-// Teste l'existance d'une clé ou bien d'une valeur et la crée sinon
+// Teste l'existance d'une clÃ© ou bien d'une valeur et la crÃ©e sinon
 void RegTestOrCreate( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR name, LPCTSTR value ) ;
 	
-// Test l'existance d'une clé ou bien d'une valeur DWORD et la crée sinon
+// Test l'existance d'une clÃ© ou bien d'une valeur DWORD et la crÃ©e sinon
 void RegTestOrCreateDWORD( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR name, DWORD value ) ;
 
 // Initialise toutes les sessions avec une valeur (si oldvalue==NULL) ou uniquement celles qui ont la valeur oldvalue
@@ -33,16 +33,16 @@ void RegUpdateAllSessions( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR name, LPCTST
 // Exporte toute une cle de registre
 void QuerySubKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out, char * text  ) ;
 
-// Détruit une valeur de clé de registre 
+// DÃ©truit une valeur de clÃ© de registre 
 BOOL RegDelValue (HKEY hKeyRoot, LPTSTR lpSubKey, LPTSTR lpValue ) ;
 
-// Detruit une clé de registre et ses sous-clé
+// Detruit une clÃ© de registre et ses sous-clÃ©
 BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) ;
 
-// Copie une clé de registre vers une autre
+// Copie une clÃ© de registre vers une autre
 void RegCopyTree( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) ;
 
-// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+// Nettoie la clÃ© de PuTTY pour enlever les clÃ©s et valeurs spÃ©cifique Ã  KiTTY
 BOOL RegCleanPuTTY( void ) ;
 
 // Creation du SSH Handler
@@ -51,7 +51,7 @@ void CreateSSHHandler() ;
 // Creation de l'association de fichiers *.ktx
 void CreateFileAssoc() ;
 
-// Vérifie l'existance de la clé de KiTTY sinon la copie depuis PuTTY
+// VÃ©rifie l'existance de la clÃ© de KiTTY sinon la copie depuis PuTTY
 void TestRegKeyOrCopyFromPuTTY( HKEY hMainKey, char * KeyName ) ;
 
 void InitRegistryAllSessions( HKEY hMainKey, LPCTSTR lpSubKey, char * SubKeyName, char * filename, char * text ) ;

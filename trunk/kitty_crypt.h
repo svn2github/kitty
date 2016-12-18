@@ -8,7 +8,7 @@ extern char PassKey[1024] ;
 int cryptstring( char * st, const char * key ) ;
 int decryptstring( char * st, const char * key ) ;
 
-// Generation de la clé privée PuTTY
+// Generation de la clÃ© privÃ©e PuTTY
 int GenerePrivateKey( const char * filename ) ;
 
 // Procedure de management de la passphrase

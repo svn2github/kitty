@@ -4,7 +4,7 @@
 // Le probleme est dans load_file_jpeg => il manquait un GlobalFree
 
 
-// Essai de compilation séparé
+// Essai de compilation sÃ©parÃ©
 #ifdef FDJ
 #undef IMAGEPORT
 #endif
@@ -248,7 +248,7 @@ HBITMAP ResizeBmp( HBITMAP hBmpSrc, WORD bx, WORD by ) {
 	HDC hDCSrc = CreateCompatibleDC(hdc);
 	HBITMAP hOldBmpSrc = (HBITMAP)SelectObject(hDCSrc, hBmpSrc);
 
-	// création bitmap dest et sélection ds un DC
+	// crÃ©ation bitmap dest et sÃ©lection ds un DC
 	HDC hDCDst = CreateCompatibleDC(hdc);
 	HBITMAP hBmpDst = CreateCompatibleBitmap(hdc, newSize.cx, newSize.cy);
 	HBITMAP hOldBmpDst = (HBITMAP)SelectObject(hDCDst, hBmpDst);
@@ -256,7 +256,7 @@ HBITMAP ResizeBmp( HBITMAP hBmpSrc, WORD bx, WORD by ) {
 	// resize
 	StretchBlt(hDCDst, 0, 0, newSize.cx, newSize.cy, hDCSrc, 0, 0, oldSize.cx, oldSize.cy, SRCCOPY);
 	
-	// libération ressources
+	// libÃ©ration ressources
 	SelectObject(hDCSrc, hOldBmpSrc);
 	SelectObject(hDCDst, hOldBmpDst);
 	DeleteDC(hDCSrc);
@@ -1479,7 +1479,7 @@ void RedrawBackground( HWND hwnd ) {
 		(get_param("BACKGROUNDIMAGE"))&&(!get_param("PUTTY"))&&(conf_get_int(conf,CONF_bg_type)/*cfg.bg_type*/ != 0) ) 
 			{
 			clean_bg() ;
-			load_bg_bmp();   // Apparement c'est ça qui faisait la fuite memoire !!!
+			load_bg_bmp();   // Apparement c'est Ã§a qui faisait la fuite memoire !!!
 			}
 	RedrawWindow(hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
 	InvalidateRect(hwnd, NULL, TRUE) ;

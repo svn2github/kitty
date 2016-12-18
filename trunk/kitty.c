@@ -119,7 +119,7 @@ void xyz_updateMenuItems(Terminal *term);
 int dnd_delay = 250;
 HDROP hDropInf = NULL;
 
-// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement à la connexion) (en milliseconde)
+// Delai avant d'envoyer le password et d'envoyer vers le tray (automatiquement Ã  la connexion) (en milliseconde)
 int init_delay = 2000 ;
 // Delai entre chaque ligne de la commande automatique (en milliseconde)
 int autocommand_delay = 5 ;
@@ -131,7 +131,7 @@ int internal_delay = 10 ;
 // Pointeur sur la commande autocommand
 char * AutoCommand = NULL ;
 
-// Contenu d'un script a envoyer à l'ecran
+// Contenu d'un script a envoyer Ã  l'ecran
 char * ScriptCommand = NULL ;
 
 // Pointeur sur la commande a passer ligne a ligne
@@ -256,7 +256,7 @@ static HINSTANCE hInstIcons =  NULL ;
 HINSTANCE GethInstIcons(void) { return hInstIcons ; }
 void SethInstIcons( const HINSTANCE h ) { hInstIcons = h ; }
 
-// Fichier contenant les icones à charger
+// Fichier contenant les icones Ã  charger
 static char * IconFile = NULL ;
 
 // Flag pour l'affichage de la taille de la fenetre
@@ -302,15 +302,10 @@ static int ConfigBoxWindowHeight = 0 ;
 int GetConfigBoxWindowHeight(void) { return ConfigBoxWindowHeight ; }
 void SetConfigBoxWindowHeight( const int num ) { ConfigBoxWindowHeight = num ; }
 
-// Flag pour retourner à la Config Box en fin d'execution
+// Flag pour retourner Ã  la Config Box en fin d'execution
 static int ConfigBoxNoExitFlag = 0 ;
 int GetConfigBoxNoExitFlag(void) { return ConfigBoxNoExitFlag ; }
 void SetConfigBoxNoExitFlag( const int flag ) { ConfigBoxNoExitFlag = flag ; }
-
-// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
-static int UserPassSSHNoSave = 0 ;
-int GetUserPassSSHNoSave(void) { return UserPassSSHNoSave ; }
-void SetUserPassSSHNoSave( const int flag ) { UserPassSSHNoSave = flag ; }
 
 // Flag pour inhiber la gestion du CTRL+TAB
 static int CtrlTabFlag = 1 ;
@@ -321,7 +316,7 @@ void SetCtrlTabFlag( const int flag ) { CtrlTabFlag  = flag ; }
 int PuttyFlag = 0 ;
 
 #ifdef RECONNECTPORT
-// Flag pour inhiber le mécanisme de reconnexion automatique
+// Flag pour inhiber le mÃ©canisme de reconnexion automatique
 static int AutoreconnectFlag = 1 ;
 int GetAutoreconnectFlag( void ) { return AutoreconnectFlag ; }
 void SetAutoreconnectFlag( const int flag ) { AutoreconnectFlag = flag ; }
@@ -333,7 +328,7 @@ void SetReconnectDelay( const int flag ) { ReconnectDelay = flag ; }
 
 // Flag pour afficher l'image de fond
 #if (defined IMAGEPORT) && (!defined FDJ)
-// Suite à PuTTY 0.61, le patch covidimus ne fonctionne plus tres bien
+// Suite Ã  PuTTY 0.61, le patch covidimus ne fonctionne plus tres bien
 // Il impose de demarrer les sessions avec -load meme depuis la config box (voir CONFIG.C)
 // Le patch est desactive par defaut
 int BackgroundImageFlag = 0 ;
@@ -751,7 +746,7 @@ char **FolderList=NULL ;
 int readINI( const char * filename, const char * section, const char * key, char * pStr) ;
 int writeINI( const char * filename, const char * section, const char * key, char * pStr) ;
 int delINI( const char * filename, const char * section, const char * key ) ;
-// Initialise la liste des folders a� partir des sessions deja existantes et du fichier kitty.ini
+// Initialise la liste des folders a  partir des sessions deja existantes et du fichier kitty.ini
 void InitFolderList( void ) {
 	char * pst, fList[4096], buffer[4096] ;
 	int i ;
@@ -886,7 +881,7 @@ int GetSessionFolderNameInSubDir( const char * session, const char * subdir, cha
 	return return_code ;
 	}
 
-// Recupere le nom du folder associe a� une session
+// Recupere le nom du folder associe a  une session
 void GetSessionFolderName( const char * session_in, char * folder ) {
 	HKEY hKey ;
 	char buffer[1024], session[1024] ;
@@ -999,7 +994,7 @@ int GetSessionField( const char * session_in, const char * folder_in, const char
 	}
 	
 void RenewPassword( Conf *conf ) {
-	if( !UserPassSSHNoSave )
+	if( !GetUserPassSSHNoSave() )
 	if( strlen( conf_get_str(conf,CONF_password) ) == 0 ) {
 		char buffer[1024] = "", host[1024], termtype[1024] ;
 		if( GetSessionField( conf_get_str(conf,CONF_sessionname), conf_get_str(conf,CONF_folder), "Password", buffer ) ) {
@@ -1017,7 +1012,7 @@ void RenewPassword( Conf *conf ) {
 void SetPasswordInConfig( char * password ) {
 	int len ;
 	char bufpass[1024] ;
-	if( (!UserPassSSHNoSave)&&(password!=NULL) ) {
+	if( (!GetUserPassSSHNoSave())&&(password!=NULL) ) {
 		len = strlen( password ) ;
 		if( len > 126 ) len = 126 ;
 		if( strlen(password)>0 ) {
@@ -1027,13 +1022,14 @@ void SetPasswordInConfig( char * password ) {
 		} else {
 			strcpy( bufpass, "" ) ;
 		}
+		logevent(NULL,"Save password for future use") ;
 		conf_set_str(conf,CONF_password,bufpass);
 	}
 }
 	
 void SetUsernameInConfig( char * username ) {
 	int len ;
-	if( (!UserPassSSHNoSave)&&(username!=NULL) ) {
+	if( (!GetUserPassSSHNoSave())&&(username!=NULL) ) {
 		len = strlen( username ) ;
 		if( len > 126 ) len = 126 ;
 		username[len] = '\0' ;
@@ -1764,7 +1760,7 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 		buf=(char*)malloc( strlen(cmd)+30 ) ;
 		strcpy( buf, "Send automatic command" ) ;
 		if( debug_flag ) { strcat( buf, ": ") ; strcat( buf, cmd ) ; }
-		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (à cause du password envoye en clair)
+		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (Ã  cause du password envoye en clair)
 		free(buf);
 		if( existfile( cmd ) ) RunScriptFile( hwnd, cmd ) ;
 		else if( (toupper(cmd[0])=='C')&&(toupper(cmd[1])==':')&&(toupper(cmd[2])=='\\') ) {
@@ -1854,7 +1850,7 @@ void ManageProtect( HWND hwnd, char * title ) {
 void DisplaySystemTrayMenu( HWND hwnd ) {
 	HMENU menu ;
 	POINT pt;
-	long  lReturnValue = 0;
+	//long  lReturnValue = 0;
 
 	menu = CreatePopupMenu () ;
 	AppendMenu( menu, MF_ENABLED, IDM_FROMTRAY, "&Restore" ) ;
@@ -1864,7 +1860,7 @@ void DisplaySystemTrayMenu( HWND hwnd ) {
 		
 	SetForegroundWindow( hwnd ) ;
 	GetCursorPos (&pt);
-	lReturnValue = TrackPopupMenu (menu, TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
+	/*lReturnValue =*/ TrackPopupMenu (menu, TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
 	}
 	
 // Gere l'envoi dans le System Tray
@@ -2535,7 +2531,7 @@ if [ $# -eq 0 ] ; then echo "Usage: cmd command" ; return 0 ; fi
 printf "\033]0;__cm:"$@"\007"
 }
 */
-/* Envoi d'un fichier sauvegardé en local
+/* Envoi d'un fichier sauvegardÃ© en local
 scriptfile()
 {
 if [ $# -eq 0 ] ; then echo "Usage: scriptfile filename" ; return 0 ; fi
@@ -2594,7 +2590,7 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		// free( RemotePath ) ; RemotePath = NULL ;
 		return 1 ;
 		}
-	else if( (cmd[0]=='l')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // __ls: envoie un script sauvegardé localement (comme fait le CTRL+F2)
+	else if( (cmd[0]=='l')&&(cmd[1]=='s')&&(cmd[2]==':') ) { // __ls: envoie un script sauvegardÃ© localement (comme fait le CTRL+F2)
 		RunScriptFile( hwnd, cmd+3 ) ;
 		return 1 ;
 		}
@@ -2610,43 +2606,43 @@ void GetWindowCoord( HWND hwnd ) {
 	RECT rc ;
 	GetWindowRect( hwnd, &rc ) ;
 
-	conf_set_int(conf,CONF_xpos,rc.left); //cfg.xpos = rc.left ;
-	conf_set_int(conf,CONF_ypos,rc.top); //cfg.ypos = rc.top ;
+	conf_set_int(conf,CONF_xpos,rc.left);
+	conf_set_int(conf,CONF_ypos,rc.top); 
 
-	conf_set_int(conf,CONF_windowstate,IsZoomed( hwnd )); //cfg.windowstate = IsZoomed( hwnd ) ;
+	conf_set_int(conf,CONF_windowstate,IsZoomed( hwnd )); 
 	}
 
 // Sauve les coordonnees de la fenetre
 void SaveWindowCoord( Conf * conf ) {
 	char key[1024], session[1024] ;
-	if( conf_get_int(conf,CONF_saveonexit)/*cfg.saveonexit*/ )
-	if( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/!= NULL )
-	if( strlen( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/ ) > 0 ) {
+	if( conf_get_int(conf,CONF_saveonexit) )
+	if( conf_get_str(conf,CONF_sessionname)!= NULL )
+	if( strlen( conf_get_str(conf,CONF_sessionname) ) > 0 ) {
 		if( IniFileFlag == SAVEMODE_REG ) {
-			mungestr( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, session ) ;
+			mungestr( conf_get_str(conf,CONF_sessionname), session ) ;
 			sprintf( key, "%s\\Sessions\\%s", TEXT(PUTTY_REG_POS), session ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermXPos", conf_get_int(conf,CONF_xpos)/*cfg.xpos*/ ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermYPos", conf_get_int(conf,CONF_ypos)/*cfg.ypos*/ ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermWidth", conf_get_int(conf,CONF_width)/*cfg.width*/ ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermHeight", conf_get_int(conf,CONF_height)/*cfg.height*/ ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "WindowState", conf_get_int(conf,CONF_windowstate)/*cfg.windowstate*/ ) ;
-			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TransparencyValue", conf_get_int(conf,CONF_transparencynumber)/*cfg.transparencynumber*/ ) ;
+			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermXPos", conf_get_int(conf,CONF_xpos) ) ;
+			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermYPos", conf_get_int(conf,CONF_ypos) ) ;
+			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermWidth", conf_get_int(conf,CONF_width) ) ;
+			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TermHeight", conf_get_int(conf,CONF_height) ) ;
+			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "WindowState", conf_get_int(conf,CONF_windowstate) ) ;
+			RegTestOrCreateDWORD( HKEY_CURRENT_USER, key, "TransparencyValue", conf_get_int(conf,CONF_transparencynumber) ) ;
 			}
 		else { 
-			int xpos=conf_get_int(conf,CONF_xpos)/*cfg.xpos*/
-				, ypos=conf_get_int(conf,CONF_ypos)/*cfg.ypos*/
-				, width=conf_get_int(conf,CONF_width)/*cfg.width*/
-				, height=conf_get_int(conf,CONF_height)/*cfg.height*/
-				, windowstate=conf_get_int(conf,CONF_windowstate)/*cfg.windowstate*/
-				, transparency=conf_get_int(conf,CONF_transparencynumber)/*cfg.transparencynumber*/ ;
-			load_settings( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf/*&cfg*/ ) ;
-			conf_set_int(conf,CONF_xpos,xpos) ; //cfg.xpos=xpos ; 
-			conf_set_int(conf,CONF_ypos,ypos) ; //cfg.ypos=ypos ; 
-			conf_set_int(conf,CONF_width,width) ; //cfg.width=width ; 
-			conf_set_int(conf,CONF_height,height) ; //cfg.height=height ; 
-			conf_set_int(conf,CONF_windowstate,windowstate) ; //cfg.windowstate=windowstate ; 
-			conf_set_int(conf,CONF_transparencynumber,transparency) ; //cfg.transparencynumber=transparency ;
-			save_settings( conf_get_str(conf,CONF_sessionname)/*cfg.sessionname*/, conf/*&cfg*/ ) ; 
+			int xpos=conf_get_int(conf,CONF_xpos)
+				, ypos=conf_get_int(conf,CONF_ypos)
+				, width=conf_get_int(conf,CONF_width)
+				, height=conf_get_int(conf,CONF_height)
+				, windowstate=conf_get_int(conf,CONF_windowstate)
+				, transparency=conf_get_int(conf,CONF_transparencynumber) ;
+			load_settings( conf_get_str(conf,CONF_sessionname), conf ) ;
+			conf_set_int(conf,CONF_xpos,xpos) ;
+			conf_set_int(conf,CONF_ypos,ypos) ;
+			conf_set_int(conf,CONF_width,width) ;
+			conf_set_int(conf,CONF_height,height) ;
+			conf_set_int(conf,CONF_windowstate,windowstate) ;
+			conf_set_int(conf,CONF_transparencynumber,transparency) ;
+			save_settings( conf_get_str(conf,CONF_sessionname), conf ) ; 
 			}
 		}
 	}
@@ -2922,7 +2918,7 @@ static LRESULT CALLBACK InputCallBackPassword(HWND hwnd, UINT message, WPARAM wP
 	return 0;
 }
 
-// Procedure specifique à la editbox multiligne (SHIFT+F8)
+// Procedure specifique Ã  la editbox multiligne (SHIFT+F8)
 FARPROC lpfnOldEditProc ;
 BOOL FAR PASCAL EditMultilineCallBack(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	char buffer[4096], key_name[1024] ;
@@ -3141,7 +3137,7 @@ void routine_inputbox_password( void * phwnd ) {
 	GetAndSendLinePassword( MainHwnd ) ;
 	}
 
-// Demarre le timer d'autocommand a� la connexion
+// Demarre le timer d'autocommand a  la connexion
 void CreateTimerInit( void ) {
 	SetTimer(MainHwnd, TIMER_INIT, init_delay, NULL) ; 
 	}
@@ -3202,18 +3198,16 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 	if( (IniFileFlag == SAVEMODE_REG)||(IniFileFlag == SAVEMODE_FILE) ) {
 	if( RegOpenKeyEx( HKEY_CURRENT_USER, TEXT(KeyName), 0, KEY_READ, &hKey) == ERROR_SUCCESS ) {
 		TCHAR achValue[MAX_VALUE_NAME], achClass[MAX_PATH] = TEXT("");
-		DWORD    retCode,cchClassName=MAX_PATH,cSubKeys=0,cbMaxSubKey,cchMaxClass,cValues,cchMaxValue,cbMaxValueData,cbSecurityDescriptor;
+		DWORD  cchClassName=MAX_PATH,cSubKeys=0,cbMaxSubKey,cchMaxClass,cValues,cchMaxValue,cbMaxValueData,cbSecurityDescriptor;
 		FILETIME ftLastWriteTime;
 
-		retCode = RegQueryInfoKey(hKey,achClass,&cchClassName,NULL,&cSubKeys,&cbMaxSubKey,&cchMaxClass,&cValues,&cchMaxValue,&cbMaxValueData,&cbSecurityDescriptor,&ftLastWriteTime);
+		RegQueryInfoKey(hKey,achClass,&cchClassName,NULL,&cSubKeys,&cbMaxSubKey,&cchMaxClass,&cValues,&cchMaxValue,&cbMaxValueData,&cbSecurityDescriptor,&ftLastWriteTime);
 		nb = (*nbitem) ;
 
 		if( cSubKeys>0 ) { // Recuperation des sous-menu
-		for (i=0, retCode=ERROR_SUCCESS; (i<cSubKeys)&&(nb<NB_MENU_MAX); i++) {
+		for (i=0 ; (i<cSubKeys)&&(nb<NB_MENU_MAX); i++) {
 			DWORD cchValue = MAX_VALUE_NAME; 
-			DWORD dwDataSize=4096 ;
 			char lpData[4096] ;
-			dwDataSize = 4096 ;
 			achValue[0] = '\0';
 
 			if( RegEnumKeyEx(hKey, i, lpData, &cchValue, NULL, NULL, NULL, &ftLastWriteTime) == ERROR_SUCCESS ) {
@@ -3232,7 +3226,7 @@ int ReadSpecialMenu( HMENU menu, char * KeyName, int * nbitem, int separator ) {
 		if( separator ) AppendMenu( menu, MF_SEPARATOR, 0, 0 ) ;
 		
 		if( nb<NB_MENU_MAX )
-	        for (i=0, retCode=ERROR_SUCCESS; (i<cValues)&&(nb<NB_MENU_MAX); i++) {
+	        for (i=0 ; (i<cValues)&&(nb<NB_MENU_MAX); i++) {
 			DWORD cchValue = MAX_VALUE_NAME; 
 			DWORD lpType,dwDataSize=4096 ;
 			unsigned char lpData[4096] ;
@@ -3784,12 +3778,12 @@ void StartNewSession( HWND hwnd, char * directory ) {
 		if( !GetShortPathName( cmd, shortpath, 4095 ) ) return ;
 		}
 
-	if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ == PROT_SSH ) {
+	if( conf_get_int(conf,CONF_protocol) == PROT_SSH ) {
 		sprintf( cmd, "%s -ssh ", shortpath ) ;
-		if( conf_get_int(conf,CONF_sshprot)/*cfg.sshprot*/ == 2 ) strcat( cmd, "-2 " ) ;
-		strcat( cmd, conf_get_str(conf,CONF_username)/*cfg.username*/ ) ;
-		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host)/*cfg.host*/ ) ; 
-		if( strlen( conf_get_str(conf,CONF_password)/*cfg.password*/ ) > 0 ) {
+		if( conf_get_int(conf,CONF_sshprot) == 2 ) strcat( cmd, "-2 " ) ;
+		strcat( cmd, conf_get_str(conf,CONF_username) ) ;
+		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
+		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 			char bufpass[1024] ;
 			strcpy( bufpass, conf_get_str(conf,CONF_password) ) ;
 			strcat( cmd, " -pw " ) ; 
@@ -3797,7 +3791,7 @@ void StartNewSession( HWND hwnd, char * directory ) {
 			strcat(cmd,"\"") ; strcat(cmd,bufpass) ; strcat(cmd,"\"") ;
 			memset(bufpass,0,strlen(bufpass));
 			}
-		strcat( cmd, " -P " ) ; sprintf( buffer, "%d", conf_get_int(conf,CONF_port)/*cfg.port*/ ); strcat( cmd, buffer ) ;
+		strcat( cmd, " -P " ) ; sprintf( buffer, "%d", conf_get_int(conf,CONF_port) ); strcat( cmd, buffer ) ;
 		/*if( strlen( cfg.keyfile.path ) > 0 ) {
 				if( GetShortPathName( cfg.keyfile.path, shortpath, 4095 ) ) {
 				strcat( cmd, " /privatekey=\"" ) ;
@@ -3806,10 +3800,10 @@ void StartNewSession( HWND hwnd, char * directory ) {
 				}
 			}*/
 		}
-	else if( conf_get_int(conf,CONF_protocol)/*cfg.protocol*/ == PROT_TELNET ){
-		sprintf( cmd, "%s -telnet %s", shortpath, conf_get_str(conf,CONF_username)/*cfg.username*/ ) ;
-		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host)/*cfg.host*/ ) ; 
-		if( strlen( conf_get_str(conf,CONF_password)/*cfg.password*/ ) > 0 ) {
+	else if( conf_get_int(conf,CONF_protocol) == PROT_TELNET ){
+		sprintf( cmd, "%s -telnet %s", shortpath, conf_get_str(conf,CONF_username) ) ;
+		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
+		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 			char bufpass[1024] ;
 			strcpy(bufpass,conf_get_str(conf,CONF_password));
 			strcat( cmd, " -pw " ) ; 
@@ -3817,7 +3811,7 @@ void StartNewSession( HWND hwnd, char * directory ) {
 			strcat(cmd,"\"") ; strcat(cmd,bufpass) ; strcat(cmd,"\"") ;
 			memset(bufpass,0,strlen(bufpass));
 			}
-		strcat( cmd, " -P " ) ; sprintf( buffer, "%d", conf_get_int(conf,CONF_port)/*cfg.port*/ ); strcat( cmd, buffer ) ;
+		strcat( cmd, " -P " ) ; sprintf( buffer, "%d", conf_get_int(conf,CONF_port) ); strcat( cmd, buffer ) ;
 		}
 
 	if( directory!=NULL ) if( strlen(directory)>0 ) {
@@ -3832,7 +3826,7 @@ void StartNewSession( HWND hwnd, char * directory ) {
 	memset(cmd,0,strlen(cmd));
 	}	
 
-// Lance WinSCP a� partir de la sesson courante eventuellement dans le repertoire courant
+// Lance WinSCP a  partir de la sesson courante eventuellement dans le repertoire courant
 /* ALIAS UNIX A DEFINIR POUR DEMARRER WINSCP Dans le repertoire courant
 winscp()
 {
@@ -3841,7 +3835,7 @@ echo "\033]0;__ws:"`pwd`"\007"
 Il faut ensuite simplement taper: winscp
 C'est traite dans KiTTY par la fonction ManageLocalCmd
 
-Le chemin vers l'ex�cutable WinSCP est d�fini dans la variable WInSCPPath. Elle peut pointer sur un fichier .BAT pour passer des options suppl�mentaires.
+Le chemin vers l'exécutable WinSCP est défini dans la variable WInSCPPath. Elle peut pointer sur un fichier .BAT pour passer des options supplémentaires.
 @ECHO OFF
 start "C:\Program Files\WinSCP\WinSCP.exe" "%1" "%2" "%3" "%4" "%5" "%6" "%7" "%8" "%9"
 */	
@@ -4224,7 +4218,7 @@ void ReadInitScript( const char * filename ) {
 
 #include "kitty_launcher.c"
 
-// Creer une arborescence de repertoire à partir du registre
+// Creer une arborescence de repertoire Ã  partir du registre
 int MakeDirTree( const char * Directory, const char * s, const char * sd ) {
 	char buffer[MAX_VALUE_NAME], fullpath[MAX_VALUE_NAME] ;
 	HKEY hKey;
@@ -4820,7 +4814,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 	else if( key == shortcuts_tab.winscp )			// Lancement de WinSCP
 		{ SendMessage( hwnd, WM_COMMAND, IDM_WINSCP, 0 ) ; return 1 ; }
 	else if( key == shortcuts_tab.autocommand ) 		// Rejouer la commande de demarrage
-		{ RenewPassword( conf/*&cfg*/ ) ; 
+		{ RenewPassword( conf ) ; 
 			//SendAutoCommand( hwnd, cfg.autocommand ) ; 
 			SetTimer(hwnd, TIMER_AUTOCOMMAND,autocommand_delay, NULL) ;
 			return 1 ; }
@@ -5001,8 +4995,8 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "maxblinkingtime", buffer ) ) { MaxBlinkingTime=2*atoi(buffer);if(MaxBlinkingTime<0) MaxBlinkingTime=0; }
 	
 	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { 
-		if( !stricmp( buffer, "no" ) ) UserPassSSHNoSave = 0 ; 
-		if( !stricmp( buffer, "yes" ) ) UserPassSSHNoSave = 1 ; 
+		if( !stricmp( buffer, "no" ) ) SetUserPassSSHNoSave(0) ;//UserPassSSHNoSave = 0 ; 
+		if( !stricmp( buffer, "yes" ) ) SetUserPassSSHNoSave(1);//UserPassSSHNoSave = 1 ; 
 	}
 	if( ReadParameter( INIT_SECTION, "ctrltab", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetCtrlTabFlag( 0 ) ; }
 	
@@ -5243,10 +5237,10 @@ void InitWinMain( void ) {
 	double ScaleY = GetDeviceCaps(GetDC(hwnd),LOGPIXELSY)/96.0 ; // La police standard (100%) vaut 96ppp (pixels per pouce)
 	if( ScaleY!=1.0 ) { ConfigBoxWindowHeight = (int)( 597*ScaleY ) ; }
 
-	// Initialisation des parametres à partir du fichier kitty.ini
+	// Initialisation des parametres Ã  partir du fichier kitty.ini
 	LoadParameters() ;
 
-	// Ajoute les répertoires InitialDirectory et ConfigDirectory au PATH
+	// Ajoute les rÃ©pertoires InitialDirectory et ConfigDirectory au PATH
 #ifdef CYGTERMPORT
 	appendPath(InitialDirectory);    // Initialise dans la fonction GetInitialDirectory
 	if( strcmp(InitialDirectory,ConfigDirectory) ) {
@@ -5371,12 +5365,12 @@ void InitNameConfigFile( void ) ;
 // Ecriture de l'increment de compteurs
 void WriteCountUpAndPath( void ) ;
 
-// Initialisation spécifique a KiTTY
+// Initialisation spÃ©cifique a KiTTY
 void InitWinMain( void ) ;
 
 // Gestion de commandes a distance
 int ManageLocalCmd( HWND hwnd, char * cmd ) ;
 	
-// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+// Nettoie la clÃ© de PuTTY pour enlever les clÃ©s et valeurs spÃ©cifique Ã  KiTTY
 // Se trouve dans le fichier kitty_registry.c
 BOOL RegCleanPuTTY( void ) ;

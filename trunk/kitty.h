@@ -170,7 +170,7 @@ int GetWinHeight(void) ;
 void SetWinHeight( const int num ) ;
 
 // Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
-// extern int UserPassSSHNoSave ;
+// extern int UserPassSSHNoSave ; ==> Defini dans kitty_commun.c
 int GetUserPassSSHNoSave(void) ;
 void SetUserPassSSHNoSave( const int flag ) ;
 

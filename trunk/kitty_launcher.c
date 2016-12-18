@@ -298,7 +298,7 @@ void InitLauncherRegistry( void ) {
 	int i;
 	
 	if( (IniFileFlag == SAVEMODE_REG)||(IniFileFlag == SAVEMODE_FILE) ) {
-		TCHAR achValue[MAX_VALUE_NAME], folder[MAX_VALUE_NAME], achClass[MAX_PATH] = TEXT("");
+		TCHAR folder[MAX_VALUE_NAME], achClass[MAX_PATH] = TEXT("");
 		DWORD   cchClassName=MAX_PATH,cSubKeys=0,cbMaxSubKey,cchMaxClass;
 		DWORD	cValues,cchMaxValue,cbMaxValueData,cbSecurityDescriptor;
 		FILETIME ftLastWriteTime;
@@ -314,10 +314,7 @@ void InitLauncherRegistry( void ) {
 		if( cSubKeys>0 )
 			for (i=0; i<cSubKeys; i++) {
 				DWORD cchValue = MAX_VALUE_NAME; 
-				DWORD dwDataSize=4096 ;
 				char lpData[4096] ;
-				dwDataSize = 4096 ;
-				achValue[0] = '\0';
 				if( RegEnumKeyEx(hKey, i, lpData, &cchValue, NULL, NULL, NULL, &ftLastWriteTime) == ERROR_SUCCESS ) {
 					sprintf( buffer,"%s\\Sessions\\%s", TEXT(PUTTY_REG_POS), lpData ) ;
 					if( !GetValueData(HKEY_CURRENT_USER, buffer, "Folder", folder ) ) 
@@ -381,11 +378,11 @@ void InitLauncherRegistry( void ) {
 void DisplayContextMenu( HWND hwnd, HMENU menu ) {
 	HMENU hMenuPopup = menu ;
 	POINT pt;
-	long  lReturnValue = 0;
+	//long  lReturnValue = 0;
 	
 	SetForegroundWindow( hwnd ) ;
 	GetCursorPos (&pt);
-	lReturnValue = TrackPopupMenu (hMenuPopup, TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
+	/*lReturnValue =*/ TrackPopupMenu (hMenuPopup, TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
 
 	}
 	

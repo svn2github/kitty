@@ -85,8 +85,10 @@ static const char *const ssh2_disconnect_reasons[] = {
 
 #ifdef PERSOPORT
 int stricmp(const char *s1, const char *s2) ;
+char *strdup(const char *s);
 void SetPasswordInConfig( char * password ) ;
 void SetUsernameInConfig( char * username ) ;
+int GetUserPassSSHNoSave(void) ;
 char * ManagePassPhrase( const char * st ) ;
 void MASKPASS( char * password ) ;
 void SetSSHConnected( int flag ) ;
@@ -94,6 +96,8 @@ void SetSSHConnected( int flag ) ;
 #ifndef SSH_MAX_PASSWORD_LEN
 #define SSH_MAX_PASSWORD_LEN 100
 #endif
+
+static char bufpass[1024] = "" ; // Buffer pour décrypter le password
 #endif
 
 /*
@@ -4803,19 +4807,17 @@ static int do_ssh1_login(Ssh ssh, const unsigned char *in, int inlen,
 #ifdef PERSOPORT
 		ret=0;
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[4096] ;
-			if( strlen(conf_get_str(ssh->conf,CONF_password))<4090 ) {
+			if( strlen(conf_get_str(ssh->conf,CONF_password))<1020 ) {
 				strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 			} else {
-				memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 4090 ) ;
-				bufpass[4090]='\0';
+				memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 1020 ) ;
+				bufpass[1020]='\0';
 			}
 			MASKPASS(bufpass);
 			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
 				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }
 			ret=get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"" ) ;
-			memset( bufpass, 0, strlen(bufpass) ) ;
 			ret = 1 ;
 	{ // Log de l'envoi du password
 	char *userlog = dupprintf("Send automatic password (Using CryptoCard authentication)" );
@@ -10336,19 +10338,19 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 			int ret; /* not live over crReturn */
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[4096] ;
-			if( strlen(conf_get_str(ssh->conf,CONF_password))<4090 ) {
+			if( strlen(conf_get_str(ssh->conf,CONF_password))<1020 ) {
 			    strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 		    } else {
-			    memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 4090 ) ;
-			    bufpass[4090]='\0';
+			    memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 1020 ) ;
+			    bufpass[1020]='\0';
 		    }
 			MASKPASS(bufpass);
-    			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
-				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }
-			ret=get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
+    			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) { 
+				bufpass[strlen(bufpass)-2]='\0'; 
+				bufpass[strlen(bufpass)-1]='\0'; 
+				}
+			ret = get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"") ;
-			memset(bufpass,0,strlen(bufpass));
 			ret = 1 ;
 	{ // Log de l'envoi du password
 	char *userlog = dupprintf("\nSend automatic password (Using keyboard-interactive authentication)" );
@@ -10381,7 +10383,16 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 			    crStopV;
 			}
 #ifdef PERSOPORT
-			SetPasswordInConfig( s->password ) ;
+			if( ret ) if( !GetUserPassSSHNoSave() ) {
+			if( strlen(bufpass)>0 ) {
+				SetPasswordInConfig(bufpass);
+				memset( bufpass, 0, strlen(bufpass) ) ;
+			} else if( s != NULL ) {
+				s->password = dupstr(s->cur_prompt->prompts[0]->result);
+				if( s->password != NULL ) {
+					SetPasswordInConfig( s->password ) ;
+				}
+			} }
 #endif
 		    }
 
@@ -10480,19 +10491,19 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 		ssh2_pkt_addbool(s->pktout, FALSE);
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			char bufpass[4096] ;
-			if( strlen(conf_get_str(ssh->conf,CONF_password))<4090 ) {
+			if( strlen(conf_get_str(ssh->conf,CONF_password))<1020 ) {
 				strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) );
 			} else {
-				memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 4090 ) ;
-				bufpass[4090]='\0';
+				memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 1020 ) ;
+				bufpass[1020]='\0';
 			}
 			MASKPASS(bufpass); 
-			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
-				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }
+			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) { 
+				bufpass[strlen(bufpass)-2]='\0'; 
+				bufpass[strlen(bufpass)-1]='\0'; 
+			}
 			ssh2_pkt_addstring(s->pktout, bufpass );
 			conf_set_str( ssh->conf, CONF_password, "") ;
-			memset( bufpass,0,strlen(bufpass) ); 
 
 	{ // Log de l'envoi du password
 	char *userlog = dupprintf("Send automatic password" );
@@ -10509,21 +10520,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 			}
 		else {
 			ssh2_pkt_addstring(s->pktout, s->password );
-			SetPasswordInConfig( s->password ) ;
- /*
-//Essai de sauvegarde du password en saisie manuelle mais KO avec Windows Vista			
-			if( s->password != NULL )	{
-				int len = strlen( s->password ) ;
-				if( len>127 ) len=127 ;
-				if( len>0 ) {
-					memcpy( ssh->cfg.password, s->password, len ) ;
-					ssh->cfg.password[127]='\0' ;
-					}
-				ssh->cfg.password[len]='\0' ;
-//MessageBox( NULL,ssh->cfg.password,"Pass",MB_OK);
-				}
-*/
-			}
+		}
 #else
 		ssh2_pkt_addstring(s->pktout, s->password);
 #endif
@@ -10536,6 +10533,16 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 		 * request.
 		 */
 		crWaitUntilV(pktin);
+#ifdef PERSOPORT
+		if( !GetUserPassSSHNoSave() ) {
+			if( strlen(bufpass)>0 ) {
+				SetPasswordInConfig( bufpass ) ;
+				memset( bufpass, 0, strlen(bufpass) ) ;
+			} else if( s != NULL ) {
+				if( s->password != NULL ) SetPasswordInConfig( s->password ) ;
+			}
+		}
+#endif
 		changereq_first_time = TRUE;
 
 		while (pktin->type == SSH2_MSG_USERAUTH_PASSWD_CHANGEREQ) {

@@ -8,18 +8,18 @@ char * GetValueData(HKEY hkTopKey, char * lpSubKey, const char * lpValueName, ch
     HKEY hkKey;
     DWORD lpType, dwDataSize = cstMaxRegLength;
   
-  //Receptionne la valeur de réception lecture clé registre
+  //Receptionne la valeur de rÃ©ception lecture clÃ© registre
     //unsigned char * lpData = new unsigned char[cstMaxRegLength];
 	unsigned char * lpData = (unsigned char*) malloc( cstMaxRegLength );
     
-  //Receptionne la valeur de réception lecture clé registre
+  //Receptionne la valeur de rÃ©ception lecture clÃ© registre
     //char * rValue = (char*) malloc( cstMaxRegLength );
     rValue[0] = '\0';
-  //Lecture de la clé registre si ok passe à la suite...
+  //Lecture de la clÃ© registre si ok passe Ã  la suite...
     if (RegOpenKeyEx(hkTopKey,lpSubKey,0,KEY_READ,&hkKey) == ERROR_SUCCESS){
   
       if (RegQueryValueEx(hkKey,lpValueName,NULL,&lpType,lpData,&dwDataSize) == ERROR_SUCCESS){
-      //déchiffrage des différents type de clé dans registry
+      //dÃ©chiffrage des diffÃ©rents type de clÃ© dans registry
         switch ((int)lpType){
   
           case REG_BINARY:
@@ -53,7 +53,7 @@ char * GetValueData(HKEY hkTopKey, char * lpSubKey, const char * lpValueName, ch
         }//end switch
       }//end if
       else { RegCloseKey(hkKey); free(lpData); return NULL ; }
-       free(lpData); // libère la mémoire
+       free(lpData); // libÃ¨re la mÃ©moire
        RegCloseKey(hkKey); 
       
     }//end if
@@ -61,7 +61,7 @@ char * GetValueData(HKEY hkTopKey, char * lpSubKey, const char * lpValueName, ch
     return rValue;
   }//end function
 
-// Teste l'existance d'une clé
+// Teste l'existance d'une clÃ©
 int RegTestKey( HKEY hMainKey, LPCTSTR lpSubKey ) {
 	HKEY hKey ;
 	if( lpSubKey == NULL ) return 1 ;
@@ -88,7 +88,7 @@ int RegCountKey( HKEY hMainKey, LPCTSTR lpSubKey ) {
 	return nb ;
 	}
 
-	// Teste l'existance d'une clé ou bien d'une valeur et la crée sinon
+	// Teste l'existance d'une clÃ© ou bien d'une valeur et la crÃ©e sinon
 void RegTestOrCreate( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR name, LPCTSTR value ) {
 	HKEY hKey ;
 	if( lpSubKey == NULL ) return ;
@@ -102,7 +102,7 @@ void RegTestOrCreate( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR name, LPCTSTR val
 	RegCloseKey( hKey ) ;
 	}
 	
-// Test l'existance d'une clé ou bien d'une valeur DWORD et la crée sinon
+// Test l'existance d'une clÃ© ou bien d'une valeur DWORD et la crÃ©e sinon
 void RegTestOrCreateDWORD( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR name, DWORD value ) {
 	HKEY hKey ;
 	if( lpSubKey == NULL ) return ;
@@ -164,7 +164,7 @@ void QuerySubKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out, char * text  )
 	
 	char * buffer = NULL ;
 
-	// On ouvre la clé
+	// On ouvre la clÃ©
 	if( RegOpenKeyEx( hMainKey, TEXT(lpSubKey), 0, KEY_READ, &hKey) != ERROR_SUCCESS ) return ;
 
     // Get the class name and the value count. 
@@ -226,7 +226,7 @@ void InitAllSessions( HKEY hMainKey, LPCTSTR lpSubKey, char * SubKeyName, char *
 		}
 	}
 	
-// Détruit une valeur de clé de registre 
+// DÃ©truit une valeur de clÃ© de registre 
 BOOL RegDelValue (HKEY hKeyRoot, LPTSTR lpSubKey, LPTSTR lpValue ) {
 	HKEY hKey;
 	LONG lResult;
@@ -237,7 +237,7 @@ BOOL RegDelValue (HKEY hKeyRoot, LPTSTR lpSubKey, LPTSTR lpValue ) {
 	return TRUE;   
 	}
 
-// Detruit une clé de registre et ses sous-clé
+// Detruit une clÃ© de registre et ses sous-clÃ©
 BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) {
     TCHAR lpEnd[MAX_PATH];
     LONG lResult;
@@ -284,7 +284,7 @@ BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) {
 	return FALSE;
 	}
 
-// Copie une clé de registre vers une autre
+// Copie une clÃ© de registre vers une autre
 void RegCopyTree( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) { 
 	HKEY hKey, hDestKey ;
     TCHAR    achKey[MAX_KEY_LENGTH];   // buffer for subkey name
@@ -308,7 +308,7 @@ void RegCopyTree( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) {
 	DWORD lpType, dwDataSize = 1024 ;
 	char * buffer = NULL, * destbuffer = NULL ;
 	
-	// On ouvre la clé
+	// On ouvre la clÃ©
 	if( RegOpenKeyEx( hMainKey, TEXT(lpSubKey), 0, KEY_READ, &hKey) != ERROR_SUCCESS ) return ;
 	if( RegCreateKey( hMainKey, TEXT(lpDestKey), &hDestKey ) == ERROR_SUCCESS )
 					RegCloseKey( hDestKey ) ;
@@ -394,7 +394,7 @@ void RegCopyTree( HKEY hMainKey, LPCTSTR lpSubKey, LPCTSTR lpDestKey ) {
 	RegCloseKey( hKey ) ;
 }
 
-// Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
+// Nettoie la clÃ© de PuTTY pour enlever les clÃ©s et valeurs spÃ©cifique Ã  KiTTY
 BOOL RegCleanPuTTY( void ) {
 	HKEY hKey, hSubKey ;
 	DWORD retCode, i;
@@ -435,7 +435,7 @@ return 1 ;
 	RegDelTree (HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Folders" ) ;
 	RegDelTree (HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Launcher" ) ;
 	
-	// On ouvre la clé
+	// On ouvre la clÃ©
 	if( RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\SimonTatham\\PuTTY\\Sessions", 0, KEY_READ|KEY_WRITE, &hKey) != ERROR_SUCCESS ) return 0;
 	
 	retCode = RegQueryInfoKey(
@@ -609,7 +609,7 @@ void CreateFileAssoc() {
 	GetModuleFileName( NULL, (LPTSTR)path, 1024 ) ;
 
 	// Association des fichers .ktx avec l'application KiTTY
-	// Création d l'application
+	// CrÃ©ation d l'application
 	RegTestOrCreate( HKEY_CLASSES_ROOT, "kitty.connect.1", "", "KiTTY connection manager") ;
 	RegTestOrCreate( HKEY_CLASSES_ROOT, "kitty.connect.1", "FriendlyTypeName", "@KiTTY, -120") ;
 	RegTestOrCreate( HKEY_CLASSES_ROOT, "kitty.connect.1\\CurVer", "", "kitty.connect.1") ;
@@ -617,14 +617,14 @@ void CreateFileAssoc() {
 	RegTestOrCreate( HKEY_CLASSES_ROOT, "kitty.connect.1\\DefaultIcon", "", buffer);
 	sprintf(buffer, "\"%s\" -kload \"%%1\"", path ) ;
 	RegTestOrCreate( HKEY_CLASSES_ROOT, "kitty.connect.1\\shell\\open\\command", "", buffer) ;
-	// Création de l'association de fichiers
+	// CrÃ©ation de l'association de fichiers
 	RegTestOrCreate( HKEY_CLASSES_ROOT, ".ktx", "", "kitty.connect.1") ;
 	RegTestOrCreate( HKEY_CLASSES_ROOT, ".ktx", "PerceivedType", "Connection") ;
 	RegTestOrCreate( HKEY_CLASSES_ROOT, ".ktx", "Content Type", "connection/ssh") ;
 	RegTestOrCreate( HKEY_CLASSES_ROOT, ".ktx", "OpenWithProgids", "kitty.connect.1") ;
 }
 	
-// Vérifie l'existance de la clé de KiTTY sinon la copie depuis PuTTY
+// VÃ©rifie l'existance de la clÃ© de KiTTY sinon la copie depuis PuTTY
 void TestRegKeyOrCopyFromPuTTY( HKEY hMainKey, char * KeyName ) { 
 	HKEY hKey ;
 	if( RegOpenKeyEx( hMainKey, TEXT(KeyName), 0, KEY_READ, &hKey) == ERROR_SUCCESS ) {
@@ -643,7 +643,7 @@ void TestRegKeyOrCopyFromPuTTY( HKEY hMainKey, char * KeyName ) {
 	
 /******
 Supprimer toute trace de KiTTY dans le registre.
-Ecrire et exécuter un fichier utf-8 .reg contenant les lignes:
+Ecrire et exÃ©cuter un fichier utf-8 .reg contenant les lignes:
 
 Windows Registry Editor Version 5.00
 

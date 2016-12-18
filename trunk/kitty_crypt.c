@@ -9,7 +9,7 @@ int decryptstring( char * st, const char * key ) {
 	}
 
 //static char MASKKEY[128] = MASTER_PASSWORD ;
-static char MASKKEY[128] = "†‡œ¤¥©ª³¼½¾" ;
+static char MASKKEY[128] = "Â¤Â¥Â©ÂªÂ³Â¼Â½Â¾" ;
 	
 void MASKPASS( char * password ) {
 	
@@ -29,13 +29,13 @@ void MASKPASS( char * password ) {
 		j++ ; if(MASKKEY[j]=='\0') j=0 ;
 		}
 	strcpy( password, buffer ) ;
-	memset(buffer,0,strlen(buffer) );
+	memset(buffer,0,strlen(password) );
 	free(buffer) ;
 	}
 
 
 #include "private_key.c"
-// Generation de la clé privée PuTTY
+// Generation de la clÃ© privÃ©e PuTTY
 int GenerePrivateKey( const char * filename ) {
 	FILE * fp ;
 	char buffer[8192] = "" ;
@@ -61,8 +61,8 @@ char * ManagePassPhrase( const char * st ) {
 	}
 
 #ifdef NO_PRIVKEY
-/* Flag utiliser pour essayer une fois une clé privée stockée en interne dans le binaire
- 	Utilisé dans la fonction ssh2_load_userkey du fichier sshpubk.c */
+/* Flag utiliser pour essayer une fois une clÃ© privÃ©e stockÃ©e en interne dans le binaire
+ 	UtilisÃ© dans la fonction ssh2_load_userkey du fichier sshpubk.c */
 int private_key_flag = 1;
 
 char key_encryption[]="010bvskvgwgXMxJ9r6N/q" ;
