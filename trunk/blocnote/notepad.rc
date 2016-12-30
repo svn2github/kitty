@@ -41,7 +41,8 @@ BEGIN
 	NOTEPAD_STR_CRLF	"&Carriage return"
 	NOTEPAD_STR_SCOLON	"&Semicolon"
 	NOTEPAD_STR_SLASH	"S&lash"
-
+	NOTEPAD_STR_TILDE	"&Tilde"
+	
 	NOTEPAD_STR_HELP	"&?"
 	NOTEPAD_STR_ABOUT	"&About"
 	

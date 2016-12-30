@@ -10388,7 +10388,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 				SetPasswordInConfig(bufpass);
 				memset( bufpass, 0, strlen(bufpass) ) ;
 			} else if( s != NULL ) {
-				s->password = dupstr(s->cur_prompt->prompts[0]->result);
+				//s->password = dupstr(s->cur_prompt->prompts[0]->result);
 				if( s->password != NULL ) {
 					SetPasswordInConfig( s->password ) ;
 				}
