@@ -10,7 +10,7 @@ int decryptstring( char * st, const char * key ) {
 
 //static char MASKKEY[128] = MASTER_PASSWORD ;
 static char MASKKEY[128] = "¤¥©ª³¼½¾" ;
-	
+
 void MASKPASS( char * password ) {
 	
 	//return ;    //   POUR SIMPLIFIER EN ATTENDANT QUE TOUT FONCTIONNE DANS LA MISE A JOUR > 2013/06/27

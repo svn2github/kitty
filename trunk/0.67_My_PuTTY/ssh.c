@@ -96,7 +96,6 @@ void SetSSHConnected( int flag ) ;
 #ifndef SSH_MAX_PASSWORD_LEN
 #define SSH_MAX_PASSWORD_LEN 100
 #endif
-
 static char bufpass[1024] = "" ; // Buffer pour décrypter le password
 #endif
 
@@ -10338,7 +10337,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 			int ret; /* not live over crReturn */
 #ifdef PERSOPORT
 		if( strcmp( conf_get_str(ssh->conf,CONF_password), "" ) ) {
-			if( strlen(conf_get_str(ssh->conf,CONF_password))<1020 ) {
+		    if( strlen(conf_get_str(ssh->conf,CONF_password))<1020 ) {
 			    strcpy( bufpass, conf_get_str(ssh->conf,CONF_password) ) ;
 		    } else {
 			    memcpy( bufpass, conf_get_str(ssh->conf,CONF_password), 1020 ) ;
@@ -10349,7 +10348,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 				bufpass[strlen(bufpass)-2]='\0'; 
 				bufpass[strlen(bufpass)-1]='\0'; 
 				}
-			ret = get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
+			ret=get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"") ;
 			ret = 1 ;
 	{ // Log de l'envoi du password
@@ -10520,7 +10519,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 			}
 		else {
 			ssh2_pkt_addstring(s->pktout, s->password );
-		}
+			}
 #else
 		ssh2_pkt_addstring(s->pktout, s->password);
 #endif

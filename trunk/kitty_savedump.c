@@ -141,7 +141,7 @@ void PrintWindowSettings( FILE * fp ) {
 	fprintf( fp, "IsWindowUnicode=%d\n", IsWindowUnicode( MainHwnd ) ) ;
 	fprintf( fp, "IsWindowVisible=%d\n", IsWindowVisible( MainHwnd ) ) ;
 	fprintf( fp, "IsZoomed=%d\n", IsZoomed( MainHwnd ) ) ;
-		
+
 	fprintf( fp, "ScaleX=%d\n", GetDeviceCaps(GetDC(MainHwnd),LOGPIXELSX) ) ;
 	fprintf( fp, "ScaleY=%d\n", GetDeviceCaps(GetDC(MainHwnd),LOGPIXELSY) ) ;
 	}
@@ -580,6 +580,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag,CtrlTabFlag,RuTTYFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
 	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nUserPassSSHNoSave=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,GetUserPassSSHNoSave(),PuttyFlag);
+
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #ifdef RECONNECTPORT
 	fprintf( fp,"AutoreconnectFlag=%d\nReconnectDelay=%d\n",AutoreconnectFlag,ReconnectDelay );

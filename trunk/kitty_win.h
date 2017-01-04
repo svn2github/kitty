@@ -15,7 +15,7 @@ int SaveFileName( HWND hFrame, char * filename, char * Title, char * Filter ) ;
 void CenterDlgInParent(HWND hDlg) ;
 
 // Envoi vers l'imprimante
-int PrintText( HWND hwnd, const char * Text ) ;
+int PrintText( const char * Text ) ;
 
 // Impression du texte dans le bloc-notes
 void ManagePrint( HWND hwnd ) ;

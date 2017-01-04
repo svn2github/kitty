@@ -362,7 +362,7 @@ void ManageAutocommand( struct handle *h ) {
 		}
 	if( c != '\n' ) stdin_gotdata(h, "\n", 1 ) ;
 	}
-
+	
 int plink_main(int argc, char **argv) ;
 	
 int main(int argc, char **argv) {

@@ -15,7 +15,7 @@ extern int debug_flag ;
 int GetAutoStoreSSHKeyFlag(void) ;
 void SetAutoStoreSSHKeyFlag( const int flag ) ;
 
-// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
+// Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) Ã  la connexion SSH
 // extern int UserPassSSHNoSave ;
 int GetUserPassSSHNoSave(void) ;
 void SetUserPassSSHNoSave( const int flag ) ;

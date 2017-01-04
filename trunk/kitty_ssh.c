@@ -82,12 +82,12 @@ int ManagePortKnocking( char* host, char *portknockseqorig ) {
 			if( portstr[i-1]!=':' ) { 
 				portstr[i-1]='\0'; del(portknockseq,1,i);
 				strcpy(protostr,"tcp");
-			}
+				}
 			else {
 				portstr[i-1]='\0'; del(portknockseq,1,i);
 				i=poss(",",portknockseq) ; if(i==0) i=strlen(portknockseq)+1;
 				strcpy(protostr,portknockseq); protostr[i-1]='\0'; del(portknockseq,1,i);
-			}
+				}
 			port=atoi(portstr);
 			if( !stricmp(protostr,"udp") ) proto=PROTO_UDP ; else proto=PROTO_TCP ;
 			
@@ -100,5 +100,5 @@ int ManagePortKnocking( char* host, char *portknockseqorig ) {
 	
 	free(portknockseq);
 	return 1;
-}
+	}
 #endif

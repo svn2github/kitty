@@ -378,14 +378,11 @@ void InitLauncherRegistry( void ) {
 void DisplayContextMenu( HWND hwnd, HMENU menu ) {
 	HMENU hMenuPopup = menu ;
 	POINT pt;
-	//long  lReturnValue = 0;
 	
 	SetForegroundWindow( hwnd ) ;
 	GetCursorPos (&pt);
-	/*lReturnValue =*/ TrackPopupMenu (hMenuPopup, TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
-
+	TrackPopupMenu (hMenuPopup, TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
 	}
-	
 	
 // Gestion Hide/UnHide all
 static int CurrentVisibleWin = -1 ; /* -1 = toutes visibles */
@@ -582,7 +579,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		case WM_COMMAND: {//Commandes du menu
 			switch( LOWORD(wParam) ) {
 				case IDM_ABOUT:
-					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2016","About", MB_OK ) ;
+					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2017","About", MB_OK ) ;
 					break ;
 				case IDM_QUIT:
 					ResShell = Shell_NotifyIcon(NIM_DELETE, &TrayIcone) ;

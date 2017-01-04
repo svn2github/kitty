@@ -293,7 +293,6 @@ typedef enum _WTS_VIRTUAL_CLASS {
   WTSVirtualClientData,
   WTSVirtualFileHandle
 } WTS_VIRTUAL_CLASS; 		// WTS_VIRTUAL_CLASS n'est pas défini dans le fichier wtsapi32.h !!!
-
 #include <wtsapi32.h>
 #endif
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -383,14 +382,12 @@ static void start_backend(void)
 		       &realhost,
 		       conf_get_int(conf, CONF_tcp_nodelay),
 		       conf_get_int(conf, CONF_tcp_keepalives));
-
     back->provide_logctx(backhandle, logctx);
     if (error) {
 	char *str = dupprintf("%s Error", appname);
 	sprintf(msg, "Unable to open connection to\n"
 		"%.800s\n" "%s", conf_dest(conf), error);
 	MessageBox(NULL, msg, str, MB_ICONERROR | MB_OK);
-
 	sfree(str);
 #ifdef RECONNECTPORT
 	if( GetAutoreconnectFlag() && conf_get_int(conf,CONF_failure_reconnect) && backend_first_connected ) {
@@ -1123,6 +1120,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	// Creation du fichier kitty.ini par defaut si besoin
 	CreateDefaultIniFile() ;
 #endif
+
 	cmdline_run_saved(conf);
 
 	if (loaded_session || got_host)
@@ -2019,7 +2017,6 @@ void connection_fatal(void *frontend, const char *fmt, ...)
 		sfree(stuff);
 
 		if( conf_get_int(conf,CONF_failure_reconnect) ) {
-			//time_t tnow = time(NULL);
 			queue_toplevel_callback(close_session, NULL);
 			logevent(NULL, "Lost connection, trying to reconnect...") ;
 			SetTimer(hwnd, TIMER_RECONNECT, GetReconnectDelay()*1000, NULL) ;
@@ -3500,7 +3497,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    {
 		Conf *prev_conf;
 		int init_lvl = 1;
-		int reconfig_result=0;
+		int reconfig_result;
 		if (reconfiguring)
 		    break;
 		else

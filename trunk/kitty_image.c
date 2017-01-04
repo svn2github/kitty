@@ -4,7 +4,7 @@
 // Le probleme est dans load_file_jpeg => il manquait un GlobalFree
 
 
-// Essai de compilation séparé
+// Essai de compilation séparée
 #ifdef FDJ
 #undef IMAGEPORT
 #endif

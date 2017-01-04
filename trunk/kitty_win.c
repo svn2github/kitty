@@ -215,7 +215,7 @@ int PrintCharSize = 100 ;
 int PrintMaxLinePerPage = 60 ;
 int PrintMaxCharPerLine = 85 ;
 
-int PrintText( HWND hwnd, const char * Text ) {
+int PrintText( const char * Text ) {
 	int return_code = 0 ; 
 	PRINTDLG	pd;
 	DOCINFO		di;
@@ -232,23 +232,17 @@ int PrintText( HWND hwnd, const char * Text ) {
 	di.cbSize = sizeof(DOCINFO);
 	di.lpszDocName = "Test";
 
-	ZeroMemory(&pd, sizeof(pd));
-	pd.lStructSize = sizeof(pd);
-	pd.hDevMode = NULL ;
-	pd.hDevNames = NULL ;
-	pd.hwndOwner = hwnd ;
-	//pd.Flags = PD_RETURNDEFAULT | PD_RETURNDC ;
-	pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC | PD_NOPAGENUMS | PD_NOSELECTION | PD_HIDEPRINTTOFILE | PD_NOWARNING | PD_ALLPAGES ;
-	pd.nCopies = 1 ;
-	pd.nFromPage = 0xFFFF;
-	pd.nToPage = 0xFFFF;
+	pd.lStructSize = sizeof(PRINTDLG);
+	pd.Flags = PD_PAGENUMS | PD_RETURNDC;
+	pd.nFromPage = 1;
+	pd.nToPage = 1;
 	pd.nMinPage = 1;
-	pd.nMaxPage = 0xFFFF;
+	pd.nMaxPage = 1;
 	szMessage = 0;
 
 	if( PrintDlg( &pd ) ) {
-		if( pd.hDC!=NULL ) {
-			if (StartDoc(pd.hDC, &di) != SP_ERROR)	{
+		if( pd.hDC ) {
+			if (StartDoc (pd.hDC, &di) != SP_ERROR)	{
 				TextLen = strlen( Text ) ;
 				if( TextLen > 0 ) {
 					LinePrint = (char*) malloc( TextLen + 2 ) ;
@@ -261,22 +255,22 @@ int PrintText( HWND hwnd, const char * Text ) {
 							LinePrint[Index1] = '\0' ;
                       					TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint) ) ;
 							Index1 = 0 ;
-						} else if( Index1>=PrintMaxCharPerLine ) {
+                    					}
+						else if( Index1>=PrintMaxCharPerLine ) {
 							Index2++ ;
 							LinePrint[Index1+1] = '\0' ;
                       					TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint) ) ;
 							Index1 = 0 ;
-						} else { 
-							Index1++ ; 
-						}
-						if( Index2 >= PrintMaxLinePerPage ) {
+							}
+                    				else { Index1++ ; }
+                    				if( Index2 >= PrintMaxLinePerPage ) {
                   	   				EndPage( pd.hDC ) ;
                        					//EndDoc(pd.hDC) ;
                        					//StartDoc(pd.hDC, &di) ;
 							StartPage( pd.hDC ) ;
                        					Index2 = 2 ;
-						}
-					}
+                       					}
+                  				}
                   			Index2++ ; 
                   			LinePrint[Index1] = '\0'; // Impression de la dernière page
                   			TextOut(pd.hDC,100, Index2*PrintCharSize, LinePrint, strlen(LinePrint)) ;
@@ -284,27 +278,27 @@ int PrintText( HWND hwnd, const char * Text ) {
                   			EndDoc(pd.hDC) ;
                   			szMessage = "Print successful";
 					free( LinePrint ) ;
-				} else { 
-					return_code = 1 ;  /* Chaine vide */ 
+              				}
+              			else { return_code = 1 ;  /* Chaine vide */ }
 				}
-			} else { // Problème StartDoc
+			else { // Problème StartDoc
 				szMessage = "ERROR Type 1" ;
 				return_code = 2 ;
+				}
 			}
-			DeleteDC(pd.hDC);
-		} else { // Probleme pd.hDC
+		else { // Probleme pd.hDC
 			szMessage = "ERROR Type 2." ;
 			return_code = 3 ;
+			}
 		}
-	} else { // Problème PrintDlg
+	else { // Problème PrintDlg
 		//szMessage = "Impression annulée par l'utilisateur" ;
 		return_code = 4 ;
-	}
-	
+		}
 	if (szMessage) { MessageBox (NULL, szMessage, "Print report", MB_OK) ; }
 	
 	return return_code ;
-}
+	}
 
 // Impression du texte dans le bloc-notes
 void ManagePrint( HWND hwnd ) {
@@ -314,7 +308,7 @@ void ManagePrint( HWND hwnd ) {
 		
 		if( (hglb = GetClipboardData( CF_TEXT ) ) != NULL ) {
 			if( ( pst = GlobalLock( hglb ) ) != NULL ) {
-				PrintText( hwnd, pst ) ;
+				PrintText( pst ) ;
 				GlobalUnlock( hglb ) ;
 				}
 			}

@@ -1737,7 +1737,7 @@ else {
 		if( !createPath(sshkpath) ) { errorShow("Unable to create directory for storing ssh host keys", sshkpath); }
 	}
 	FindClose(hFile);
-	if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory ", sshkpath); }
+	if( !SetCurrentDirectory(sshkpath) ) { errorShow("Unable to jump into ssh host keys directory", sshkpath); }
 
 	p = snewn(3*strlen(regname) + 1, char);
 	packstr(regname, p);
