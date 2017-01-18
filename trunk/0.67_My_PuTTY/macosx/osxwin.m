@@ -703,7 +703,8 @@
 	    }
 	    goto done;
 	}
-	if (cfg.rxvt_homeend && (code == 1 || code == 4)) {
+	if ((cfg.rxvt_homeend == 1) && (code == 1 || code == 4)) {
+		// rxvt
 	    if (code == 1) {
 		output[end++] = '\033';
 		output[end++] = '[';
@@ -712,6 +713,64 @@
 		output[end++] = '\033';
 		output[end++] = 'O';
 		output[end++] = 'w';
+	    }
+	    goto done;
+	}
+	if ((cfg.rxvt_homeend == 2) && (code == 1 || code == 4)) {
+	    // urxvt
+	    if (code == 1) {
+		output[end++] = '\033';
+		output[end++] = '[';
+		output[end++] = '7';
+		output[end++] = '~';
+	    } else {
+		output[end++] = '\033';
+		output[end++] = '[';
+		output[end++] = '8';
+		output[end++] = '~';
+	    }
+	    goto done;
+	}
+	if ((cfg.rxvt_homeend == 3) && (code == 1 || code == 4)) {
+	    // xterm
+	    if (code == 1) {
+		output[end++] = '\033';
+		output[end++] = 'O';
+		output[end++] = 'H';
+	    } else {
+		output[end++] = '\033';
+		output[end++] = 'O';
+		output[end++] = 'F';
+	    }
+	    goto done;
+	}
+	if ((cfg.rxvt_homeend == 4) && (code == 1 || code == 4)) {
+	    // FreeBSD1
+	    if (code == 1) {
+		output[end++] = '\033';
+		output[end++] = '[';
+		output[end++] = 'H';
+	    } else {
+		output[end++] = '\033';
+		output[end++] = '[';
+		output[end++] = 'F';
+	    }
+	    goto done;
+	}
+	if ((cfg.rxvt_homeend == 5) && (code == 1 || code == 4)) {
+	    // FreeBSD2
+	    if (code == 1) {
+		output[end++] = '\033';
+		output[end++] = 'O';
+		output[end++] = 'H';
+	    } else {
+		output[end++] = '\033';
+		output[end++] = '[';
+		output[end++] = '?';
+		output[end++] = '1';
+		output[end++] = 'l';
+		output[end++] = '\033';
+		output[end++] = '>';
 	    }
 	    goto done;
 	}

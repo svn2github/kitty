@@ -1568,11 +1568,52 @@ gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 		goto done;
 	    }
 	    if ((code == 1 || code == 4) &&
-		conf_get_int(inst->conf, CONF_rxvt_homeend)) {
+		conf_get_int(inst->conf, CONF_rxvt_homeend) == 1) {
+		// rxvt
 #ifdef KEY_EVENT_DIAGNOSTICS
                 debug((" - rxvt style Home/End"));
 #endif
 		end = 1 + sprintf(output+1, code == 1 ? "\x1B[H" : "\x1BOw");
+		use_ucsoutput = FALSE;
+		goto done;
+	    }
+	    if ((code == 1 || code == 4) &&
+		conf_get_int(inst->conf, CONF_rxvt_homeend) == 2) {
+		// rxvt
+#ifdef KEY_EVENT_DIAGNOSTICS
+                debug((" - urxvt style Home/End"));
+#endif
+		end = 1 + sprintf(output+1, code == 1 ? "\x1B[7~" : "\x1B[8~");
+		use_ucsoutput = FALSE;
+		goto done;
+	    }
+	    if ((code == 1 || code == 4) &&
+		conf_get_int(inst->conf, CONF_rxvt_homeend) == 3) {
+		// rxvt
+#ifdef KEY_EVENT_DIAGNOSTICS
+                debug((" - xterm style Home/End"));
+#endif
+		end = 1 + sprintf(output+1, code == 1 ? "\x1BOH" : "\x1BOF");
+		use_ucsoutput = FALSE;
+		goto done;
+	    }
+	    if ((code == 1 || code == 4) &&
+		conf_get_int(inst->conf, CONF_rxvt_homeend) == 4) {
+		// FreeBSD
+#ifdef KEY_EVENT_DIAGNOSTICS
+                debug((" - FreeBSD1 style Home/End"));
+#endif
+		end = 1 + sprintf(output+1, code == 1 ? "\x1B[H" : "\x1B[F");
+		use_ucsoutput = FALSE;
+		goto done;
+	    }
+	    if ((code == 1 || code == 4) &&
+		conf_get_int(inst->conf, CONF_rxvt_homeend) == 5) {
+		// FreeBSD
+#ifdef KEY_EVENT_DIAGNOSTICS
+                debug((" - FreeBSD2 style Home/End"));
+#endif
+		end = 1 + sprintf(output+1, code == 1 ? "\x1BOH" : "\x1B[?1l\x1B>");
 		use_ucsoutput = FALSE;
 		goto done;
 	    }

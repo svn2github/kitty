@@ -8083,6 +8083,8 @@ static void ssh2_msg_channel_data(Ssh ssh, struct Packet *pktin)
     c = ssh_channel_msg(ssh, pktin);
     if (!c)
 	return;
+    if (pktin->type == SSH2_MSG_CHANNEL_EXTENDED_DATA)
+	ext_type = ssh_pkt_getuint32(pktin);
     ssh_pkt_getstring(pktin, &data, &length);
     if (data) {
 	int bufsize;
@@ -9299,7 +9301,6 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
                     if (!s->privatekey_available)
                         logeventf(ssh, "Key file contains public key only");
 		    s->privatekey_encrypted =
-			ssh2_userkey_encrypted(s->keyfile, NULL);
 			ssh2_userkey_encrypted(s->keyfile, NULL);
 #ifdef WINCRYPTPORT
 #ifdef USE_CAPI
