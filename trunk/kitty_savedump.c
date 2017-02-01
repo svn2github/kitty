@@ -80,6 +80,7 @@ void PrintWindowSettings( FILE * fp ) {
 	
 	GetOSInfo( buffer ) ;
 	fprintf( fp, "OSVersion=%s\n", buffer ) ;
+	if( IsWow64() ) { fprintf( fp, "64 bits System\n" ) ; } else { fprintf( fp, "32 bits System\n" ) ; }
 	
 	ret = GetWindowText( MainHwnd, buffer, MAX_VALUE_NAME ) ; buffer[ret]='\0';
 	ret = GetWindowTextLength( MainHwnd ) ;
@@ -213,7 +214,7 @@ void SaveDumpListConf( FILE *fp, const char *directory ) {
 
 void SaveDumpClipBoard( FILE *fp ) {
 	char *pst = NULL ;
-	
+	if( term==NULL ) return ;
 	term_copyall(term) ;
 	if( OpenClipboard(NULL) ) {
 		HGLOBAL hglb ;
@@ -701,7 +702,6 @@ void SaveDump( void ) {
 	FILE * fp, * fpout ;
 	char buffer[4096], buffer2[4096] ;
 	int i;
-
 	if( IniFileFlag != SAVEMODE_REG ) { WriteCountUpAndPath() ; }
 	
 	sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;
@@ -709,7 +709,7 @@ void SaveDump( void ) {
 		
 		fputs( "\n@ InitialDirectoryListing @\n\n", fpout ) ;
 		SaveDumpListFile( fpout, InitialDirectory ) ; fflush( fpout ) ;
-		
+
 		fputs( "\n@ Environment variables @\n\n", fpout ) ;
 		SaveDumpEnvironment( fpout ) ; fflush( fpout ) ;
 		
@@ -759,7 +759,7 @@ void SaveDump( void ) {
 		fputs( "\n@ CurrentEventLog @\n\n", fpout ) ;
 		i=0 ; while( print_event_log( fpout, i ) ) { i++ ; }
 		fflush( fpout ) ;
-		
+
 		fputs( "\n@ ClipBoardContent @\n\n", fpout ) ;
 		SaveDumpClipBoard( fpout ) ; fflush( fpout ) ;
 

@@ -145,7 +145,7 @@ void RunCommand( HWND hwnd, char * cmd ) ;
 static const char *
 cygterm_init(void *frontend_handle, void **backend_handle,
              Conf *conf,
-             char *unused_host, int unused_port,
+             const char *unused_host, int unused_port,
              char **realhost, int nodelay, int keepalive)
 {
 	/* XXX: I'm not sure if it is OK to overload Plug like this.
@@ -290,7 +290,7 @@ cygterm_reconfig(void *handle, Conf *conf)
 }
 
 static int
-cygterm_send(void *handle, char *buf, int len)
+cygterm_send(void *handle, const char *buf, int len)
 {
 	Local local = handle;
 	cygterm_debug("frontend -> pty %u", len);
@@ -486,7 +486,7 @@ getRegistry(char *valueData, LPDWORD psize, HKEY key, const char *subKey, const 
 		return ret;
 
 	ERROR_SUCCESS == (ret = RegQueryInfoKey(k, 0, 0, 0, 0, 0, 0, 0, 0, psize, 0, 0))
-		&& ERROR_SUCCESS == (ret = RegQueryValueEx(k, valueName, 0, 0, valueData, psize));
+		&& ERROR_SUCCESS == (ret = RegQueryValueEx(k, valueName, 0, 0, (LPBYTE)valueData, psize)) ;
 
 	RegCloseKey(k);
 	return ret;

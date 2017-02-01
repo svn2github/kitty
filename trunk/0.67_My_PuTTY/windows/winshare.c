@@ -121,7 +121,7 @@ static char *make_name(const char *prefix, const char *name)
 
 Socket new_named_pipe_client(const char *pipename, Plug plug);
 Socket new_named_pipe_listener(const char *pipename, Plug plug);
-
+const char *win_strerror(int error) ;
 int platform_ssh_share(const char *pi_name, Conf *conf,
                        Plug downplug, Plug upplug, Socket *sock,
                        char **logtext, char **ds_err, char **us_err,

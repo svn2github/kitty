@@ -82,7 +82,7 @@ DWORD errorShow(const char* pcErrText, const char* pcErrParam) {
 	HWND hwRodic;
 	DWORD erChyba;
 	char pcBuf[16];
-	char* pcHlaska = snewn(strlen(pcErrParam) + strlen(pcErrText) + 31, char);
+	char* pcHlaska = snewn(strlen(pcErrParam) + strlen(pcErrText) + 41, char);
 	
 	erChyba = GetLastError();		
 	ltoa(erChyba, pcBuf, 10);
@@ -421,6 +421,7 @@ int CreateFolderInPath( const char * d ) {
 	if( !res ) { MessageBox(NULL,"Unable to create directory", "Error", MB_OK|MB_ICONERROR); }
 	return res ;
 	}
+
 void SaveDumpPortableConfig( FILE * fp ) {
 	fprintf( fp, "seedpath=%s\n", seedpath ) ;
 	fprintf( fp, "sesspath=%s\n", sesspath ) ;
@@ -569,7 +570,7 @@ void write_setting_s(void *handle, const char *key, const char *value)
 
 	if( (get_param( "INIFILE")==SAVEMODE_REG)||(get_param("INIFILE")==SAVEMODE_FILE) ) {
 		 if (handle)
-		RegSetValueEx((HKEY) ((struct setPack*) handle)->handle, key, 0, REG_SZ, value, 1 + strlen(value)) ;
+		RegSetValueEx( (HKEY) ((struct setPack*) handle)->handle, key, 0, REG_SZ, (const BYTE*)value, 1 + strlen(value) ) ;
 		}
 	else
 	if (handle) {
@@ -946,9 +947,8 @@ char *read_setting_s(void *handle, const char *key)
 	return NULL;
 
     allocsize = size+1;         /* allow for an extra NUL if needed */
-    ret = snewn(allocsize, char);
-    if (RegQueryValueEx((HKEY) handle, key, 0,
-			&type, ret, &size) != ERROR_SUCCESS ||
+    ret = snewn(allocsize, char) ;
+    if (RegQueryValueEx((HKEY) handle, key, 0, &type, (LPBYTE)ret, &size) != ERROR_SUCCESS ||
 	type != REG_SZ) {
         sfree(ret);
         return NULL;
@@ -1267,7 +1267,7 @@ char *enum_settings_next(void *handle, char *buffer, int buflen)
 					}
 				}
 			else {
-				/* On skip ".", et ".." si on est à la racine */
+				/* On skip ".", et ".." si on est à¡¬a racine */
 				while( (!strcmp(FindFileData.cFileName,"."))
 					||( (!strcmp(sesspath,initialsesspath))&&(!strcmp(FindFileData.cFileName,".."))) )
 				//while( (!strcmp(FindFileData.cFileName,"."))
@@ -1404,6 +1404,8 @@ int verify_host_key(const char *hostname, int port,
 	WIN32_FIND_DATA FindFile;
 
     len = 1 + strlen(key);
+	
+    if(*sshkpath == '\0') { loadPath() ; }
 
     /* Now read a saved key in from the registry and see what it says. */
     otherstr = snewn(len, char);
@@ -1461,7 +1463,7 @@ int verify_host_key(const char *hostname, int port,
 	}
 
     readlen = len;
-    ret = RegQueryValueEx(rkey, regname, NULL, &type, otherstr, &readlen);
+    ret = RegQueryValueEx(rkey, regname, NULL, &type, (LPBYTE)otherstr, &readlen);
 
     if (ret != ERROR_SUCCESS && ret != ERROR_MORE_DATA &&
 	!strcmp(keytype, "rsa")) {
@@ -1473,8 +1475,7 @@ int verify_host_key(const char *hostname, int port,
 	char *justhost = regname + 1 + strcspn(regname, ":");
 	char *oldstyle = snewn(len + 10, char);	/* safety margin */
 	readlen = len;
-	ret = RegQueryValueEx(rkey, justhost, NULL, &type,
-			      oldstyle, &readlen);
+	ret = RegQueryValueEx(rkey, justhost, NULL, &type, (LPBYTE)oldstyle, &readlen);
 
 	if (ret == ERROR_SUCCESS && type == REG_SZ) {
 	    /*
@@ -1520,8 +1521,7 @@ int verify_host_key(const char *hostname, int port,
 	     * wrong, and hyper-cautiously do nothing.
 	     */
 	    if (!strcmp(otherstr, key))
-		RegSetValueEx(rkey, regname, 0, REG_SZ, otherstr,
-			      strlen(otherstr) + 1);
+		RegSetValueEx(rkey, regname, 0, REG_SZ, (const BYTE*)otherstr, strlen(otherstr) + 1);
 		/* JK: session is not saved to file - fixme */
 	}
     }
@@ -1718,11 +1718,12 @@ void store_host_key(const char *hostname, int port,
 
     hostkey_regname(regname, hostname, port, keytype);
 #ifdef PERSOPORT
+	if(*sshkpath == '\0') { loadPath() ; }
 	GetCurrentDirectory( (MAX_PATH*2), oldpath);
 if( (get_param("INIFILE")==SAVEMODE_REG)||(get_param("INIFILE")==SAVEMODE_FILE) ) {
     if (RegCreateKey(HKEY_CURRENT_USER, PUTTY_REG_POS "\\SshHostKeys",
 		     &rkey) == ERROR_SUCCESS) {
-	RegSetValueEx(rkey, regname, 0, REG_SZ, key, strlen(key) + 1);
+	RegSetValueEx(rkey, regname, 0, REG_SZ, (const BYTE*)key, strlen(key) + 1);
 	RegCloseKey(rkey);
     } /* else key does not exist in registry */
 	}
@@ -1805,12 +1806,12 @@ static HANDLE access_random_seed(int action)
 
 #ifdef PERSOPORT
 	/* JK: settings in conf file are the most prior */
-	if (seedpath != '\0') {
+//	if (seedpath != '\0') {
 		/* JK: In PuTTY 0.58 this won't ever happen - this function was called only if (!seedpath[0])
 		 * This changed in PuTTY 0.59 - read the long comment below
 		 */
-		return INVALID_HANDLE_VALUE;
-	}
+//		return INVALID_HANDLE_VALUE;
+//	}
 	/* JK: ok, try registry and etc. as in original PuTTY */
 #endif
 	
@@ -1832,8 +1833,7 @@ static HANDLE access_random_seed(int action)
     size = sizeof(seedpath);
     if (RegOpenKey(HKEY_CURRENT_USER, PUTTY_REG_POS, &rkey) ==
 	ERROR_SUCCESS) {
-	int ret = RegQueryValueEx(rkey, "RandSeedFile",
-				  0, &type, seedpath, &size);
+	int ret = RegQueryValueEx(rkey, "RandSeedFile",0, &type, (LPBYTE)seedpath, &size);
 	if (ret != ERROR_SUCCESS || type != REG_SZ)
 	    seedpath[0] = '\0';
 	RegCloseKey(rkey);
@@ -1955,11 +1955,12 @@ static int transform_jumplist_registry
     HKEY pjumplist_key, psettings_tmp;
     DWORD type;
     DWORD value_length;
-    char *old_value, *new_value;
+    char *old_value=NULL, *new_value;
     char *piterator_old, *piterator_new, *piterator_tmp;
 
 #ifdef PERSOPORT
 	char RecentSessionsFile[2*MAX_PATH] ;
+	if(*jumplistpath == '\0') { loadPath() ; }
 if( get_param("INIFILE")==SAVEMODE_DIR ) {
 	ret = ERROR_SUCCESS ;
 	if( !existdirectory(jumplistpath) ) { 
@@ -1967,7 +1968,7 @@ if( get_param("INIFILE")==SAVEMODE_DIR ) {
 	}
 	sprintf(RecentSessionsFile,"%s/RecentSessions",jumplistpath);
 	if( !existfile(RecentSessionsFile) ) {
-		ret == ERROR_FILE_NOT_FOUND;
+		ret = ERROR_FILE_NOT_FOUND;
 		value_length=200 ;
 		old_value = snewn(value_length, char);
 		*old_value = '\0';
@@ -1997,16 +1998,14 @@ else {
     /* Get current list of saved sessions in the registry. */
     value_length = 200;
     old_value = snewn(value_length, char);
-    ret = RegQueryValueEx(pjumplist_key, reg_jumplist_value, NULL, &type,
-                          old_value, &value_length);
+    ret = RegQueryValueEx(pjumplist_key, reg_jumplist_value, NULL, &type, (LPBYTE)old_value, &value_length);
     /* When the passed buffer is too small, ERROR_MORE_DATA is
      * returned and the required size is returned in the length
      * argument. */
     if (ret == ERROR_MORE_DATA) {
         sfree(old_value);
         old_value = snewn(value_length, char);
-        ret = RegQueryValueEx(pjumplist_key, reg_jumplist_value, NULL, &type,
-                              old_value, &value_length);
+        ret = RegQueryValueEx(pjumplist_key, reg_jumplist_value, NULL, &type, (LPBYTE)old_value, &value_length);
     }
 
     if (ret == ERROR_FILE_NOT_FOUND) {
@@ -2091,8 +2090,7 @@ if( get_param("INIFILE")==SAVEMODE_DIR ) {
 	}
 } else
 #endif
-        ret = RegSetValueEx(pjumplist_key, reg_jumplist_value, 0, REG_MULTI_SZ,
-                            new_value, piterator_new - new_value);
+        ret = RegSetValueEx(pjumplist_key, reg_jumplist_value, 0, REG_MULTI_SZ, (const BYTE*)new_value, piterator_new - new_value);
 
         sfree(old_value);
         old_value = new_value;

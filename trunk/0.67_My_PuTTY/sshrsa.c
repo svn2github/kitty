@@ -735,7 +735,7 @@ static void *rsa2_openssh_createkey(const struct ssh_signkey *self,
 #ifdef USE_CAPI
 #ifdef _WINDOWS
 	if((*len >= 7) && 0 == strncmp("cert://", (const char*)*blob, 7)) {
-		return capi_load_key(blob, len);
+		return capi_load_key((unsigned char **)blob, len);
 	}
 #endif /* _WINDOWS */
 #endif /* USE_CAPI */
@@ -905,7 +905,7 @@ static unsigned char *rsa2_sign(void *key, const char *data, int datalen,
 #ifdef USE_CAPI
 #ifdef _WINDOWS
 	if(capi_is_capikey(rsa)) {
-		out = capi_rsa2_sign(rsa, data, datalen);
+		out = capi_rsa2_sign(rsa, (char*)data, datalen);
 	} else {
 #endif /* _WINDOWS */
 #endif /* USE_CAPI */

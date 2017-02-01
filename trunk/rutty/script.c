@@ -196,7 +196,7 @@ void script_getline(ScriptData * scriptdata)
     do {
       do
         neof=script_findline(scriptdata);
-      while(neof && ( !scriptdata->cond_use && scriptdata->nextline[0]==scriptdata->cond_char
+      while(neof && ( (!scriptdata->cond_use && scriptdata->nextline[0]==scriptdata->cond_char)
                       || ( scriptdata->cond_use && scriptdata->nextline[0]==scriptdata->cond_char
                            && scriptdata->nextline[1]==scriptdata->cond_char ) ) ) ;
       if(!neof)

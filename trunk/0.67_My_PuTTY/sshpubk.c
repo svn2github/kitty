@@ -654,7 +654,7 @@ struct ssh2_userkey *ssh2_load_userkey(const Filename *filename,
 		ret->alg = alg;
 		public_blob_len = strlen(filename->path);
 		public_blob = (unsigned char*)filename->path;
-		ret->data = alg->openssh_createkey(alg,&public_blob, &public_blob_len);
+		ret->data = alg->openssh_createkey(alg,(const unsigned char **)&public_blob, &public_blob_len);
 		if(!ret->data) {
 			sfree(ret);
 			error = "load key from certificate failed";
@@ -1138,10 +1138,10 @@ unsigned char *ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
 	struct RSAKey *key;
 	if(0 == strncmp("cert://", filename->path, 7)) {
 		alg = find_pubkey_alg("ssh-rsa");
-		if(algorithm) { *algorithm = alg->name; }
+		if(algorithm) { *algorithm = (char*)alg->name; }
 		public_blob_len = strlen(filename->path);
 		public_blob = (unsigned char*)filename->path;
-		key = (struct RSAKey*)alg->openssh_createkey(alg,&public_blob, &public_blob_len);
+		key = (struct RSAKey*)alg->openssh_createkey(alg,(const unsigned char **)&public_blob, &public_blob_len);
 		if(!key) {
 			*errorstr = "load key from certificate failed";
 			return NULL;

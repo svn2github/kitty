@@ -152,7 +152,7 @@ static void adb_sent(Plug plug, int bufsize)
  */
 static const char *adb_init(void *frontend_handle, void **backend_handle,
                             Conf *conf,
-                            char *host, int port, char **realhost, int nodelay,
+                            const char *host, int port, char **realhost, int nodelay,
                             int keepalive)
 {
     static const struct plug_function_table fn_table = {
@@ -278,7 +278,7 @@ static void adb_reconfig(void *handle, Conf *conf)
 /*
  * Called to send data down the adb connection.
  */
-static int adb_send(void *handle, char *buf, int len)
+static int adb_send(void *handle, const char *buf, int len)
 {
     Adb adb = (Adb) handle;
 

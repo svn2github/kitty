@@ -1015,7 +1015,7 @@ void SetPasswordInConfig( char * password ) {
 	if( (!GetUserPassSSHNoSave())&&(password!=NULL) ) {
 		len = strlen( password ) ;
 		if( len > 126 ) len = 126 ;
-		if( strlen(password)>0 ) {
+		if( len>0 ) {
 			memcpy( bufpass, password, len+1 ) ;
 			bufpass[len]='\0' ;
 			MASKPASS(bufpass) ;
@@ -1130,10 +1130,8 @@ void QueryKey( HKEY hMainKey, LPCTSTR lpSubKey, FILE * fp_out ) {
 							// A FAIRE
 						break ;
 					case REG_DWORD:
-						//fprintf( fp_out, "dword:%08x", *(int*)(lpData) ) ;
-						//sprintf( str, "\"%s\"=dword:%08x", achValue, *(int*)(lpData) ) ;
-						//sprintf( str, "\"%s\"=dword:%08x", achValue, (int)(*(LPBYTE)(lpData)) ) ;
-						sprintf( str, "\"%s\"=dword:%08x", achValue, (unsigned int) *((DWORD*)lpData) ) ;
+						//sprintf( str, "\"%s\"=dword:%08x", achValue, (unsigned int)*lpData ) ;
+						sprintf( str, "\"%s\"=dword:%08x", achValue, (unsigned int) *((DWORD*)lpData) ) ; // Ca ca marchait bien mais avec une erreur de compilation
 						break;
 					case REG_EXPAND_SZ:
 					case REG_MULTI_SZ:
@@ -1759,7 +1757,7 @@ void SendAutoCommand( HWND hwnd, const char * cmd ) {
 		buf=(char*)malloc( strlen(cmd)+30 ) ;
 		strcpy( buf, "Send automatic command" ) ;
 		if( debug_flag ) { strcat( buf, ": ") ; strcat( buf, cmd ) ; }
-		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (à cause du password envoye en clair)
+		if( conf_get_int(conf,CONF_protocol) != PROT_TELNET) logevent(NULL, buf ) ; // On logue que si on est pas en telnet (à cause du password envoyé en clair)
 		free(buf);
 		if( existfile( cmd ) ) RunScriptFile( hwnd, cmd ) ;
 		else if( (toupper(cmd[0])=='C')&&(toupper(cmd[1])==':')&&(toupper(cmd[2])=='\\') ) {
@@ -4155,63 +4153,54 @@ void ReadInitScript( const char * filename ) {
 		if( strlen( filename ) > 0 ) {
 			name = (char*) malloc( strlen( filename ) + 1 ) ;
 			strcpy( name, filename ) ;
-			}
-
+		}
 	if( name == NULL ) {
 		if( strlen(conf_get_str(conf,CONF_scriptfilecontent)) >0 ) {
 			name = (char*) malloc( strlen( conf_get_str(conf,CONF_scriptfilecontent) ) + 1 ) ;
 			strcpy( name, conf_get_str(conf,CONF_scriptfilecontent) ) ;
-			}
-		//if( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path != NULL )
-		//if( strlen( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) > 0 ) {
-		//	name = (char*) malloc( strlen( conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) + 1 ) ;
-		//	strcpy( name, conf_get_filename(conf,CONF_scriptfile)/*cfg.scriptfile.*/->path ) ;
-		//	}
-		}
-
-	if( name != NULL ) {
-	if( existfile( name ) ) {
-		l=filesize(name) ;
-		//if(l<4096){ l=4096; }
-		buffer=(char*)malloc(5*l);
-		if( ( fp = fopen( name,"rb") ) != NULL ) {
-			if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
-			l = 0 ;
-
-			ScriptFileContent = (char*) malloc( filesize(name)+10 ) ;
-			ScriptFileContent[0] = '\0' ;
-			pst=ScriptFileContent ;
-			while( fgets( buffer, 1024, fp ) != NULL ) {
-				while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
-				if( strlen( buffer ) > 0 ) {
-					strcpy( pst, buffer ) ;
-					pst = pst + strlen( pst ) + 1 ;
-					l = l + strlen( buffer ) + 1 ;
-					}
-				}
-			pst[0] = '\0' ;
-			l++ ;
-			fclose( fp ) ;
-			bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
-			if( IniFileFlag==SAVEMODE_REG ) {
-				//WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
-				}
-			conf_set_str(conf, CONF_scriptfilecontent, buffer );
-			}
-		if( buffer!=NULL ) { free(buffer); buffer=NULL; }
-		}
-	else {
-		if( (buffer=(char*)malloc(strlen(name)+1))!=NULL ){
-			strcpy( buffer, name ) ;
-			l = decryptstring( buffer, MASTER_PASSWORD ) ;
-			if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
-			ScriptFileContent = (char*) malloc( l + 1 ) ;
-			memcpy( ScriptFileContent, buffer, l ) ;
-			free(buffer);buffer=NULL;
-			}
-		}
 		}
 	}
+	if( name != NULL ) {
+		if( existfile( name ) ) {
+			l=filesize(name) ;
+			buffer=(char*)malloc(5*l);
+			if( ( fp = fopen( name,"rb") ) != NULL ) {
+				if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
+				l = 0 ;
+
+				ScriptFileContent = (char*) malloc( filesize(name)+10 ) ;
+				ScriptFileContent[0] = '\0' ;
+				pst=ScriptFileContent ;
+				while( fgets( buffer, 1024, fp ) != NULL ) {
+					while( (buffer[strlen(buffer)-1]=='\n')||(buffer[strlen(buffer)-1]=='\r') ) buffer[strlen(buffer)-1]='\0' ;
+					if( strlen( buffer ) > 0 ) {
+						strcpy( pst, buffer ) ;
+						pst = pst + strlen( pst ) + 1 ;
+						l = l + strlen( buffer ) + 1 ;
+					}
+				}
+				pst[0] = '\0' ;
+				l++ ;
+				fclose( fp ) ;
+				bcrypt_string_base64( ScriptFileContent, buffer, l, MASTER_PASSWORD, 0 ) ;
+				if( IniFileFlag==SAVEMODE_REG ) {
+					//WriteParameter( INIT_SECTION, "KiCrSt", buffer ) ;
+				}
+				conf_set_str(conf, CONF_scriptfilecontent, buffer );
+			}
+			if( buffer!=NULL ) { free(buffer); buffer=NULL; }
+		} else {
+			if( (buffer=(char*)malloc(strlen(name)+1))!=NULL ) {
+				strcpy( buffer, name ) ;
+				l = decryptstring( buffer, MASTER_PASSWORD ) ;
+				if( ScriptFileContent!= NULL ) free( ScriptFileContent ) ;
+				ScriptFileContent = (char*) malloc( l + 1 ) ;
+				memcpy( ScriptFileContent, buffer, l ) ;
+				free(buffer);buffer=NULL;
+			}
+		}
+	}
+}
 
 
 #include "kitty_launcher.c"
@@ -4696,10 +4685,12 @@ void InitShortcuts( void ) {
 		shortcuts_tab.winscp = SHIFTKEY+VK_F3 ;
 	if( !readINI(KittyIniFile,"Shortcuts","showportforward",buffer) || ( (shortcuts_tab.showportforward=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.showportforward = SHIFTKEY+VK_F6 ;
-	if( !readINI(KittyIniFile,"Shortcuts","print",buffer) || ( (shortcuts_tab.print=DefineShortcuts(buffer))<=0 ) )
-		shortcuts_tab.print = SHIFTKEY+VK_F7 ;
-	if( !readINI(KittyIniFile,"Shortcuts","printall",buffer) || ( (shortcuts_tab.printall=DefineShortcuts(buffer))<=0 ) )
-		shortcuts_tab.printall = VK_F7 ;
+	if( !IsWow64() ) {
+		if( !readINI(KittyIniFile,"Shortcuts","print",buffer) || ( (shortcuts_tab.print=DefineShortcuts(buffer))<=0 ) )
+			shortcuts_tab.print = SHIFTKEY+VK_F7 ;
+		if( !readINI(KittyIniFile,"Shortcuts","printall",buffer) || ( (shortcuts_tab.printall=DefineShortcuts(buffer))<=0 ) )
+			shortcuts_tab.printall = VK_F7 ;
+	}
 	if( !readINI(KittyIniFile,"Shortcuts","inputm",buffer) || ( (shortcuts_tab.inputm=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.inputm = SHIFTKEY+VK_F8 ;
 	if( !readINI(KittyIniFile,"Shortcuts","viewer",buffer) || ( (shortcuts_tab.viewer=DefineShortcuts(buffer))<=0 ) )
@@ -4905,114 +4896,109 @@ void SetShrinkBitmapEnable(int) ;
 
 void LoadParameters( void ) {
 	char buffer[4096] ;
+	
 	if( ReadParameter( INIT_SECTION, "configdir", buffer ) ) { 
 		if( strlen( buffer ) > 0 ) { if( existdirectory(buffer) ) SetConfigDirectory( buffer ) ; }
-		}
-
+	}
 	if( ReadParameter( INIT_SECTION, "initdelay", buffer ) ) { 
 		init_delay = (int)(1000*atof( buffer )) ;
 		if( init_delay < 0 ) init_delay = 2000 ; 
-		}
+	}
 	if( ReadParameter( INIT_SECTION, "commanddelay", buffer ) ) {
 		autocommand_delay = (int)(1000*atof( buffer )) ;
 		if(autocommand_delay<5) autocommand_delay = 5 ; 
-		}
+	}
 #if (defined IVPORT) && (!defined FDJ)
 	if( ReadParameter( INIT_SECTION, "backgroundimageiv", buffer ) ) { 
 		if( !stricmp( buffer, "NO" ) ) BackgroundImageIVFlag = 0 ; 
 		if( !stricmp( buffer, "YES" ) ) BackgroundImageIVFlag = 1 ;
-		}
+	}
 #endif
 #if (defined IMAGEPORT) && (!defined FDJ)
 	if( ReadParameter( INIT_SECTION, "backgroundimage", buffer ) ) { 
 		if( !stricmp( buffer, "NO" ) ) BackgroundImageFlag = 0 ; 
 		if( !stricmp( buffer, "YES" ) ) BackgroundImageFlag = 1 ;
-		}
+	}
 #endif
 	if( ReadParameter( INIT_SECTION, "autostoresshkey", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SetAutoStoreSSHKeyFlag( 1 ) ; }
 	if( ReadParameter( INIT_SECTION, "bcdelay", buffer ) ) { between_char_delay = atoi( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "browsedirectory", buffer ) ) { 
 		if( !stricmp( buffer, "NO" ) ) DirectoryBrowseFlag = 0 ; 
 		else if( (!stricmp( buffer, "YES" )) && (IniFileFlag==SAVEMODE_DIR) ) DirectoryBrowseFlag = 1 ;
-		}
+	}
 	if( ReadParameter( INIT_SECTION, "capslock", buffer ) ) { if( !stricmp( buffer, "YES" ) ) CapsLockFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "conf", buffer ) ) { if( !stricmp( buffer, "NO" ) ) NoKittyFileFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "debug", buffer ) ) { if( !stricmp( buffer, "YES" ) ) debug_flag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "icon", buffer ) ) { if( !stricmp( buffer, "YES" ) ) IconeFlag = 1 ; }
-
 	if( ReadParameter( INIT_SECTION, "iconfile", buffer ) ) {
 		if( existfile( buffer ) ) {
 			if( IconFile != NULL ) free( IconFile ) ;
 			IconFile = (char*) malloc( strlen(buffer)+1 ) ;
 			strcpy( IconFile, buffer ) ;
 			if( ReadParameter( INIT_SECTION, "numberoficons", buffer ) ) { NumberOfIcons = atof( buffer ) ; }
-			}
 		}
-
+	}
 	if( ReadParameter( INIT_SECTION, "internaldelay", buffer ) ) { 
 		internal_delay = atoi( buffer ) ; 
 		if( internal_delay < 1 ) internal_delay = 1 ;
-		}
+	}
 #ifdef RECONNECTPORT
 	if( ReadParameter( INIT_SECTION, "autoreconnect", buffer ) ) { if( !stricmp( buffer, "NO" ) ) AutoreconnectFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "ReconnectDelay", buffer ) ) { 
 		ReconnectDelay = atoi( buffer ) ;
 		if( ReconnectDelay < 1 ) ReconnectDelay = 1 ;
-		}
+	}
 #endif
 #ifdef RUTTYPORT
 	if( ReadParameter( INIT_SECTION, "scriptmode", buffer ) ) { 
 		if( !stricmp( buffer, "YES" ) ) RuTTYFlag = 1 ;
 		if( !stricmp( buffer, "NO" ) ) RuTTYFlag = 0 ;
-		}
+	}
 #endif
 	if( ReadParameter( INIT_SECTION, "KiPP", buffer ) != 0 ) {
 		if( decryptstring( buffer, MASTER_PASSWORD ) ) ManagePassPhrase( buffer ) ;
-		}
+	}
 	if( ReadParameter( INIT_SECTION, "sav", buffer ) ) { 
 		if( strlen( buffer ) > 0 ) {
 			if( KittySavFile!=NULL ) free( KittySavFile ) ;
 			KittySavFile=(char*)malloc( strlen(buffer)+1 ) ;
 			strcpy( KittySavFile, buffer) ;
-			}
 		}
+	}
 	if( ReadParameter( INIT_SECTION, "antiidle", buffer ) ) { buffer[127]='\0'; strcpy( AntiIdleStr, buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "antiidledelay", buffer ) ) 
 		{ AntiIdleCountMax = (int)floor(atoi(buffer)/10.0) ; if( AntiIdleCountMax<=0 ) AntiIdleCountMax =1 ; }
 	if( ReadParameter( INIT_SECTION, "shortcuts", buffer ) ) { 
 		if( !stricmp( buffer, "NO" ) ) ShortcutsFlag = 0 ; 
 		if( !stricmp( buffer, "YES" ) ) ShortcutsFlag = 1 ; 
-		}
+	}
 	if( ReadParameter( INIT_SECTION, "mouseshortcuts", buffer ) ) { 
 		if( !stricmp( buffer, "NO" ) ) MouseShortcutsFlag = 0 ; 
 		if( !stricmp( buffer, "YES" ) ) MouseShortcutsFlag = 1 ; 
-		}
+	}
 	if( ReadParameter( INIT_SECTION, "size", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SizeFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "slidedelay", buffer ) ) { ImageSlideDelay = atoi( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "sshversion", buffer ) ) { set_sshver( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "maxblinkingtime", buffer ) ) { MaxBlinkingTime=2*atoi(buffer);if(MaxBlinkingTime<0) MaxBlinkingTime=0; }
-	
 	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { 
-		if( !stricmp( buffer, "no" ) ) SetUserPassSSHNoSave(0) ;//UserPassSSHNoSave = 0 ; 
-		if( !stricmp( buffer, "yes" ) ) SetUserPassSSHNoSave(1);//UserPassSSHNoSave = 1 ; 
+		if( !stricmp( buffer, "no" ) ) SetUserPassSSHNoSave(0) ;
+		if( !stricmp( buffer, "yes" ) ) SetUserPassSSHNoSave(1) ;
 	}
 	if( ReadParameter( INIT_SECTION, "ctrltab", buffer ) ) { if( !stricmp( buffer, "NO" ) ) SetCtrlTabFlag( 0 ) ; }
-	
 	if( ReadParameter( INIT_SECTION, "wintitle", buffer ) ) {  if( !stricmp( buffer, "NO" ) ) TitleBarFlag = 0 ; }
 	if( ReadParameter( INIT_SECTION, "paste", buffer ) ) {  if( !stricmp( buffer, "YES" ) ) PasteCommandFlag = 1 ; }
-	
 	if( ReadParameter( INIT_SECTION, "WinSCPPath", buffer ) ) {
 		if( existfile( buffer ) ) { 
 			if( WinSCPPath!=NULL) { free(WinSCPPath) ; WinSCPPath = NULL ; }
 			WinSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( WinSCPPath, buffer ) ;
-			}
 		}
+	}
 	if( ReadParameter( INIT_SECTION, "PSCPPath", buffer ) ) {
 		if( existfile( buffer ) ) { 
 			if( PSCPPath!=NULL) { free(PSCPPath) ; PSCPPath = NULL ; }
 			PSCPPath = (char*) malloc( strlen(buffer) + 1 ) ; strcpy( PSCPPath, buffer ) ;
-			}
 		}
+	}
 	if( ReadParameter( INIT_SECTION, "PSCPOptions", buffer ) ) {
 		if( strlen(PSCPOptions)>0 ) { strcpy( PSCPOptions, "" ) ; }
 		if( strlen(buffer)>0 ) {
@@ -5020,21 +5006,19 @@ void LoadParameters( void ) {
 			PSCPOptions[1023] = '\0' ;
 		}
 	}
-		
-		
 #ifdef HYPERLINKPORT
 #ifndef NO_HYPERLINK
 	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  
 		if( !stricmp( buffer, "NO" ) ) HyperlinkFlag = 0 ; 
 		if( !stricmp( buffer, "YES" ) ) HyperlinkFlag = 1 ;
-		}
+	}
 #endif
 #endif
 #ifndef NO_TRANSPARENCY
 	if( ReadParameter( INIT_SECTION, "transparency", buffer ) ) {
 		if( !stricmp( buffer, "YES" ) ) { TransparencyFlag = 1 ; }
 		else { TransparencyFlag = 0 ; } 
-		}
+	}
 #endif
 
 #if (defined IMAGEPORT) && (!defined FDJ)
@@ -5042,36 +5026,35 @@ void LoadParameters( void ) {
 #endif
 	if( readINI( KittyIniFile, "ConfigBox", "height", buffer ) ) {
 		ConfigBoxHeight = atoi( buffer ) ;
-		}
+	}
 	if( readINI( KittyIniFile, "ConfigBox", "windowheight", buffer ) ) {
 		ConfigBoxWindowHeight = atoi( buffer ) ;
-		}
+	}
 	if( readINI( KittyIniFile, "ConfigBox", "noexit", buffer ) ) {
 		if( !stricmp( buffer, "YES" ) ) ConfigBoxNoExitFlag = 1 ;
-		}
+	}
 	if( readINI( KittyIniFile, "ConfigBox", "filter", buffer ) ) {
 		if( !stricmp( buffer, "NO" ) ) SessionFilterFlag = 0 ;
-		}
+	}
 	if( readINI( KittyIniFile, "ConfigBox", "default", buffer ) ) {
 		if( !stricmp( buffer, "NO" ) ) SessionsInDefaultFlag = 0 ;
-		}
+	}
 	if( readINI( KittyIniFile, "ConfigBox", "defaultsettings", buffer ) ) {
 		if( !stricmp( buffer, "NO" ) ) DefaultSettingsFlag = 0 ;
-		}
+	}
 	if( readINI( KittyIniFile, "Print", "height", buffer ) ) {
 		PrintCharSize = atoi( buffer ) ;
-		}
+	}
 	if( readINI( KittyIniFile, "Print", "maxline", buffer ) ) {
 		PrintMaxLinePerPage = atoi( buffer ) ;
-		}
+	}
 	if( readINI( KittyIniFile, "Print", "maxchar", buffer ) ) {
 		PrintMaxCharPerLine = atoi( buffer ) ;
-		}
+	}
 	if( readINI( KittyIniFile, "Folder", "del", buffer ) ) {
 		StringList_Del( FolderList, buffer ) ;
 		delINI( KittyIniFile, "Folder", "del" ) ;
-		}
-
+	}
 #ifdef CYGTERMPORT
 	if( ReadParameter( INIT_SECTION, "cygterm", buffer ) ) {
 		if( !stricmp( buffer, "YES" ) ) cygterm_set_flag( 1 ) ; 
@@ -5153,7 +5136,7 @@ void InitNameConfigFile( void ) {
 	if( existfile( KittyIniFile ) && existfile( buffer ) )  unlink( buffer ) ;
 	if( !existfile( KittyIniFile ) )
 		if( existfile( buffer ) ) rename( buffer, KittyIniFile ) ;
-	}
+}
 	
 // Ecriture de l'increment de compteurs
 void WriteCountUpAndPath( void ) {
@@ -5230,7 +5213,7 @@ void InitWinMain( void ) {
 	
 	// Test le mode de fonctionnement de la sauvegarde des sessions
 	GetSaveMode() ;
-	
+
 	// Initialise la taille de la ConfigBox (en cas de DPI speciaux)
 	double ScaleY = GetDeviceCaps(GetDC(hwnd),LOGPIXELSY)/96.0 ; // La police standard (100%) vaut 96ppp (pixels per pouce)
 	if( ScaleY!=1.0 ) { ConfigBoxWindowHeight = (int)( 597*ScaleY ) ; }
@@ -5307,7 +5290,7 @@ void InitWinMain( void ) {
 	if( IniFileFlag == SAVEMODE_REG ) {
 		WriteCountUpAndPath() ;
 		}
-		
+
 	// Initialise la gestion des icones depuis la librairie kitty.dll si elle existe
 	if( !PuttyFlag ) {
 		if( IconFile != NULL )
@@ -5333,7 +5316,7 @@ void InitWinMain( void ) {
 	GetComputerName( hostname, (void*)&i ) ;
 	sprintf( buffer, "Starting %ld from %s@%s", GetCurrentProcessId(), username, hostname ) ;
 	logevent(NULL,buffer);
-	}
+}
 
 
 /* Pour compilation 64bits */

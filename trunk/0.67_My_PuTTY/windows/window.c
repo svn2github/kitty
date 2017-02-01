@@ -212,7 +212,9 @@ static HBITMAP caretbm;
 static int urlhack_cursor_is_hand = 0;
 void urlhack_enable(void);
 #endif
-
+#ifdef SAVEDUMPPORT
+void SaveDump( void ) ;
+#endif
 #ifdef PERSOPORT
 #include <sys/types.h>
 #include <process.h>
@@ -777,6 +779,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 		} else if( !strcmp(p, "-notrans") ) {
 			SetTransparencyFlag( 0 ) ;
 			conf_set_int(conf,CONF_transparencynumber, -1) ;
+#ifdef SAVEDUMPPORT	
+		} else if( !strcmp(p, "-savedump") ) {			
+			SaveDump() ;
+			return 0;
+#endif
 #ifdef RUTTYPORT	
 		} else if( !strcmp(p, "-norutty") ) {			
 			SetRuTTYFlag( 0 ) ;
@@ -1473,7 +1480,7 @@ TrayIcone.hWnd = hwnd ;
 		       IDM_FULLSCREEN, "&Full Screen");
 #ifdef PERSOPORT
     if( !PuttyFlag ) {
-        AppendMenu(m, MF_ENABLED, IDM_PRINT, "Print clip&board");
+        if( !IsWow64() ) { AppendMenu(m, MF_ENABLED, IDM_PRINT, "Print clip&board") ; }
         AppendMenu(m, MF_ENABLED, IDM_TOTRAY, "Send to tra&y");
         if( conf_get_int(conf,CONF_alwaysontop)/*cfg.alwaysontop*/ )
             AppendMenu(m, MF_ENABLED|MF_CHECKED, IDM_VISIBLE, "Always visi&ble");
@@ -3039,7 +3046,7 @@ static void conf_cache_data(void)
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
-    HDC hdc;
+    HDC hdc = NULL;
     static int ignore_clip = FALSE;
     static int need_backend_resize = FALSE;
     static int fullscr_on_max = FALSE;
@@ -3497,7 +3504,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    {
 		Conf *prev_conf;
 		int init_lvl = 1;
-		int reconfig_result;
+		int reconfig_result=1;
 		if (reconfiguring)
 		    break;
 		else
@@ -3506,7 +3513,6 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		char buftitle[1024] = "" ;
 		GetWindowText(hwnd, buftitle, sizeof(buftitle));
 		conf_set_str( conf, CONF_wintitle, buftitle ) ;
-		//GetWindowText(hwnd, cfg.wintitle, sizeof(cfg.wintitle));
 #endif
 
 		/*
@@ -4096,7 +4102,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    break;
 	}
 	{
-	    int button, press;
+	    int button=0, press=0;
 
 	    switch (message) {
 	      case WM_LBUTTONDOWN:
@@ -5047,7 +5053,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		     */
 		    term_seen_key_event(term);
 		    if (ldisc)
-			ldisc_send(ldisc, buf, len, 1);
+			ldisc_send(ldisc, (const char *)buf, len, 1);
 		    show_mouseptr(0);
 		}
 	    }
@@ -5121,7 +5127,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	    buf[0] = wParam >> 8;
 	    term_seen_key_event(term);
 	    if (ldisc)
-		lpage_send(ldisc, kbd_codepage, buf, 2, 1);
+		lpage_send(ldisc, kbd_codepage, (const char *)buf, 2, 1);
 	} else {
 	    char c = (unsigned char) wParam;
 	    term_seen_key_event(term);

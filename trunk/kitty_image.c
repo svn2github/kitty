@@ -315,22 +315,18 @@ static BOOL load_wallpaper_bmp(HBITMAP* rawImage, int* style, int* x, int* y)
         return FALSE; // TODO: Should the error be reported to the user here?
     }
 
-    lRes = RegQueryValueEx(kDesktop, "Wallpaper", NULL, NULL, wpPath, &pathLen);
+    lRes = RegQueryValueEx(kDesktop, "Wallpaper", NULL, NULL, (LPBYTE)wpPath, &pathLen);
     if(lRes != ERROR_SUCCESS)
     {
         RegCloseKey(kDesktop);
         return FALSE; // TODO: Should the error be reported to the user here?
     }
 
-    lRes = RegQueryValueEx(
-        kDesktop, "WallpaperStyle", NULL, NULL, wpStyleBuf, &numBufLen
-    );
+    lRes = RegQueryValueEx( kDesktop, "WallpaperStyle", NULL, NULL, (LPBYTE)wpStyleBuf, &numBufLen );
     if(lRes == ERROR_SUCCESS)
         wpStyle = atoi(wpStyleBuf);
 
-    lRes = RegQueryValueEx(
-        kDesktop, "TileWallpaper", NULL, NULL, wpTileBuf, &numBufLen
-    );
+    lRes = RegQueryValueEx( kDesktop, "TileWallpaper", NULL, NULL, (LPBYTE)wpTileBuf, &numBufLen );
     if(lRes == ERROR_SUCCESS)
         wpTile = atoi(wpTileBuf);
 

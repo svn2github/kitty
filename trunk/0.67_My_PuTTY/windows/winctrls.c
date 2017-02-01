@@ -2014,7 +2014,7 @@ int winctrl_handle_command(struct dlgparam *dp, UINT msg,
 		bi.ulFlags = BIF_RETURNONLYFSDIRS;
 
 		CoInitialize(NULL);
-		if (folder = SHBrowseForFolder(&bi)) {
+		if( (folder=SHBrowseForFolder(&bi))!=NULL ) {
 		    LPMALLOC shmalloc;
 		    if (SHGetPathFromIDList(folder, filename)) {
 			    SetDlgItemText(dp->hwnd, c->base_id + 1, filename);

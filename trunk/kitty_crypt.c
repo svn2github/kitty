@@ -3,6 +3,7 @@ char PassKey[1024] ="" ;
 
 int cryptstring( char * st, const char * key ) { return bcrypt_string_base64( st, st, strlen( st ), key, 0 ) ; }
 int decryptstring( char * st, const char * key ) { 
+	if( strlen(st)==0 ) { return 0 ; }
 	int res = buncrypt_string_base64( st, st, strlen( st ), key ) ; 
 	if( res == 0 ) strcpy( st, "" ) ;
 	return res ;

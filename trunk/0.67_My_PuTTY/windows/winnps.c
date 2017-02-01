@@ -128,7 +128,7 @@ static Socket named_pipe_accept(accept_ctx_t ctx, Plug plug)
  * used for calling plug_log from named_pipe_accept_loop() here.
  */
 SockAddr sk_namedpipe_addr(const char *pipename);
-
+const char *win_strerror(int error) ;
 static void named_pipe_accept_loop(Named_Pipe_Server_Socket ps,
                                    int got_one_already)
 {

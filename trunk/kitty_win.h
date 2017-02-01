@@ -7,6 +7,7 @@
 
 void SetTransparency( HWND hwnd, int value ) ;
 void GetOSInfo( char * version ) ;
+BOOL IsWow64() ; // Test si on est en Windows 64 bits
 int OpenFileName( HWND hFrame, char * filename, char * Title, char * Filter ) ;
 int OpenDirName( HWND hFrame, char * dirname ) ;
 int SaveFileName( HWND hFrame, char * filename, char * Title, char * Filter ) ;

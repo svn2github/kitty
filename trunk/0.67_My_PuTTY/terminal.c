@@ -22,6 +22,7 @@
 #endif
 #ifdef PERSOPORT
 int get_param( const char * val ) ;
+int frontend_is_utf8(void *frontend) ;
 #endif
 #ifdef HYPERLINKPORT
 /*
@@ -6448,7 +6449,7 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 		}
 		else {
 			termline *urldata = lineptr(region.y0 + term->disptop);
-			int linklen, pos = region.x0, row = region.y0 + term->disptop;
+			int linklen, /*pos = region.x0,*/ row = region.y0 + term->disptop;
 
 			linklen = (term->cols - region.x0) +
 				((region.y1 - region.y0 - 1) * term->cols) + region.x1 + 1;

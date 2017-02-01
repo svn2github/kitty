@@ -66,7 +66,7 @@ void CheckVersionFromWebSite( HWND hwnd ) ;
 #endif
 
 int print_event_log( FILE * fp, int i ) {
-	if( i>= nevents ) return 0 ;
+	if( i>=nevents ) return 0 ;
 	fprintf( fp, "%s\n", events[i] ) ;
 	return 1 ;
 	}
@@ -271,8 +271,8 @@ static INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg,
 		hFontNormal = CreateFontIndirect(&lf);
 	
 		//  Cursor setup
-		hCursorNormal = LoadCursor( NULL, (LPCTSTR)MAKEINTRESOURCE(IDC_ARROW) ) ;
-		if (!(hCursorHover = LoadCursor( NULL, MAKEINTRESOURCE(IDC_HAND) )))
+		hCursorNormal = LoadCursor( NULL, MAKEINTRESOURCE((DWORD)IDC_ARROW) ) ;
+		if (!(hCursorHover = LoadCursor( NULL, (LPCTSTR)MAKEINTRESOURCE((DWORD)IDC_HAND) )))
 			hCursorHover  = LoadCursor( GetModuleHandle(NULL), MAKEINTRESOURCE(IDC_HOVER) ) ;
 
 		hover_email = FALSE;
@@ -282,7 +282,7 @@ static INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg,
 
 		CenterDlgInParent(hwnd);
 		
-		mess = MESSAGE ;
+		mess = (char*)MESSAGE ;
 		SetDlgItemText(hwnd,IDC_BAN,mess);
 		if( strlen( mess ) > 0 ) SetTimer(hwnd, message_timer, 100, NULL) ;
 		return 1; 
@@ -293,7 +293,7 @@ static INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg,
 		if ((UINT_PTR)wParam == message_timer) {
 			mess++ ;
 			SetDlgItemText(hwnd,IDC_BAN,mess);
-			if( strlen( mess ) < strlen("                                                                                       ") ) mess = MESSAGE ;
+			if( strlen( mess ) < strlen("                                                                                       ") ) mess = (char*)MESSAGE ;
 			}
 		break ;
 	
