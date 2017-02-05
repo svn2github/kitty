@@ -1207,7 +1207,7 @@ while( conf_get_int(conf,CONF_icone) > GetNumberOfIcons() ) {
 }
     
 if( conf_get_int(conf,CONF_icone) == 0 ) {
-	if( GetIconeFlag() > 0 ) SetIconeNum( time( NULL ) % GetNumberOfIcons() ) ; else SetIconeNum( 0 ) ; 
+	if( GetIconeFlag() > 0 ) SetIconeNum( ( GetCurrentProcessId() * time( NULL ) ) % GetNumberOfIcons() ) ; else SetIconeNum( 0 ) ; 
 } else{
 	if( GetIconeFlag() > 0 ) SetIconeNum( conf_get_int(conf,CONF_icone) - 1 ) ; else SetIconeNum( 0 ) ; 
 }

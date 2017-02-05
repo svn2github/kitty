@@ -4813,8 +4813,10 @@ static int do_ssh1_login(Ssh ssh, const unsigned char *in, int inlen,
 				bufpass[1020]='\0';
 			}
 			MASKPASS(bufpass);
-			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) 
-				{ bufpass[strlen(bufpass)-2]='\0'; bufpass[strlen(bufpass)-1]='\0'; }
+			while( (bufpass[strlen(bufpass)-1]=='n')&&(bufpass[strlen(bufpass)-2]=='\\') ) { 
+				bufpass[strlen(bufpass)-2]='\0';
+				bufpass[strlen(bufpass)-1]='\0';
+			}
 			ret=get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"" ) ;
 			ret = 1 ;
@@ -4828,7 +4830,6 @@ static int do_ssh1_login(Ssh ssh, const unsigned char *in, int inlen,
 		}
 	sfree(userlog);
 	}
-
 			}
 		else 
 #endif
@@ -9904,16 +9905,12 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 				   FALSE);
 #ifdef PERSOPORT
 			if( strlen(ManagePassPhrase(NULL))>0 ) {
-				//strcpy( s->cur_prompt->prompts[0]->result, ManagePassPhrase(NULL) ) ;
 				char *p=ManagePassPhrase(NULL) ;
-				
 				ret=get_userpass_input(s->cur_prompt, (unsigned char*)p, strlen(p)+1);
-			
 				logevent("Test passphrase");
 				ManagePassPhrase("");
 				ret=1;
-				}
-			else
+			} else
 #endif
 			ret = get_userpass_input(s->cur_prompt, NULL, 0);
 			while (ret < 0) {
@@ -10349,7 +10346,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 				bufpass[strlen(bufpass)-2]='\0'; 
 				bufpass[strlen(bufpass)-1]='\0'; 
 				}
-			ret=get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
+			ret = get_userpass_input(s->cur_prompt, (unsigned char*)bufpass, strlen(bufpass)+1);
 			conf_set_str( ssh->conf,CONF_password,"") ;
 			ret = 1 ;
 	{ // Log de l'envoi du password
@@ -10362,8 +10359,7 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 		}
 	sfree(userlog);
 	}
-			}
-		else
+	} else
 #endif
 			ret = get_userpass_input(s->cur_prompt, NULL, 0);
 			while (ret < 0) {
@@ -10382,18 +10378,6 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 					   TRUE);
 			    crStopV;
 			}
-#ifdef PERSOPORT
-			if( ret ) if( !GetUserPassSSHNoSave() ) {
-			if( strlen(bufpass)>0 ) {
-				SetPasswordInConfig(bufpass);
-				memset( bufpass, 0, strlen(bufpass) ) ;
-			} else if( s != NULL ) {
-				//s->password = dupstr(s->cur_prompt->prompts[0]->result);
-				if( s->password != NULL ) {
-					SetPasswordInConfig( s->password ) ;
-				}
-			} }
-#endif
 		    }
 
 		    /*
@@ -10402,6 +10386,9 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 		    s->pktout = ssh2_pkt_init(SSH2_MSG_USERAUTH_INFO_RESPONSE);
 		    ssh2_pkt_adduint32(s->pktout, s->num_prompts);
 		    for (i=0; i < s->num_prompts; i++) {
+#ifdef PERSOPORT
+if(!GetUserPassSSHNoSave()) if(s!=NULL) if(s->cur_prompt->prompts!=NULL) if(s->cur_prompt->prompts[i]->result!=NULL) SetPasswordInConfig( s->cur_prompt->prompts[i]->result ) ;
+#endif
 			ssh2_pkt_addstring(s->pktout,
 					   s->cur_prompt->prompts[i]->result);
 		    }
@@ -10419,7 +10406,6 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 		     * INFO_REQUEST.
 		     */
 		    crWaitUntilV(pktin);
-
 		}
 
 		/*
@@ -10516,11 +10502,9 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 		}
 	sfree(userlog);
 	}
-
-			}
-		else {
+	} else {
 			ssh2_pkt_addstring(s->pktout, s->password );
-			}
+	}
 #else
 		ssh2_pkt_addstring(s->pktout, s->password);
 #endif
@@ -10539,7 +10523,9 @@ static void do_ssh2_authconn(Ssh ssh, const unsigned char *in, int inlen,
 				SetPasswordInConfig( bufpass ) ;
 				memset( bufpass, 0, strlen(bufpass) ) ;
 			} else if( s != NULL ) {
-				if( s->password != NULL ) SetPasswordInConfig( s->password ) ;
+				if( s->password != NULL ) {
+					SetPasswordInConfig( s->password ) ;
+			}
 			}
 		}
 #endif
@@ -11005,7 +10991,9 @@ static void ssh2_msg_disconnect(Ssh ssh, struct Packet *pktin)
 		    msglen, NULLTOEMPTY(msg));
     logevent(buf);
 #ifdef PERSOPORT
-	if( strstr( buf+28, "Too many authentication failures for " ) ) SetPasswordInConfig( "" ) ;
+	if( strstr( buf+28, "Too many authentication failures for " ) ) {
+		SetPasswordInConfig( "" ) ;
+	}
 #endif
     bombout(("Server sent disconnect message\ntype %d (%s):\n\"%.*s\"",
 	     reason,

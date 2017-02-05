@@ -256,7 +256,7 @@ static HINSTANCE hInstIcons =  NULL ;
 HINSTANCE GethInstIcons(void) { return hInstIcons ; }
 void SethInstIcons( const HINSTANCE h ) { hInstIcons = h ; }
 
-// Fichier contenant les icones a charger
+// Fichier contenant les icones Ã  charger
 static char * IconFile = NULL ;
 
 // Flag pour l'affichage de la taille de la fenetre
@@ -1009,9 +1009,10 @@ void RenewPassword( Conf *conf ) {
 		}
 	}
 
-void SetPasswordInConfig( char * password ) {
+void SetPasswordInConfig( const char * password ) {
 	int len ;
 	char bufpass[1024] ;
+	
 	if( (!GetUserPassSSHNoSave())&&(password!=NULL) ) {
 		len = strlen( password ) ;
 		if( len > 126 ) len = 126 ;
@@ -1933,8 +1934,11 @@ void SetNewIcon( HWND hwnd, char * iconefile, int icone, const int mode ) {
 		if( IconeFlag==0 ) return ;
 		if( IconeFlag <= 0 ) { IconeNum = 0 ; } 
 		else {
-			if( mode == SI_RANDOM ) IconeNum = time( NULL ) % NumberOfIcons ;
-			else { IconeNum++ ; if( IconeNum >= NumberOfIcons ) IconeNum = 0 ; }
+			if( mode == SI_RANDOM ) { 
+				SYSTEMTIME st ;
+				GetSystemTime( &st ) ;
+				IconeNum = ( GetCurrentProcessId() * time( NULL ) ) % NumberOfIcons ; 
+			} else { IconeNum++ ; if( IconeNum >= NumberOfIcons ) IconeNum = 0 ; }
 			}
 		hIcon = LoadIcon( hInstIcons, MAKEINTRESOURCE(IDI_MAINICON_0 + IconeNum ) ) ;
 		SendMessage( hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon );	
