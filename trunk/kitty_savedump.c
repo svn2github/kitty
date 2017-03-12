@@ -384,6 +384,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "no_remote_resize=%d\n", 		conf_get_int(conf,CONF_no_remote_resize) ) ;
 	fprintf( fp, "no_alt_screen=%d\n", 		conf_get_int(conf,CONF_no_alt_screen) ) ;
 	fprintf( fp, "no_remote_wintitle=%d\n", 	conf_get_int(conf,CONF_no_remote_wintitle) ) ;
+	fprintf( fp, "no_remote_clearscroll=%d\n", 	conf_get_int(conf,CONF_no_remote_clearscroll) ) ;
 	fprintf( fp, "no_dbackspace=%d\n", 		conf_get_int(conf,CONF_no_dbackspace) ) ;
 	fprintf( fp, "no_remote_charset=%d\n", 		conf_get_int(conf,CONF_no_remote_charset) ) ;
 	fprintf( fp, "remote_qtitle_action=%d\n", 	conf_get_int(conf,CONF_remote_qtitle_action) ) ;

@@ -565,6 +565,9 @@ extern int backend_first_connected ; /* Variable permettant de savoir qu'on a de
 #ifndef IDM_PORTKNOCK
 #define IDM_PORTKNOCK	0x0440
 #endif
+#ifndef IDM_CLEARLOGFILE
+#define IDM_CLEARLOGFILE 0x0610
+#endif
 
 // Doit etre le dernier
 #ifndef IDM_LAUNCHER

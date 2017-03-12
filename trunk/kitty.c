@@ -68,6 +68,7 @@ extern Conf *conf ;
 #define IDM_REPOS 0x0380
 #define IDM_EXPORTSETTINGS 0x0390
 #define IDM_PORTKNOCK	0x0440
+#define IDM_CLEARLOGFILE 0x0610
 
 // Doit etre le dernier
 #define IDM_LAUNCHER	0x1000
@@ -1572,7 +1573,10 @@ typedef void (CALLBACK* LPFNDLLFUNC1)( void ) ;
 void routine_server( void * st ) {
 	HMODULE lphDLL ;               // Handle to DLL
 	LPFNDLLFUNC1 lpfnDllFunc1 ;    // Function pointer
-	lphDLL = LoadLibrary( TEXT("kchat.dll") ) ;
+	
+	char buffer[MAX_PATH] ; sprintf( buffer, "%s\\kchat.dll", InitialDirectory ) ;
+	lphDLL = LoadLibrary( TEXT( buffer ) ) ;
+	//lphDLL = LoadLibrary( TEXT("kchat.dll") ) ;
 	if( lphDLL == NULL ) {
 		MessageBox( MainHwnd, "Unable to load library kchat.dll", "Error", MB_OK|MB_ICONERROR ) ;
 		return ;
@@ -2535,6 +2539,14 @@ scriptfile()
 {
 if [ $# -eq 0 ] ; then echo "Usage: scriptfile filename" ; return 0 ; fi
 printf "\033]0;__ls:"$@"\007"
+}
+*/
+/* Copie tout ce qui est reçu dans le pipe vers le presse-papier
+function wcl {
+  echo -ne '\e''[5i'
+  cat $*
+  echo -ne '\e''[4i'
+  echo "Copied to Windows clipboard" 1>&2
 }
 */
 int ManageLocalCmd( HWND hwnd, char * cmd ) {
