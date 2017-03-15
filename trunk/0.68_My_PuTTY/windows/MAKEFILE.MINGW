@@ -116,6 +116,8 @@ UPX = upx
 
 FDJFLAG = FDJ1
 
+# Ajouter   -g -ggdb   a CFLAGS pour avoir plus de debug !!!
+
 CFLAGS = -Wall -O2 -D_WINDOWS -DWIN32S_COMPAT -D$(FDJFLAG) \
 		-DUSE_CAPI -DCOVERITY \
  		-DPERSOPORT \

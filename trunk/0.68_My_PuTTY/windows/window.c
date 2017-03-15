@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <limits.h>
+#include <limits.h>
 #include <assert.h>
 
 #ifdef __WINE__
@@ -3387,7 +3388,11 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 	  case IDM_SAVEDSESS:
 	    {
 		char b[2048];
+#ifdef PERSOPORT
+		char *cl=NULL;
+#else
 		char *cl;
+#endif
                 const char *argprefix;
 		BOOL inherit_handles;
 		STARTUPINFO si;
@@ -3443,9 +3448,10 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 			break;
 #ifdef PERSOPORT
 	    } else /* IDM_NEWSESS */ {
-		if( strcmp(conf_get_str(conf,CONF_folder), "")&&strcmp(conf_get_str(conf,CONF_folder),"Default") )
+		if( strcmp(conf_get_str(conf,CONF_folder), "") && strcmp(conf_get_str(conf,CONF_folder),"Default") ) {
+			cl = realloc( cl, 20 + strlen(conf_get_str(conf,CONF_folder)) ) ;
 			sprintf(cl, "putty -folder \"%s\"", conf_get_str(conf,CONF_folder) ) ;
-		else cl[0]='\0' ;
+		} else { if( cl==NULL ) { cl = (char*)malloc(2) ; cl[0]='\0' ; } }
 #else
 		} else /* IDM_NEWSESS */ {
                     cl = dupprintf("putty%s%s",
