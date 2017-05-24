@@ -499,9 +499,11 @@ void ManageSwitch( const int n ) {
 // Procedures principales du launcher
 LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	int ResShell ;
+	static UINT s_uTaskbarRestart;
 	
 	switch( uMsg ) {
 		case WM_CREATE:
+		s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
 		MenuLauncher = InitLauncherMenu( "Launcher" ) ;
         
 	// Initialisation de la structure NOTIFYICONDATA
@@ -655,6 +657,11 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				}
 			break ;
 		default: // Message par défaut
+			if( uMsg == s_uTaskbarRestart ) { // On reaffiche l'icone après un crash de l'explorateur windows
+				Shell_NotifyIcon(NIM_DELETE, &TrayIcone);
+				Shell_NotifyIcon(NIM_ADD, &TrayIcone);
+				Shell_NotifyIcon(NIM_MODIFY, &TrayIcone);
+			}
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
 	return -1 ;

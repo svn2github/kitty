@@ -279,6 +279,10 @@ void SetTitleBarFlag( const int flag ) { TitleBarFlag = flag ; }
 static int WinHeight = -1 ;
 int GetWinHeight(void) { return WinHeight ; }
 void SetWinHeight( const int num ) { WinHeight = num ; }
+// Flag pour inhiber le Winrol
+static int WinrolFlag = 1 ;
+int GetWinrolFlag(void) { return WinrolFlag ; }
+void SetWinrolFlag( const int num ) { WinrolFlag  = num ; }
 
 // Password de protection de la configuration (registry)
 static char PasswordConf[256] = "" ;
@@ -312,6 +316,7 @@ void SetConfigBoxNoExitFlag( const int flag ) { ConfigBoxNoExitFlag = flag ; }
 static int CtrlTabFlag = 1 ;
 int GetCtrlTabFlag(void) { return CtrlTabFlag  ; }
 void SetCtrlTabFlag( const int flag ) { CtrlTabFlag  = flag ; }
+
 
 // Flag pour repasser en mode Putty basic
 int PuttyFlag = 0 ;
@@ -1371,6 +1376,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#initdelay", "2.0" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#internaldelay", "10" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "slidedelay", "0" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "winrol", "yes" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "wintitle", "yes" ) ;
 #ifdef ZMODEMPORT
 			writeINI( KittyIniFile, INIT_SECTION, "zmodem", "yes" ) ;
@@ -3697,7 +3703,8 @@ int InternalCommand( HWND hwnd, char * st ) {
 #ifdef LAUNCHERPORT
 	else if( !strcmp( st, "/initlauncher" ) ) { InitLauncherRegistry() ; return 1 ; }
 #endif
-	else if( !strcmp( st, "/wintitle" ) ) { TitleBarFlag = abs(TitleBarFlag -1) ; return 1 ; }
+	else if( !strcmp( st, "/winrol" ) ) { WinrolFlag = abs(WinrolFlag-1) ; return 1 ; }
+	else if( !strcmp( st, "/wintitle" ) ) { TitleBarFlag = abs(TitleBarFlag-1) ; return 1 ; }
 	else if( strstr( st, "/command " ) == st ) { SendCommandAllWindows( hwnd, st+9 ) ; return 1 ; }
 	else if( !strcmp( st, "/sizeall" ) ) { ResizeWinList( hwnd, conf_get_int(conf,CONF_width)/*cfg.width*/, conf_get_int(conf,CONF_height)/*cfg.height*/ ) ; return 1 ; }
 	else if( !strcmp( st, "/zmodem" ) ) { ZModemFlag = abs(ZModemFlag-1) ; }
@@ -5022,6 +5029,10 @@ void LoadParameters( void ) {
 			PSCPOptions[1023] = '\0' ;
 		}
 	}
+	if( ReadParameter( INIT_SECTION, "winrol", buffer ) ) { 
+		if( !stricmp( buffer, "no" ) ) WinrolFlag = 0 ;
+		if( !stricmp( buffer, "yes" ) ) WinrolFlag = 1 ;
+	}
 #ifdef HYPERLINKPORT
 #ifndef NO_HYPERLINK
 	if( ReadParameter( INIT_SECTION, "hyperlink", buffer ) ) {  
@@ -5222,6 +5233,19 @@ void InitWinMain( void ) {
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( (strlen(buffer)>0) && (strlen(buffer)<128) ) { buffer[127]='\0'; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
+#endif
+
+	// Teste l'integrite du programme
+#ifndef NO_TRANSPARENCY
+	FILE *fp = fopen( "kitty.err.log","r" ) ;
+	if( fp==NULL ) {
+		if( !CheckMD5Integrity() ) {
+			fprintf(stderr,"La signature du programme n'est pas bonne\n");
+			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
+			exit(1);
+			}
+		}
+	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus

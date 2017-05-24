@@ -168,6 +168,10 @@ void SetConfigBoxWindowHeight( const int num ) ;
 // extern int WinHeight ;
 int GetWinHeight(void) ;
 void SetWinHeight( const int num ) ;
+// Flag pour inhiber le Winrol
+// extern int WinrolFlag = 1 
+int GetWinrolFlag(void) ;
+void SetWinrolFlag( const int num ) ;
 
 // Flag permettant de desactiver la sauvegarde automatique des informations de connexion (user/password) à la connexion SSH
 // extern int UserPassSSHNoSave ; ==> Defini dans kitty_commun.c

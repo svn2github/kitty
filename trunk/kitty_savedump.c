@@ -581,7 +581,7 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp, "AutoStoreSSHKeyFlag=%d\nDirectoryBrowseFlag=%d\nVisibleFlag=%d\nShortcutsFlag=%d\nMouseShortcutsFlag=%d\nIconeFlag=%d\nNumberOfIcons=%d\nSizeFlag=%d\nCapsLockFlag=%d\nTitleBarFlag=%d\nCtrlTabFlag=%d\nRuTTYFlag=%d\n"
 	,GetAutoStoreSSHKeyFlag(),DirectoryBrowseFlag,VisibleFlag,ShortcutsFlag,MouseShortcutsFlag,IconeFlag,NumberOfIcons,SizeFlag,CapsLockFlag,TitleBarFlag,CtrlTabFlag,RuTTYFlag);
 	//static HINSTANCE hInstIcons =  NULL ;
-	fprintf( fp, "WinHeight=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nUserPassSSHNoSave=%d\nPuttyFlag=%d\n",WinHeight,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,GetUserPassSSHNoSave(),PuttyFlag);
+	fprintf( fp, "WinHeight=%d\nWinrolFlag=%d\nAutoSendToTray=%d\nNoKittyFileFlag=%d\nConfigBoxHeight=%d\nConfigBoxWindowHeight=%d\nConfigBoxNoExitFlag=%d\nUserPassSSHNoSave=%d\nPuttyFlag=%d\n",WinHeight,WinrolFlag,AutoSendToTray,NoKittyFileFlag,ConfigBoxHeight,ConfigBoxWindowHeight,ConfigBoxNoExitFlag,GetUserPassSSHNoSave(),PuttyFlag);
 
 	fprintf( fp,"BackgroundImageFlag=%d\n",BackgroundImageFlag );
 #ifdef RECONNECTPORT
