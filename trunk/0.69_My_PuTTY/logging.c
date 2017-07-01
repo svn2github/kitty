@@ -98,7 +98,7 @@ size_t t_strftime( char *s, size_t max, const char *format, const SYSTEMTIME st 
 	if( (nfor = (char*) malloc( strlen( format ) + 1024 )) == NULL ) return 0 ;
 	strcpy( nfor, format ) ;
 
-	sprintf( b, "%u", st.wMilliseconds ) ;
+	sprintf( b, "%03u", st.wMilliseconds ) ;
 	while( (p=posi( "%f", nfor, i )) > 0 ) {
 		if( p==1 ) { del(nfor,p,2) ; insert(nfor,b,p); }
 		else if( nfor[p-2] != '%' ) { del(nfor,p,2) ; insert(nfor,b,p); }

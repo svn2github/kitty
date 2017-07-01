@@ -20,6 +20,11 @@ void SetAutoStoreSSHKeyFlag( const int flag ) ;
 int GetUserPassSSHNoSave(void) ;
 void SetUserPassSSHNoSave( const int flag ) ;
 
+// Flag permettant de gérer la demande confirmation à l'usage d'une clé privée (1=always; 0=never; 2=based on "comment")
+// extern int AskConfirmationFlag=2 ;
+int GetAskConfirmationFlag(void) ;
+void SetAskConfirmationFlag( const int flag ) ;
+
 #ifdef ADBPORT
 // Flag pour inhiber le support d'ADB
 int GetADBFlag(void) ;
@@ -58,5 +63,12 @@ PVOID SecureZeroMemory( PVOID ptr, SIZE_T cnt) ;
 
 // Fonction permettant de changer le statut du stockage automatique des ssh host keys
 void SetAutoStoreSSHKey( void ) ;
+
+/* Fonctions permettant de changer ou d'obtenir le statut de la generation d'un affichage de balloon dans le system tray lorsqu'une clé privée est utilisée */
+void SetShowBalloonOnKeyUsage( void ) ;
+int GetShowBalloonOnKeyUsage( void ) ;
+
+/* Fonction permettant d'affiche un message sur l'icone dans le tray */
+int ShowBalloonTip( NOTIFYICONDATA tnid, TCHAR  title[], TCHAR msg[] ) ;
 
 #endif

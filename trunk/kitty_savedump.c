@@ -686,7 +686,7 @@ void SaveCurrentConfig( FILE *fp, Conf * conf ) {
 	unlink( "current.ktx.bcr" );
 }
 
-// Sauvegarde le contenu du fichier kitty.log s'il existe
+// Sauvegarde le contenu d'un fichier s'il existe
 void SaveDebugFile( char * filename, FILE *fpout ) {
 	FILE *fp;
 	char buffer[4096];
@@ -799,6 +799,16 @@ void SaveDump( void ) {
 			fputs( "\n@ Debug log file @\n\n", fpout ) ;
 			SaveDebugFile( "kitty.log", fpout ) ; 
 		}
+		if( existfile( conf_get_filename(conf,CONF_keyfile)->path ) ) { 
+			fputs( "\n@ Private key file @\n\n", fpout ) ;
+			SaveDebugFile( conf_get_filename(conf,CONF_keyfile)->path, fpout ) ;
+		}
+		if( existfile( conf_get_filename(conf,CONF_script_filename)->path) ) { 
+			fputs( "\n@ RuTTY script file @\n\n", fpout ) ;
+			SaveDebugFile( conf_get_filename(conf,CONF_script_filename)->path, fpout ) ;
+		}		
+		
+		
 
 #if (defined IMAGEPORT) && (!defined FDJ)
 		fputs( "\n@ ScreenShot @\n\n", fpout ) ;

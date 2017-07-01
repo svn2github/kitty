@@ -285,6 +285,35 @@ static void plog(void *logctx, pageant_logfn_t logfn, const char *fmt, ...)
     }
 }
 
+#ifdef PERSOPORT
+static int confirm_key_usage(char* fingerprint, char* comment) {
+	const char* title = "Confirm SSH Key usage";
+	char* message = NULL;
+	int result = IDYES; // successful result is the default
+
+	message = dupprintf("Allow authentication with key with fingerprint\n%s\ncomment: %s", fingerprint, comment);
+	
+	if( (GetAskConfirmationFlag()==1) 
+		||
+		( (GetAskConfirmationFlag()==2) && (
+		(NULL != strstr(comment, "needs confirm"))||(NULL != strstr(comment, "need confirm"))||(NULL != strstr(comment, "confirmation"))
+		)
+		) )
+	{
+		result = MessageBox(NULL, message, title, MB_ICONQUESTION | MB_YESNO);
+	}
+
+	if (result != IDYES) {
+		sfree(message);
+		return 0;
+	} else {
+		if( GetShowBalloonOnKeyUsage()==1 ) ShowBalloonTip( trayIcone, "SSH private key usage", message ) ;
+		sfree(message);
+		return 1;
+	}
+}
+#endif
+
 void *pageant_handle_msg(const void *msg, int msglen, int *outlen,
                          void *logctx, pageant_logfn_t logfn)
 {
@@ -387,6 +416,9 @@ void *pageant_handle_msg(const void *msg, int msglen, int *outlen,
 	    unsigned char response_source[48], response_md5[16];
 	    struct MD5Context md5c;
 	    int i, len;
+#ifdef PERSOPORT
+		char fingerprint[100];
+#endif
 
             plog(logctx, logfn, "request: SSH1_AGENTC_RSA_CHALLENGE");
 
@@ -449,6 +481,12 @@ void *pageant_handle_msg(const void *msg, int msglen, int *outlen,
                 fail_reason = "key not found";
 		goto failure;
 	    }
+#ifdef PERSOPORT
+		rsa_fingerprint(fingerprint, sizeof(fingerprint), key);
+		if (! confirm_key_usage(fingerprint, key->comment)) {
+	      goto failure;
+	    }
+#endif
 	    response = rsadecrypt(challenge, key);
 	    for (i = 0; i < 32; i++)
 		response_source[i] = bignum_byte(response, 31 - i);
@@ -486,7 +524,9 @@ void *pageant_handle_msg(const void *msg, int msglen, int *outlen,
 	    const unsigned char *data;
             unsigned char *signature;
 	    int datalen, siglen, len;
-
+#ifdef PERSOPORT
+		char* confirm_fingerprint;
+#endif
             plog(logctx, logfn, "request: SSH2_AGENTC_SIGN_REQUEST");
 
 	    if (msgend < p+4) {
@@ -522,6 +562,14 @@ void *pageant_handle_msg(const void *msg, int msglen, int *outlen,
                 fail_reason = "key not found";
 		goto failure;
             }
+#ifdef PERSOPORT
+		confirm_fingerprint = ssh2_fingerprint_blob(b.blob, b.len);
+		if (! confirm_key_usage( confirm_fingerprint , key->comment)) {
+			sfree(confirm_fingerprint);
+			goto failure;
+	    }
+		sfree(confirm_fingerprint);
+#endif
 	    signature = key->alg->sign(key->data, (const char *)data,
                                        datalen, &siglen);
 	    len = 5 + 4 + siglen;
@@ -1297,8 +1345,27 @@ int pageant_add_keyfile(Filename *filename, const char *passphrase,
 	    keylist = pageant_get_keylist1(&keylistlen);
 	} else {
 	    unsigned char *blob2;
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+		if(0 == strncmp("cert://", filename->path, 7)) {
+			blob = ssh2_userkey_loadpub(filename, NULL, &bloblen,
+				&comment, &error);
+			if(blob) {
+				sfree(filename->path);
+				filename->path = comment;
+				comment = NULL;
+			}
+		}
+		else {
+#endif /* USE_CAPI */
+#endif
 	    blob = ssh2_userkey_loadpub(filename, NULL, &bloblen,
 					NULL, &error);
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+		}
+#endif /* USE_CAPI */
+#endif
 	    if (!blob) {
                 *retstr = dupprintf("Couldn't load private key (%s)", error);
 		return PAGEANT_ACTION_FAILURE;

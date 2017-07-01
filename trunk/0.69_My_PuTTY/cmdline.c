@@ -32,6 +32,9 @@
 void SetAutoStoreSSHKey( void ) ;
 void load_open_settings_forced(char *filename, Conf *conf) ;
 #endif
+#ifdef CYGTERMPORT
+void cygterm_set_flag( int flag ) ;
+#endif
 #ifdef ADBPORT
 int GetADBFlag(void) ;
 #endif
@@ -237,6 +240,7 @@ int cmdline_process_param(const char *p, char *value,
     if (!strcmp(p, "-cygterm")) {
 	RETURN(1);
 	UNAVAILABLE_IN(TOOLTYPE_FILETRANSFER | TOOLTYPE_NONNETWORK);
+	cygterm_set_flag( 1 ) ;
 	//default_protocol = cfg->protocol = PROT_CYGTERM;
 	default_protocol = PROT_CYGTERM;
 	conf_set_int(conf, CONF_protocol, default_protocol) ;

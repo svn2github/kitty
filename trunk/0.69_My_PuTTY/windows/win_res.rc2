@@ -103,7 +103,7 @@ BEGIN
 	CTEXT "KiTTY (http://kitty.9bis.com), by 9bis.com", IDA_TEXT2, 10, 26, 194, 16
 #endif
 #if (defined PERSOPORT) && (defined FDJ)
-s	CTEXT "PuTTY", IDA_TEXT2, 10, 26, 194, 16
+	CTEXT "PuTTY", IDA_TEXT2, 10, 26, 194, 16
 #endif
 END
 

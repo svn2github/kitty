@@ -648,6 +648,7 @@ struct ssh2_userkey *ssh2_load_userkey(const Filename *filename,
     int i, is_mac, old_fmt;
     int passlen = passphrase ? strlen(passphrase) : 0;
     const char *error = NULL;
+
 #ifdef WINCRYPTPORT
 #ifdef USE_CAPI
 	if(0 == strncmp("cert://", filename->path, 7)) {
@@ -656,19 +657,18 @@ struct ssh2_userkey *ssh2_load_userkey(const Filename *filename,
 		ret->alg = alg;
 		public_blob_len = strlen(filename->path);
 		public_blob = (unsigned char*)filename->path;
-		ret->data = alg->openssh_createkey(alg,(const unsigned char **)&public_blob, &public_blob_len);
+		ret->data = alg->openssh_createkey(alg, (const unsigned char **)&public_blob, &public_blob_len);
 		if(!ret->data) {
 			sfree(ret);
 			error = "load key from certificate failed";
 			return NULL;
 		}
-		ret->comment = dupstr((((struct RSAKey*)ret->data)->comment) ? 
+		ret->comment = dupstr((((struct RSAKey*)ret->data)->comment) ?
 			(((struct RSAKey*)ret->data)->comment) : "");
 		return ret;
 	}
 #endif /* USE_CAPI */
 #endif
-
     ret = NULL;			       /* return NULL for most errors */
     encryption = comment = mac = NULL;
     public_blob = private_blob = NULL;
@@ -1142,10 +1142,10 @@ unsigned char *ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
 	struct RSAKey *key;
 	if(0 == strncmp("cert://", filename->path, 7)) {
 		alg = find_pubkey_alg("ssh-rsa");
-		if(algorithm) { *algorithm = (char*)alg->name; }
+		if(algorithm) { *algorithm = dupstr(alg->name); }
 		public_blob_len = strlen(filename->path);
 		public_blob = (unsigned char*)filename->path;
-		key = (struct RSAKey*)alg->openssh_createkey(alg,(const unsigned char **)&public_blob, &public_blob_len);
+		key = (struct RSAKey*)alg->openssh_createkey(alg, (const unsigned char **)&public_blob, &public_blob_len);
 		if(!key) {
 			*errorstr = "load key from certificate failed";
 			return NULL;
@@ -1153,14 +1153,10 @@ unsigned char *ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
 		if(commentptr) { *commentptr = dupstr(key->comment); }
 		public_blob = alg->public_blob(key, pub_blob_len);
 		alg->freekey(key);
-		char *path=filename->path;
-		path=dupstr(*commentptr);
-		//strncpy((char*)(filename->path), *commentptr, FILENAME_MAX);
 		return public_blob;
 	}
 #endif /* USE_CAPI */
 #endif
-
     public_blob = NULL;
 
     fp = f_open(filename, "rb", FALSE);
@@ -1734,7 +1730,13 @@ int key_type(const Filename *filename)
 {
     FILE *fp;
     int ret;
-
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+	if(0 == strncmp("cert://", filename->path, 7)) {
+		return SSH_KEYTYPE_SSH2;
+	}
+#endif /* USE_CAPI */
+#endif
     fp = f_open(filename, "r", FALSE);
     if (!fp)
 	return SSH_KEYTYPE_UNOPENABLE;

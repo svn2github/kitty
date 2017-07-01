@@ -46,6 +46,10 @@ void SetUsernameInConfig( char * username ) {
 		}
 	}
 #endif
+#ifdef CYGTERMPORT
+void cygterm_set_flag( int flag ) { }
+#endif
+
 
 char *get_ttymode(void *frontend, const char *mode) { return NULL; }
 

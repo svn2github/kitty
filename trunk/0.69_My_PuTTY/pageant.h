@@ -4,6 +4,13 @@
 
 #include <stdarg.h>
 
+#ifdef PERSOPORT
+NOTIFYICONDATA trayIcone ;
+int GetAskConfirmationFlag(void) ;
+int GetShowBalloonOnKeyUsage( void ) ;
+int ShowBalloonTip( NOTIFYICONDATA tnid, TCHAR  title[], TCHAR msg[] ) ;
+#endif
+
 /*
  * FIXME: it would be nice not to have this arbitrary limit. It's
  * currently needed because the Windows Pageant IPC system needs an

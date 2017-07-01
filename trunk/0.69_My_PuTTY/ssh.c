@@ -4467,6 +4467,14 @@ static int do_ssh1_login(Ssh ssh, const unsigned char *in, int inlen,
                     logeventf(ssh, "Key file contains public key only");
 		s->privatekey_encrypted = rsakey_encrypted(s->keyfile,
 							  NULL);
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+		if(s->publickey_comment && 0 == strncmp("cert://", s->publickey_comment, 7)) {
+			sfree(s->keyfile->path);
+			s->keyfile->path = strdup(s->publickey_comment);
+		}
+#endif /* USE_CAPI */
+#endif
 	    } else {
 		char *msgbuf;
 		logeventf(ssh, "Unable to load key (%s)", error);

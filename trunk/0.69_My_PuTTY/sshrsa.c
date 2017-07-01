@@ -13,7 +13,7 @@
 #ifdef WINCRYPTPORT
 #ifdef USE_CAPI
 #ifdef _WINDOWS
-#include "wincapi2.h"
+#include "wincrypto.h"
 #endif /* _WINDOWS */
 #endif /* USE_CAPI */
 #endif
@@ -905,7 +905,7 @@ static unsigned char *rsa2_sign(void *key, const char *data, int datalen,
 #ifdef USE_CAPI
 #ifdef _WINDOWS
 	if(capi_is_capikey(rsa)) {
-		out = capi_rsa2_sign(rsa, (char*)data, datalen);
+		out = capi_rsa2_sign(rsa, (char *)data, datalen);
 	} else {
 #endif /* _WINDOWS */
 #endif /* USE_CAPI */

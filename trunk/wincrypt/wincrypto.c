@@ -1,3 +1,5 @@
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
 /*
  * PuTTY wincrypt patch main file.
  * Author: Ulf Frisk, puttywincrypt@ulffrisk.com
@@ -125,7 +127,7 @@ void capi_select_cert_2(PBYTE pbSHA1, LPWSTR wszCN, PCCERT_CONTEXT *ppCertCtx, H
 	HCRYPTPROV_OR_NCRYPT_KEY_HANDLE hCryptProvOrNCryptKey;
 	DWORD dwCertCount = 0, dwKeySpec;
 	BOOL fCallerFreeProvAlwaysFalse;
-	if (!(hStoreMY = CertOpenStore((LPCSTR)CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER, L"MY"))) {
+	if (!(hStoreMY = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER, L"MY"))) {
 		goto error;
 	}
 	if (pbSHA1) {
@@ -389,3 +391,5 @@ Bignum capi_rsa2_sign(struct RSAKey *rsa, char *data, int datalen)
 {
 	return capi_rsa2_sign_2(rsa, data, datalen, TRUE);
 }
+#endif /* USE_CAPI */
+#endif

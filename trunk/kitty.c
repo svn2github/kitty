@@ -143,10 +143,14 @@ static int PasteCommandFlag = 0 ;
 int GetPasteCommandFlag(void) { return PasteCommandFlag ; }
 
 // Flag de gestion de la fonction hyperlink
+#ifdef FDJ
+int HyperlinkFlag = 1 ;
+#else
 #ifdef HYPERLINKPORT
 int HyperlinkFlag = 0 ;
 #else
 int HyperlinkFlag = 0 ;
+#endif
 #endif
 int GetHyperlinkFlag(void) { return HyperlinkFlag ; }
 void SetHyperlinkFlag( const int flag ) { HyperlinkFlag = flag ; }
@@ -157,7 +161,11 @@ int GetRuTTYFlag(void) { return RuTTYFlag ; }
 void SetRuTTYFlag( const int flag ) { RuTTYFlag = flag ; }
 
 // Flag de gestion de la Transparence
+#ifdef FDJ
+static int TransparencyFlag = 1 ;
+#else
 static int TransparencyFlag = 0 ;
+#endif
 int GetTransparencyFlag(void) { return TransparencyFlag ; }
 void SetTransparencyFlag( const int flag ) { TransparencyFlag = flag ; }
 
@@ -1293,6 +1301,9 @@ void CreateDefaultIniFile( void ) {
 		if( strlen(KittyIniFile)==0 ) return ;
 		if( !existfile( KittyIniFile ) ) {
 		
+			writeINI( KittyIniFile, "Agent", "#messageonkeyusage", "no" ) ;
+			writeINI( KittyIniFile, "Agent", "#askconfirmation", "auto" ) ;
+			
 			writeINI( KittyIniFile, "ConfigBox", "height", "21" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "filter", "yes" ) ;
 			writeINI( KittyIniFile, "ConfigBox", "#default", "yes" ) ;
@@ -1330,10 +1341,18 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "mouseshortcuts", "yes" ) ;
 #endif
 #ifdef HYPERLINKPORT
+#ifdef FDJ
+			writeINI( KittyIniFile, INIT_SECTION, "hyperlink", "yes" ) ;
+#else
 			writeINI( KittyIniFile, INIT_SECTION, "hyperlink", "no" ) ;
 #endif
+#endif
 #ifndef NO_TRANSPARENCY
+#ifdef FDJ
+			writeINI( KittyIniFile, INIT_SECTION, "transparency", "yes" ) ;
+#else
 			writeINI( KittyIniFile, INIT_SECTION, "transparency", "no" ) ;
+#endif
 #endif
 			writeINI( KittyIniFile, INIT_SECTION, "#configdir", "" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#downloaddir", "" ) ;
@@ -3907,8 +3926,7 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 				strcat( cmd, shortpath ) ;
 				}
 			}
-		}
-	else {
+	} else {
 		sprintf( cmd, "%s ftp://%s", shortpath, conf_get_str(conf,CONF_username) ) ;
 		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 			char bufpass[1024] ;
@@ -3926,8 +3944,21 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 			strcat( cmd, directory ) ;
 			if( directory[strlen(directory)-1]!='/' ) strcat( cmd, "/" ) ;
 			}
+	}
+	if( conf_get_int(conf,CONF_proxy_type)!=I(PROXY_NONE) ) {
+		strcat( cmd, " -rawsettings" ) ;
+		switch( conf_get_int(conf,CONF_proxy_type) ) {
+			case 2: strcat( cmd, " ProxyMethod=2" ) ; break ;
+			case 3: strcat( cmd, " ProxyMethod=3" ) ; break ;
+			case 4: strcat( cmd, " ProxyMethod=4" ) ; break ;
+			default: strcat( cmd, " ProxyMethod=1" ) ; break ;
 		}
-
+		if( strlen(conf_get_str(conf,CONF_proxy_host))>0 ) { strcat( cmd, " ProxyHost=" ) ; strcat( cmd, conf_get_str(conf,CONF_proxy_host) ) ; }
+		sprintf( buffer, " ProxyPort=%d", conf_get_int(conf,CONF_proxy_port)) ; strcat( cmd, buffer ) ;
+		if( strlen(conf_get_str(conf,CONF_proxy_username))>0 ) { strcat( cmd, " ProxyUsername=" ) ; strcat( cmd, conf_get_str(conf,CONF_proxy_username) ) ; }
+		if( strlen(conf_get_str(conf,CONF_proxy_password))>0 ) { strcat( cmd, " ProxyPassword=" ) ; strcat( cmd, conf_get_str(conf,CONF_proxy_password) ) ; }
+	}
+	
 	if( debug_flag ) { debug_logevent( "Run: %s", cmd ) ; }
 	RunCommand( hwnd, cmd ) ;
 	memset(cmd,0,strlen(cmd));
@@ -5233,19 +5264,6 @@ void InitWinMain( void ) {
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( (strlen(buffer)>0) && (strlen(buffer)<128) ) { buffer[127]='\0'; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
-#endif
-
-	// Teste l'integrite du programme
-#ifndef NO_TRANSPARENCY
-	FILE *fp = fopen( "kitty.err.log","r" ) ;
-	if( fp==NULL ) {
-		if( !CheckMD5Integrity() ) {
-			fprintf(stderr,"La signature du programme n'est pas bonne\n");
-			MessageBox( NULL, "Wrong program signature !\n\nThe program is irremediably altered.\nDownload a new version from official web site:\n", "Error", MB_OK|MB_ICONERROR ) ;
-			exit(1);
-			}
-		}
-	else { fclose( fp ) ; }
 #endif
 
 	// Initialise le tableau des menus

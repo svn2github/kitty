@@ -189,7 +189,7 @@ pageant.exe: aqsync.o conf.o misc.o pageant.o pageant.res.o sshaes.o sshbn.o \
 		sshdes.o sshdss.o sshecc.o sshmd5.o sshpubk.o sshrsa.o \
 		sshsh256.o sshsh512.o sshsha.o tree234.o version.o winhelp.o \
 		winmisc.o winpgnt.o winpgntc.o winsecur.o winutils.o \
-		wincrypt.o kitty_commun.o kitty_crypt.o kitty_registry.o
+		wincrypto.o kitty_commun.o kitty_crypt.o kitty_registry.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,pageant.map aqsync.o \
 		conf.o misc.o pageant.o pageant.res.o sshaes.o sshbn.o \
 		sshdes.o sshdss.o sshecc.o sshmd5.o sshpubk.o sshrsa.o \
@@ -198,7 +198,7 @@ pageant.exe: aqsync.o conf.o misc.o pageant.o pageant.res.o sshaes.o sshbn.o \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 -lole32 \
 		-lshell32 -luser32 -lwinmm \
 		-lwinspool \
-		kitty_commun.o kitty_crypt.o kitty_registry.o wincrypt.o \
+		kitty_commun.o kitty_crypt.o kitty_registry.o wincrypto.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-lcrypt32
 
@@ -218,7 +218,7 @@ plink.exe:  aqsync.o \
 		winmisc.o winnet.o winnoise.o winnojmp.o winnpc.o winnps.o \
 		winpgntc.o winplink.o winproxy.o winsecur.o winser.o \
 		winshare.o winstore.o wintime.o winucs.o winx11.o x11fwd.o \
-		wincrypt.o adb.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o
+		wincrypto.o adb.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,plink.map aqsync.o \
 		be_all_s_plink.o \
 		be_misc.o callback.o cmdline.o conf.o cproxy.o errsock.o \
@@ -234,7 +234,7 @@ plink.exe:  aqsync.o \
 		winnoise.o winnojmp.o winnpc.o winnps.o winpgntc.o \
 		winplink.o winproxy.o winsecur.o winser.o winshare.o \
 		winstore.o wintime.o winucs.o winx11.o x11fwd.o \
-		wincrypt.o adb.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o \
+		wincrypto.o adb.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-ladvapi32 \
 		-lcomdlg32 -lgdi32 -limm32 -lole32 -lshell32 -luser32 \
@@ -255,7 +255,7 @@ pscp.exe: aqsync.o be_misc.o be_ssh.o callback.o cmdline.o conf.o cproxy.o \
 		winsecur.o winsftp.o winshare.o winstore.o wintime.o \
 		winucs.o x11fwd.o \
 		kitty_commun.o kitty_ssh.o kitty_tools.o \
-		wincrypt.o kitty_registry.o
+		wincrypto.o kitty_registry.o
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,pscp.map aqsync.o be_misc.o be_ssh.o \
 		callback.o cmdline.o conf.o cproxy.o errsock.o int64.o \
 		logging.o misc.o miscucs.o pgssapi.o pinger.o portfwd.o \
@@ -270,7 +270,7 @@ pscp.exe: aqsync.o be_misc.o be_ssh.o callback.o cmdline.o conf.o cproxy.o \
 		winmisc.o winnet.o winnoise.o winnojmp.o winnpc.o winnps.o \
 		winpgntc.o winproxy.o winsecur.o winsftp.o winshare.o \
 		winstore.o wintime.o winucs.o x11fwd.o \
-		kitty_commun.o kitty_ssh.o kitty_tools.o wincrypt.o kitty_registry.o \
+		kitty_commun.o kitty_ssh.o kitty_tools.o wincrypto.o kitty_registry.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-ladvapi32 -lcomdlg32 -lgdi32 -limm32 \
 		-lole32 -lshell32 -luser32 \
@@ -289,7 +289,7 @@ psftp.exe: aqsync.o be_misc.o be_ssh.o callback.o cmdline.o conf.o cproxy.o \
 		winnojmp.o winnpc.o winnps.o winpgntc.o winproxy.o \
 		winsecur.o winsftp.o winshare.o winstore.o wintime.o \
 		winucs.o x11fwd.o \
-		wincrypt.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o
+		wincrypto.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o
 	$(CC) $(LDFLAGS) -o $@ -Wl,-Map,psftp.map aqsync.o be_misc.o \
 		be_ssh.o callback.o cmdline.o conf.o cproxy.o errsock.o \
 		int64.o logging.o misc.o miscucs.o pgssapi.o pinger.o \
@@ -305,7 +305,7 @@ psftp.exe: aqsync.o be_misc.o be_ssh.o callback.o cmdline.o conf.o cproxy.o \
 		winnojmp.o winnpc.o winnps.o winpgntc.o winproxy.o \
 		winsecur.o winsftp.o winshare.o winstore.o wintime.o \
 		winucs.o x11fwd.o \
-		wincrypt.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o \
+		wincrypto.o kitty_registry.o kitty_commun.o kitty_ssh.o kitty_tools.o \
 		../../bcrypt/bcrypt.a ../../mini/mini.a \
 		-ladvapi32 -lcomdlg32 -lgdi32 -limm32 \
 		-lole32 -lshell32 -luser32 \
@@ -325,7 +325,7 @@ putty.exe: 	aqsync.o be_all_s.o be_misc.o callback.o cmdline.o conf.o \
 		winmisc.o winnet.o winnoise.o winnpc.o winnps.o winpgntc.o \
 		winprint.o winproxy.o winsecur.o winser.o winshare.o \
 		winstore.o wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		cygcfg.o cygterm.o winpzmodem.o wincrypt.o \
+		cygcfg.o cygterm.o winpzmodem.o wincrypto.o \
 		winpgnt_integrated.o winpgen_integrated.o \
 		import.o sshrsag.o sshdssg.o sshprime.o \
 		pageant_integrated.o sshecdsag.o sshbcrypt.o \
@@ -346,7 +346,7 @@ putty.exe: 	aqsync.o be_all_s.o be_misc.o callback.o cmdline.o conf.o \
 		winnet.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		cygcfg.o cygterm.o winpzmodem.o wincrypt.o \
+		cygcfg.o cygterm.o winpzmodem.o wincrypto.o \
 		winpgnt_integrated.o winpgen_integrated.o \
 		import.o sshrsag.o sshdssg.o sshprime.o \
 		pageant_integrated.o sshecdsag.o sshbcrypt.o \
@@ -365,7 +365,7 @@ puttygen.exe: conf.o import.o misc.o notiming.o puttygen.res.o sshaes.o \
 		version.o winctrls.o winhelp.o winmisc.o winnoise.o \
 		winnojmp.o winpgen.o winsecur.o winstore.o wintime.o \
 		winutils.o \
-		wincrypt.o kitty_commun.o kitty_registry.o kitty_keygen.o kitty_tools.o
+		wincrypto.o kitty_commun.o kitty_registry.o kitty_keygen.o kitty_tools.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,puttygen.map conf.o \
 		import.o misc.o notiming.o puttygen.res.o sshaes.o \
 		sshbcrypt.o sshblowf.o sshbn.o sshdes.o sshdss.o sshdssg.o \
@@ -374,7 +374,7 @@ puttygen.exe: conf.o import.o misc.o notiming.o puttygen.res.o sshaes.o \
 		version.o winctrls.o winhelp.o winmisc.o winnoise.o \
 		winnojmp.o winpgen.o winsecur.o winstore.o wintime.o \
 		winutils.o \
-		wincrypt.o kitty_commun.o kitty_registry.o kitty_keygen.o kitty_tools.o \
+		wincrypto.o kitty_commun.o kitty_registry.o kitty_keygen.o kitty_tools.o \
 		../../mini/mini.a \
 		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 \
 		-lole32 -lshell32 -luser32 -lwinmm -lwinspool \
@@ -1420,8 +1420,8 @@ kitty_win.o: ../../kitty_win.c ../../kitty_win.h
 void.o: ../../void.c
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../void.c
 
-wincrypt.o: ../../wincrypt/wincapi2.c ../../wincrypt/wincapi2.h
-	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -o wincrypt.o -c ../../wincrypt/wincapi2.c -I../../wincrypt
+wincrypto.o: ../../wincrypt/wincrypto.c ../../wincrypt/wincrypto.h
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -o wincrypto.o -c ../../wincrypt/wincrypto.c -I../../wincrypt
 
 winpzmodem.o: ../../zmodem/winpzmodem.c
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) -c ../../zmodem/winpzmodem.c
@@ -1520,7 +1520,7 @@ putty_nohyperlink.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o 
 		winnet.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		adb.o kitty_nohyperlink.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack_nohyperlink.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
@@ -1537,7 +1537,7 @@ putty_nohyperlink.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o 
 		winnet.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		adb.o kitty_nohyperlink.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack_nohyperlink.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a \
@@ -1559,7 +1559,7 @@ putty_notrans.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dial
 		winnet.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		adb.o kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o
 	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,putty.map be_all_s.o \
@@ -1576,7 +1576,7 @@ putty_notrans.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dial
 		winnet.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		adb.o kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
 		urlhack.o \
 		../../bcrypt/bcrypt.a ../../jpeg/libjpeg.a \
@@ -1601,7 +1601,7 @@ putty_portable.exe: aqsync.o be_all_s.o be_misc.o callback.o cmdline.o conf.o \
 		winpgnt_integrated.o \
 		winprint.o winproxy.o winsecur.o winser.o winshare.o \
 		winstore.o wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		pageant_integrated.o sshecdsag.o sshbcrypt.o winpgen_integrated.o winpgntc.o \
 		import.o sshrsag.o sshdssg.o sshprime.o \
 		adb.o kitty_portable.o kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
@@ -1624,7 +1624,7 @@ putty_portable.exe: aqsync.o be_all_s.o be_misc.o callback.o cmdline.o conf.o \
 		winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		pageant_integrated.o sshecdsag.o sshbcrypt.o winpgen_integrated.o winpgntc.o \
 		import.o sshrsag.o sshdssg.o sshprime.o \
 		adb.o kitty_portable.o kitty_commun_portable.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
@@ -1648,7 +1648,7 @@ putty_zmodem.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialo
 		winnet_zmodem.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		winpgnt_integrated.o winpgen_integrated.o \
 		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
 		adb.o kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \
@@ -1667,7 +1667,7 @@ putty_zmodem.exe: be_all_s.o callback.o cmdline.o conf.o config.o cproxy.o dialo
 		winnet_zmodem.o winnoise.o winnpc.o winnps.o winpgntc.o winprint.o \
 		winproxy.o winsecur.o winser.o winshare.o winstore.o \
 		wintime.o winucs.o winutils.o winx11.o x11fwd.o \
-		wincrypt.o cygcfg.o cygterm.o winpzmodem.o \
+		wincrypto.o cygcfg.o cygterm.o winpzmodem.o \
 		winpgnt_integrated.o winpgen_integrated.o \
 		import.o miscucs.o sshrsag.o sshdssg.o sshprime.o \
 		adb.o kitty.o kitty_commun.o kitty_crypt.o kitty_image.o kitty_registry.o kitty_ssh.o kitty_tools.o kitty_win.o \

@@ -114,74 +114,6 @@ void modalfatalbox(const char *fmt, ...)
 }
 
 #endif
-#ifdef WINCRYPTPORT
-#ifdef USE_CAPI
-/*
- * Add a key from a Windows certificate
- */
-static void prompt_add_capikey(void)
-{
-	Filename *fn = filename_from_str("cert://*");
-	char *err = NULL ;
-	pageant_add_keyfile(fn,NULL,&err);
-	filename_free(fn);
-	keylist_update();
-}
-
-/*
- * Copy key to clipboard in ssh authorized_keys format
- */
-static void key_to_clipboard2(struct ssh2_userkey *key)
-{
-	unsigned char *pub_blob;
-	char *buffer, *p, *psz;
-	int pub_len, i;
-	HGLOBAL hClipBuffer;
-	
-	pub_blob = key->alg->public_blob(key->data, &pub_len);
-	buffer = snewn(strlen(key->alg->name) + 4 * ((pub_len + 2) / 3) + strlen(key->comment) + 3, char);
-	strcpy(buffer, key->alg->name);
-	p = buffer + strlen(buffer);
-	*p++ = ' ';
-	i = 0;
-	while(i < pub_len) {
-		int n = (pub_len - i < 3 ? pub_len - i : 3);
-		base64_encode_atom(pub_blob + i, n, p);
-		i += n;
-		p += 4;
-	}
-	*p++ = ' ';
-	strcpy(p, key->comment);
-	if(OpenClipboard(NULL)) {
-		hClipBuffer = GlobalAlloc(GMEM_MOVEABLE, strlen(buffer) + 1);
-		if(hClipBuffer) {
-			psz = (char *)GlobalLock(hClipBuffer);
-			strcpy(psz, buffer);
-			GlobalUnlock(hClipBuffer);
-			EmptyClipboard();
-			SetClipboardData(CF_TEXT, hClipBuffer);
-		}
-		CloseClipboard();
-	}
-	sfree(pub_blob);
-	sfree(buffer);
-}
-
-/*
- * Copy 1'st selected key to clipboard in ssh authorized_keys format
- */
-static void key_to_clipboard(HWND hwnd)
-{
-	int numSelected, *selectedArray;
-	if((numSelected = SendDlgItemMessage(hwnd, 100, LB_GETSELCOUNT, 0, 0)) > 0) {
-		selectedArray = snewn(numSelected, int);
-		SendDlgItemMessage(hwnd, 100, LB_GETSELITEMS, numSelected, (WPARAM)selectedArray);
-		key_to_clipboard2((struct ssh2_userkey*)pageant_nth_ssh2_key(0));
-		sfree(selectedArray);
-	}
-}
-#endif /* USE_CAPI */
-#endif
 
 
 /* Un-munge session names out of the registry. */
@@ -568,6 +500,81 @@ static void win_add_keyfile(Filename *filename)
     return;
 }
 
+#ifdef WINCRYPTPORT
+#ifdef USE_CAPI
+/*
+ * Add a key from a Windows certificate
+ */
+static void prompt_add_capikey(void)
+{
+	int ret;
+	char *err;
+	Filename *fn = filename_from_str("cert://*");
+	pageant_add_keyfile(fn, NULL, &err);
+	if (ret == PAGEANT_ACTION_OK) {
+		keylist_update();
+	} else {
+		message_box(err, APPNAME, MB_OK | MB_ICONERROR, HELPCTXID(errors_cantloadkey));
+	}
+	filename_free(fn);
+	sfree(err);
+}
+
+/*
+ * Copy key to clipboard in ssh authorized_keys format
+ */
+static void key_to_clipboard2(struct ssh2_userkey *key)
+{
+	unsigned char *pub_blob;
+	char *buffer, *p, *psz;
+	int pub_len, i;
+	HGLOBAL hClipBuffer;
+	
+	pub_blob = key->alg->public_blob(key->data, &pub_len);
+	buffer = snewn(strlen(key->alg->name) + 4 * ((pub_len + 2) / 3) + strlen(key->comment) + 3, char);
+	strcpy(buffer, key->alg->name);
+	p = buffer + strlen(buffer);
+	*p++ = ' ';
+	i = 0;
+	while(i < pub_len) {
+		int n = (pub_len - i < 3 ? pub_len - i : 3);
+		base64_encode_atom(pub_blob + i, n, p);
+		i += n;
+		p += 4;
+	}
+	*p++ = ' ';
+	strcpy(p, key->comment);
+	if(OpenClipboard(NULL)) {
+		hClipBuffer = GlobalAlloc(GMEM_MOVEABLE, strlen(buffer) + 1);
+		if(hClipBuffer) {
+			psz = (char *)GlobalLock(hClipBuffer);
+			strcpy(psz, buffer);
+			GlobalUnlock(hClipBuffer);
+			EmptyClipboard();
+			SetClipboardData(CF_TEXT, hClipBuffer);
+		}
+		CloseClipboard();
+	}
+	sfree(pub_blob);
+	sfree(buffer);
+}
+
+/*
+ * Copy 1'st selected key to clipboard in ssh authorized_keys format
+ */
+static void key_to_clipboard(HWND hwnd)
+{
+	int numSelected, *selectedArray;
+	if((numSelected = SendDlgItemMessage(hwnd, 100, LB_GETSELCOUNT, 0, 0)) > 0) {
+		selectedArray = snewn(numSelected, int);
+		SendDlgItemMessage(hwnd, 100, LB_GETSELITEMS, numSelected, (WPARAM)selectedArray);
+		key_to_clipboard2(pageant_nth_ssh2_key(selectedArray[0]));
+		sfree(selectedArray);
+	}
+}
+#endif /* USE_CAPI */
+#endif 
+
 /*
  * Prompt for a key file to add, and add it.
  */
@@ -809,6 +816,10 @@ static BOOL AddTrayIcon(HWND hwnd)
 #endif
 	
     res = Shell_NotifyIcon(NIM_ADD, &tnid);
+
+#ifdef PERSOPORT
+	trayIcone = tnid ;
+#endif
 
     if (hicon) DestroyIcon(hicon);
     
