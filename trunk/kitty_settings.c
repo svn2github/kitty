@@ -1059,7 +1059,7 @@ void load_open_settings_forced(char *filename, Conf *conf) {
     gppi_forced(sesskey, "WindowState", 0, conf, CONF_windowstate /*&cfg->windowstate*/);
     gppi_forced(sesskey, "SaveWindowPos", 0, conf, CONF_save_windowpos /*&cfg->save_windowpos*/); /* BKG */
     gppi_forced(sesskey, "ForegroundOnBell", 0, conf, CONF_foreground_on_bell /*&cfg->foreground_on_bell*/);
-
+#ifndef NO_PASSWORD
     if( strlen(conf_get_str(conf, CONF_host))>0 ) {
 	if( (strlen(conf_get_str(conf, CONF_host))+strlen(conf_get_str(conf, CONF_termtype))) < 1000 ) { 
 		sprintf( PassKey, "%s%sKiTTY", conf_get_str(conf, CONF_host), conf_get_str(conf, CONF_termtype) ) ;
@@ -1079,7 +1079,9 @@ void load_open_settings_forced(char *filename, Conf *conf) {
 	conf_set_str( conf, CONF_password, pst ) ;
 	memset(pst,0,strlen(pst));
     }
-
+#else
+	conf_set_str( conf, CONF_password, "" ) ;
+#endif
     gppi_forced(sesskey, "CtrlTabSwitch", 0, conf, CONF_ctrl_tab_switch);
     gpps_forced(sesskey, "Comment", "", conf, CONF_comment );
     gppi_forced(sesskey, "ACSinUTF", 0, conf, CONF_acs_in_utf);

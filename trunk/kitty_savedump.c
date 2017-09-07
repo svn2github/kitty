@@ -699,13 +699,13 @@ void SaveDebugFile( char * filename, FILE *fpout ) {
 }
 	
 // recupere toute la configuration en un seul fichier
-void SaveDump( void ) {
+void SaveDumpFile( char * filename ) {
 	FILE * fp, * fpout ;
 	char buffer[4096], buffer2[4096] ;
 	int i;
 	if( IniFileFlag != SAVEMODE_REG ) { WriteCountUpAndPath() ; }
 	
-	sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;
+	sprintf( buffer, "%s\\%s", InitialDirectory, filename ) ;
 	if( ( fpout = fopen( buffer, "w" ) ) != NULL ) {
 		
 		fputs( "\n@ InitialDirectoryListing @\n\n", fpout ) ;
@@ -817,8 +817,11 @@ void SaveDump( void ) {
 			
 		fclose( fpout ) ;
 
-		sprintf( buffer, "%s\\%s", InitialDirectory, "kitty.dmp" ) ;
+		sprintf( buffer, "%s\\%s", InitialDirectory, filename ) ;
 		sprintf( buffer2, "%s\\%s", InitialDirectory, "kitty.dmp.bcr" ) ;
 		bcrypt_file_base64( buffer, buffer2, "9bis", 80 ) ; unlink( buffer ) ; rename( buffer2, buffer ) ;
 		}
 	}
+void SaveDump(void) {
+	SaveDumpFile("kitty.dmp") ; 
+}

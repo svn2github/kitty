@@ -252,6 +252,11 @@ int GetIconeFlag(void) { return IconeFlag ; }
 void SetIconeFlag( const int flag ) { IconeFlag = flag ; }
 
 // Nombre d'icones differentes (identifiant commence a 1 dans le fichier .rc)
+#ifndef PERSOPORT
+#define NB_ICONES 1
+#define IDI_MAINICON_0 1
+#define IDC_RESULT 1008
+#endif
 static int NumberOfIcons = NB_ICONES ;
 int GetNumberOfIcons(void) { return NumberOfIcons ; }
 void SetNumberOfIcons( const int flag ) { NumberOfIcons = flag ; }
@@ -1980,12 +1985,14 @@ void SetNewIcon( HWND hwnd, char * iconefile, int icone, const int mode ) {
 
 // Modification de l'icone pour mettre l'icone de perte de connexion
 void SetConnBreakIcon( void ) {
+#ifdef PERSOPORT
 	HICON hIcon = NULL ;
 	hIcon = LoadIcon( hInstIcons, MAKEINTRESOURCE(IDI_NOCON) ) ;
 	SendMessage( hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon );	
 	SendMessage( hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon );
 	TrayIcone.hIcon = hIcon ;
 	Shell_NotifyIcon(NIM_MODIFY, &TrayIcone);
+#endif
 //Pour remettre
 //SetNewIcon( hwnd, conf_get_filename(conf,CONF_iconefile)->path, 0, SI_INIT ) ;
 }
@@ -5260,7 +5267,8 @@ void InitWinMain( void ) {
 
 	// Initialisation du nom de la classe
 	strcpy( KiTTYClassName, appname ) ;
-#ifndef FDJ
+
+#if (defined PERSOPORT) && (!defined FDJ)
 	if( ReadParameter( INIT_SECTION, "KiClassName", buffer ) ) 
 		{ if( (strlen(buffer)>0) && (strlen(buffer)<128) ) { buffer[127]='\0'; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
@@ -5316,6 +5324,7 @@ void InitWinMain( void ) {
 			LoadRegistryKey( hdlg ) ; 
 			InfoBoxClose( hdlg ) ;
 			}
+#ifdef PERSOPORT
 		else { // la cle de registre existe deja
 			if( WindowsCount( MainHwnd ) == 1 ) { // Si c'est le 1er kitty on sauvegarde la cle de registre avant de charger le fichier kitty.sav
 				HWND hdlg = InfoBox( hinst, NULL ) ;
@@ -5326,6 +5335,7 @@ void InitWinMain( void ) {
 				InfoBoxClose( hdlg ) ;
 				}
 			}
+#endif
 		}
 	else if( IniFileFlag == SAVEMODE_DIR ){ // Mode de sauvegarde directory
 		}
