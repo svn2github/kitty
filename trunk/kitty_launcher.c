@@ -581,7 +581,7 @@ LRESULT CALLBACK Launcher_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		case WM_COMMAND: {//Commandes du menu
 			switch( LOWORD(wParam) ) {
 				case IDM_ABOUT:
-					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2017","About", MB_OK ) ;
+					MessageBox(hwnd,"     TTY Launcher\nSession launcher for TTY terminal emulator\n(c), 2009-2018","About", MB_OK ) ;
 					break ;
 				case IDM_QUIT:
 					ResShell = Shell_NotifyIcon(NIM_DELETE, &TrayIcone) ;
@@ -725,16 +725,21 @@ void RunConfig( Conf * conf ) {
 		char b[2048];
 		char c[180], *cl;
 		int freecl = FALSE;
+		const char *argprefix;
 		BOOL inherit_handles;
 		STARTUPINFO si;
 		PROCESS_INFORMATION pi;
 		HANDLE filemap = NULL;
-
+	
 		char bufpass[1024] ;
-		strcpy( bufpass, conf_get_str(conf,CONF_password));
-		MASKPASS(bufpass);
-		conf_set_str(conf,CONF_password,bufpass);
-
+		strcpy( bufpass, conf_get_str(conf,CONF_password)) ;
+		MASKPASS(bufpass) ;
+		conf_set_str(conf,CONF_password,bufpass) ;
+	
+                if (restricted_acl)
+                    argprefix = "&R";
+                else
+                    argprefix = "";
 		    /*
 		     * Allocate a file-mapping memory chunk for the
 		     * config structure.
@@ -742,7 +747,9 @@ void RunConfig( Conf * conf ) {
 		    SECURITY_ATTRIBUTES sa;
 		    void *p;
 		    int size;
+
 		    size = conf_serialised_size(conf);
+
 		    sa.nLength = sizeof(sa);
 		    sa.lpSecurityDescriptor = NULL;
 		    sa.bInheritHandle = TRUE;
@@ -758,8 +765,9 @@ void RunConfig( Conf * conf ) {
 			}
 		    }
 		    inherit_handles = TRUE;
-		    sprintf(c, "putty &%p:%u", filemap, (unsigned)size);
-		    cl = c;
+		    cl = dupprintf("putty %s&%p:%u", argprefix,
+                                   filemap, (unsigned)size);
+		    
 		MASKPASS(bufpass);
 		conf_set_str(conf,CONF_password,bufpass);
 		memset(bufpass,0,strlen(bufpass));
@@ -779,8 +787,7 @@ void RunConfig( Conf * conf ) {
 
 		if (filemap)
 		    CloseHandle(filemap);
-		if (freecl)
-		    sfree(cl);
+		sfree(cl);
 	}
 
 void RunPuTTY( HWND hwnd, char * param ) {

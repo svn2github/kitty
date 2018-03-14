@@ -1292,11 +1292,11 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		}
 	*/
 	
-	if( conf_launchable(conf) ) { RunConfig(conf) ;	}
-	else if( (strlen(ssd->savedsession)>0) && isSessionExist(ssd,ssd->savedsession) ) {
+	if( conf_launchable(conf) ) {
+		RunConfig(conf) ;	
+	} else if( (strlen(ssd->savedsession)>0) && isSessionExist(ssd,ssd->savedsession) ) {
 		if( !RunSession( hwnd, CurrentFolder, ssd->savedsession ) ) {  dlg_beep(dlg) ; } 
-	}
-	else if( dlg_last_focused(ctrl, dlg) == ssd->listbox ) { 
+	} else if( dlg_last_focused(ctrl, dlg) == ssd->listbox ) { 
 		Conf *conf2 = conf_new() ; 
 		int mbl = FALSE;
 		char *oldsavedsession ;
@@ -1314,8 +1314,8 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		//dlg_refresh(ssd->editbox, dlg) ;
 		//sessionsaver_handler( ctrlSessionList, dlg, data, EVENT_REFRESH ) ;
 		conf_free(conf2);	
+	} else { dlg_beep(dlg) ; 
 	}
-	else { dlg_beep(dlg) ; }
 	
 	}
 #endif

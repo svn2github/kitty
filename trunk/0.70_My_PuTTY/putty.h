@@ -33,7 +33,7 @@ void debug_log( const char *fmt, ...) ;
 int switch_private_key_flag( void ) ;
 
 /* Ajout de declaration de DLL manquante dans MinGW*/
-DLL_DIRECTORY_COOKIE WINAPI AddDllDirectory( PCWSTR NewDirectory );
+//DLL_DIRECTORY_COOKIE WINAPI AddDllDirectory( PCWSTR NewDirectory );
 BOOL WINAPI SetDefaultDllDirectories( DWORD DirectoryFlags ) ;
 BOOL WINAPI CryptProtectMemory( LPVOID pData, DWORD  cbData, DWORD  dwFlags );
 #endif

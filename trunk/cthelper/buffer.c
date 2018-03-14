@@ -13,7 +13,7 @@ buffer_init(size_t size)
   Buffer b;
 
   DBUG_ENTER("buffer_init");
-  assert((b = malloc(sizeof(struct buffer_tag) + size)));
+  assert((b = (Buffer)malloc(sizeof(struct buffer_tag) + size)));
   b->len = 0;
   b->avail = size;
   DBUG_RETURN(b);

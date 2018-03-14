@@ -2684,7 +2684,7 @@ static void usage(void)
     printf("  -sshrawlog file\n");
     printf("            log protocol details to a file\n");
 #ifdef PERSOPORT
-    printf("  -auto_store_sshkey\n");
+    printf("  -auto-store-sshkey\n");
     printf("            store automatically the servers ssh keys\n");
 #endif
     cleanup_exit(1);

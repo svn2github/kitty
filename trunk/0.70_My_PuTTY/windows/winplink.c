@@ -262,7 +262,7 @@ static void usage(void)
     printf("  -shareexists\n");
     printf("            test whether a connection-sharing upstream exists\n");
 #ifdef PERSOPORT
-    printf("  -auto_store_sshkey\n");
+    printf("  -auto-store-sshkey\n");
     printf("            store automatically the servers ssh keys\n");
 #endif
     exit(1);

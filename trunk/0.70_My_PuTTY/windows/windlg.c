@@ -220,7 +220,7 @@ static INT_PTR CALLBACK LicenceProc(HWND hwnd, UINT msg,
 #if (defined PERSOPORT) && (!defined FDJ)
 
 //static const char MESSAGE[] = "";
-static const char MESSAGE[] = "                                                                                       KiTTY software is developed by Cyd for 9bis.com, copyright \251 2006-2017, thanks to Leo for bcrypt and mini libraries, thanks to all contributors                                                                                       " ;
+static const char MESSAGE[] = "                                                                                       KiTTY software is developed by Cyd for 9bis.com, copyright \251 2006-2018, thanks to Leo for bcrypt and mini libraries, thanks to all contributors                                                                                       " ;
 static INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg,
                                   WPARAM wParam, LPARAM lParam)
 {
@@ -976,7 +976,14 @@ void defuse_showwindow(void)
 int do_config(void)
 {
     int ret;
-
+#ifdef PERSOPORT
+	// On cree la session "Default Settings" si elle n'existe pas
+	if( GetDefaultSettingsFlag() ) { 
+		char buffer[1024] ;
+		GetSessionFolderName( "Default Settings", buffer ) ;
+		if( strlen( buffer ) == 0 ) { save_settings( "Default Settings", conf ) ; }
+	}
+#endif
     ctrlbox = ctrl_new_box();
     setup_config_box(ctrlbox, FALSE, 0, 0);
     win_setup_config_box(ctrlbox, &dp.hwnd, has_help(), FALSE, 0);
@@ -1003,7 +1010,7 @@ int do_config(void)
 #ifdef PERSOPORT
 	GotoConfigDirectory() ;
 	if( ret==0 ) SaveRegistryKey( ) ; // On sort de la config box par ESCAPE ou cancel
-	else _beginthread( routine_SaveRegistryKey, 0, (void*)NULL ) ; // On démarre une session
+	else _beginthread( routine_SaveRegistryKey, 0, (void*)NULL ) ; // On dÃ©marre une session
 #endif
     return ret;
 }

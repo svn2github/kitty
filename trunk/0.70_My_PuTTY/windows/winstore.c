@@ -44,6 +44,10 @@ static const char hex[16] = "0123456789ABCDEF";
 #endif
 #ifndef SAVEMODE_DIR
 #define SAVEMODE_DIR 2
+
+#define EMERGENCY_INIT int emergency_brake_count = 200000, while_iterations=0 ;
+#define EMERGENCY_BREAK if( while_iterations++ > emergency_brake_count ) { break ; }
+
 #endif
 
 int get_param( const char * val ) ;
@@ -117,7 +121,9 @@ DWORD errorShow(const char* pcErrText, const char* pcErrParam) {
 
 /* JK: pack string for use as filename - pack < > : " / \ | */
 static void packstr(const char *in, char *out) {
+EMERGENCY_INIT
     while (*in) {
+EMERGENCY_BREAK
 		if (*in == '<' || *in == '>' || *in == ':' || *in == '"' ||
 	    *in == '/' || *in == '|') {
 	    *out++ = '%';
@@ -313,7 +319,9 @@ int loadPath() {
 			*(fileCont+fileSize+1) = '\0';
 			*(fileCont+fileSize) = '\n';
 			p = fileCont;
+EMERGENCY_INIT
 			while (p) {
+EMERGENCY_BREAK
 				if (*p == ';') {	/* JK: comment -> skip line */
 					p = strchr(p, '\n');
 					++p;
@@ -393,7 +401,7 @@ char * SetSessPath( const char * dec ) {
 	if( !strcmp(dec,"..") ) {
 		if( strcmp(sesspath, initialsesspath) ) {
 			i=strlen(sesspath)-1 ;
-			while( sesspath[i]!='\\' ) i--;
+			while( (sesspath[i]!='\\') && (i>0) ) i--;
 			sesspath[i]='\0';
 			}
 		}
@@ -446,9 +454,10 @@ static void mungestr(const char *in, char *out)
 #endif
 {
     int candot = 0;
-
+EMERGENCY_INIT
     while (*in) {
-	if (*in == ' ' || *in == '\\' || *in == '*' || *in == '?' ||
+EMERGENCY_BREAK
+	    if (*in == ' ' || *in == '\\' || *in == '*' || *in == '?' ||
 #ifdef PERSOPORT
 	*in ==':' || *in =='/' || *in =='\"' || *in =='<' || *in =='>' || *in =='|' ||
 #endif
@@ -472,7 +481,9 @@ void unmungestr(const char *in, char *out, int outlen)
 static void unmungestr(const char *in, char *out, int outlen)
 #endif
 {
+EMERGENCY_INIT
     while (*in) {
+EMERGENCY_BREAK
 	if (*in == '%' && in[1] && in[2]) {
 	    int i, j;
 
@@ -579,7 +590,9 @@ void write_setting_s(void *handle, const char *key, const char *value)
 		((struct setPack*) handle)->fromFile = max(((struct setPack*) handle)->fromFile, strlen(value)+1);
 
 		st = ((struct setPack*) handle)->handle;
+EMERGENCY_INIT
 		while (st) {
+EMERGENCY_BREAK
 			if ( strcmp(st->key, key) == 0) {
 				/* this key already set -> reset */
 				sfree(st->value);
@@ -620,7 +633,9 @@ void write_setting_i(void *handle, const char *key, int value)
 		((struct setPack*) handle)->fromFile = max(((struct setPack*) handle)->fromFile, strlen(key)+1);
 
 		st = ((struct setPack*) handle)->handle;
+EMERGENCY_INIT
 		while (st) {
+EMERGENCY_BREAK
 			if ( strcmp(st->key, key) == 0) {
 				/* this key already set -> reset */
 				sfree(st->value);
@@ -689,7 +704,9 @@ void close_settings_w(void *handle)
 	st1 = ((struct setPack*) handle)->handle;
 	writeok = 1;
 
+EMERGENCY_INIT
 	while (st1) {
+EMERGENCY_BREAK
 		mungestr(st1->key, p);
 		writeok = writeok && WriteFile( (HANDLE) hFile, p, strlen(p), &written, NULL);
 		writeok = writeok && WriteFile( (HANDLE) hFile, "\\", 1, &written, NULL);
@@ -843,7 +860,9 @@ void *open_settings_r(const char *sessionname)
 		 * key1\value1\
 		 * ...
 		*/
+EMERGENCY_INIT
 		while (p < (fileCont+fileSize)) {
+EMERGENCY_BREAK
 			st1->key = p;
 			p = strchr(p, '\\');
 			if (!p) break;
@@ -924,8 +943,9 @@ char *read_setting_s(void *handle, const char *key)
 		mungestr(key, p);
 
 		st = ((struct setPack*) handle)->handle;
-		if(st!=NULL)
-		while (st->key) {
+EMERGENCY_INIT
+		if(st!=NULL) while (st->key) {
+EMERGENCY_BREAK
 			if ( strcmp(st->key, p) == 0) {
 				ret = snewn(strlen(st->value)+11, char);
 				unmungestr(st->value, ret, strlen(st->value)+10);
@@ -976,8 +996,9 @@ int read_setting_i(void *handle, const char *key, int defvalue)
 
 	if (((struct setPack*) handle)->fromFile) {
 		st = ((struct setPack*) handle)->handle;
-		if(st!=NULL)
-		while (st->key) {
+EMERGENCY_INIT
+		if(st!=NULL) while (st->key) {
+EMERGENCY_BREAK
 			if ( strcmp(st->key, key) == 0) {
 				return atoi(st->value);				
 			}
@@ -1088,7 +1109,9 @@ void close_settings_r(void *handle)
 		struct setItem *st1, *st2;
 
 		st1 = ((struct setPack*) handle)->handle;
+EMERGENCY_INIT
 		while (st1) {
+EMERGENCY_BREAK
 			st2 = st1->next;
 			sfree(st1);
 			st1 = st2;
@@ -1258,7 +1281,9 @@ char *enum_settings_next(void *handle, char *buffer, int buflen)
 
 			/* JK: skip directories ("." and ".." too) */
 			if( !get_param("DIRECTORYBROWSE") ) {
+EMERGENCY_INIT
 				while ( (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) {
+EMERGENCY_BREAK
 					if (!FindNextFile(hFile,&FindFileData)) {
 						sfree(otherbuf);
 						return NULL;
@@ -1304,7 +1329,9 @@ char *enum_settings_next(void *handle, char *buffer, int buflen)
 		if (FindNextFile(((struct enumsettings *)handle)->hFile,&FindFileData)) {
 			/* JK: skip directories ("." and ".." too) */
 			if( !get_param("DIRECTORYBROWSE") ) {
+EMERGENCY_INIT
 				while ( (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) {
+EMERGENCY_BREAK
 					if (!FindNextFile(((struct enumsettings *)handle)->hFile,&FindFileData)) 
 						{ sfree(otherbuf); return NULL;	}
 					}
@@ -1500,8 +1527,11 @@ int verify_host_key(const char *hostname, int port,
 		ndigits = strcspn(q, "/");	/* find / or end of string */
 		nwords = ndigits / 4;
 		/* now trim ndigits to remove leading zeros */
-		while (q[(ndigits - 1) ^ 3] == '0' && ndigits > 1)
+EMERGENCY_INIT
+		while (q[(ndigits - 1) ^ 3] == '0' && ndigits > 1) {
+EMERGENCY_BREAK
 		    ndigits--;
+		}
 		/* now move digits over to new string */
 		for (j = 0; j < ndigits; j++)
 		    p[ndigits - 1 - j] = q[j ^ 3];
@@ -1654,8 +1684,11 @@ return 0 ;
 		ndigits = strcspn(q, "/");	/* find / or end of string */
 		nwords = ndigits / 4;
 		/* now trim ndigits to remove leading zeros */
-		while (q[(ndigits - 1) ^ 3] == '0' && ndigits > 1)
+EMERGENCY_INIT
+		while (q[(ndigits - 1) ^ 3] == '0' && ndigits > 1) {
+EMERGENCY_BREAK
 		    ndigits--;
+		}
 		/* now move digits over to new string */
 		for (j = 0; j < ndigits; j++)
 		    p[ndigits - 1 - j] = q[j ^ 3];
@@ -1915,7 +1948,9 @@ void read_random_seed(noise_consumer_t consumer)
     HANDLE seedf = access_random_seed(OPEN_R);
 
     if (seedf != INVALID_HANDLE_VALUE) {
+EMERGENCY_INIT
 	while (1) {
+EMERGENCY_BREAK
 	    char buf[1024];
 	    DWORD len;
 
@@ -1956,7 +1991,7 @@ static int transform_jumplist_registry
     HKEY pjumplist_key, psettings_tmp;
     DWORD type;
     DWORD value_length;
-    char *old_value, *new_value;
+    char *old_value=NULL, *new_value;
     char *piterator_old, *piterator_new, *piterator_tmp;
 
 #ifdef PERSOPORT
@@ -2111,7 +2146,7 @@ if( get_param("INIFILE")==SAVEMODE_DIR ) {
 
     /* Clean up and return. */
  #ifdef PERSOPORT
-if( !get_param("INIFILE")==SAVEMODE_DIR )
+if( !(get_param("INIFILE")==SAVEMODE_DIR) )
 #endif	   
     RegCloseKey(pjumplist_key);
 

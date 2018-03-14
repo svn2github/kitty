@@ -7,12 +7,12 @@ void
 debug_memdump(const void *buf, int len, int L)
 {
   int i;
-  unsigned const char *p = buf;
+  unsigned const char *p = (unsigned const char*)buf;
   char foo[17];
   if (L) {
     int delta;
     fprintf(DBUG_FILE,"\t%d (0x%x) bytes:\n", len, len);
-    delta = 15 & (int) p;
+    delta = 15 &(int)p;
     p -= delta;
     len += delta;
   }

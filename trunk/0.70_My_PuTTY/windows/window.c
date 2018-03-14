@@ -606,13 +606,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	}
 	conf_set_int(conf, CONF_logtype, LGTYP_NONE);
 	do_defaults(NULL, conf);
-#ifdef PERSOPORT
-	// On cree la session "Default Settings" si elle n'existe pas
-	if( GetDefaultSettingsFlag() )
-	{ char buffer[1024] ; GetSessionFolderName( "Default Settings", buffer ) ; 
-	if( strlen( buffer ) == 0 ) { save_settings( "Default Settings", conf ) ; }
-	}
-#endif
 	p = cmdline;
 	/*
 	 * Process a couple of command-line options which are more
@@ -726,7 +719,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			conf_set_int( conf, CONF_protocol, PROT_CYGTERM ) ; // cfg.protocol = PROT_CYGTERM ;
 			got_host = 1 ;
 #endif
-		} else if( !strcmp(p, "-auto_store_sshkey") ) {
+		} else if( !strcmp(p, "-auto_store_sshkey") || !strcmp(p, "-auto-store-sshkey") ) {
 			SetAutoStoreSSHKeyFlag( 1 ) ;
 		} else if( !strcmp(p, "-cmd") ) {
 			i++ ;
@@ -3153,22 +3146,24 @@ else if((UINT_PTR)wParam == TIMER_AUTOCOMMAND) {  // Autocommand au demarrage
 	char buffer[8192] = "" ;
 	int i = 0  ;
 	while( AutoCommand[i] != '\0' ) {
-		if( AutoCommand[i]=='\n' ) { i++ ; break ; }
-		else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'n') ) { i += 2 ; break ; }
-		else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'p') ) {
+		if( AutoCommand[i]=='\n' ) { i++ ; break ;
+		} else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == '\\') ) {
+			strcat( buffer, "\\\\" ) ;
+			i += 2 ;
+		} else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'n') ) { i += 2 ; break ;
+		} else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 'p') ) {
 			strcat( buffer, "\\p" ) ;
 			i += 2 ;
 			break ;
-			}
-		else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 's') ) {
+		} else if( (AutoCommand[i] == '\\') && (AutoCommand[i+1] == 's') ) {
 			strcat( buffer, "\\s" ) ;
 			i += 2 ;
 			buffer[i] = AutoCommand[i] ; buffer[i+1] = '\0' ; i++ ;
 			buffer[i] = AutoCommand[i] ; buffer[i+1] = '\0' ; i++ ;
 			break ;
-			}
-		else { buffer[i] = AutoCommand[i] ; buffer[i+1] = '\0' ; i++ ; }
+		} else { buffer[i] = AutoCommand[i] ; buffer[i+1] = '\0' ; i++ ; 
 		}
+	}
 		
 	//if( AutoCommand[i] != '\0' ) { AutoCommand += i ; }
 	del( AutoCommand, 1, i ) ; //AutoCommand += i ;

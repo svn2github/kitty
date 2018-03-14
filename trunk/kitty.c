@@ -399,7 +399,7 @@ int MaxBlinkingTime = 0 ;
 // Compteur pour l'envoi de anti-idle
 int AntiIdleCount = 0 ;
 int AntiIdleCountMax = 6 ;
-char AntiIdleStr[128] = "" ;
+char AntiIdleStr[128] = "" ;  // Ex: " \x08"   => Fait un espace et le retire tout de suite
 
 // Chemin vers le programme cthelper.exe
 char * CtHelperPath = NULL ;
@@ -900,7 +900,7 @@ int GetSessionFolderNameInSubDir( const char * session, const char * subdir, cha
 	return return_code ;
 	}
 
-// Recupere le nom du folder associe a� une session
+// Recupere le nom du folder associe à une session
 void GetSessionFolderName( const char * session_in, char * folder ) {
 	HKEY hKey ;
 	char buffer[1024], session[1024] ;
@@ -1421,8 +1421,8 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, "Shortcuts", "printall", "{F7}" ) ;
 
 			}
+		if( !existfile( KittyIniFile ) ) { MessageBox( NULL, "Unable to create configuration file !", "Error", MB_OK|MB_ICONERROR ) ; }
 		}
-	if( !existfile( KittyIniFile ) ) { MessageBox( NULL, "Unable to create configuration file !", "Error", MB_OK|MB_ICONERROR ) ; }
 	}
 
 // Ecrit un parametre soit en registre soit dans le fichier de configuration
@@ -1663,45 +1663,40 @@ void SendKeyboardPlus( HWND hwnd, const char * st ) {
 		buffer[0] = '\0' ;
 		do {
 		if( st[i] == '\\' ) {
-			if( st[i+1] == '\\' ) { buffer[j] = '\\' ; i++ ; j++ ; }
-			//else if( st[i+1] == '\0' ) { buffer[j] = '\\' ; j++ ; }
-			else if( (st[i+1] == '/') && (i==0) ) {	buffer[j] = '/' ; i++ ; j++ ; }
-			else if( st[i+1] == 't' ) { buffer[j] = '\t' ; i++ ; j++ ; }
-			else if( st[i+1] == 'r' ) { buffer[j] = '\r' ; i++ ; j++ ; }
-			else if( st[i+1] == 'h' ) { buffer[j] = 8 ; i++ ; j++ ; }
-			else if( st[i+1] == 'n' ) {
+			if( st[i+1] == '\\' ) { buffer[j] = '\\' ; i++ ; j++ ;
+			} else if( (st[i+1] == '/') && (i==0) ) { buffer[j] = '/' ; i++ ; j++ ; 
+			} else if( st[i+1] == 't' ) { buffer[j] = '\t' ; i++ ; j++ ; 
+			} else if( st[i+1] == 'r' ) { buffer[j] = '\r' ; i++ ; j++ ; 
+			} else if( st[i+1] == 'h' ) { buffer[j] = 8 ; i++ ; j++ ; 
+			} else if( st[i+1] == 'n' ) {
 				SendKeyboard( hwnd, buffer ) ; SendKeyboard( hwnd, "\n" ) ;
 				Sleep( internal_delay ) ;
 				buffer[0] = '\0' ; j = 0 ;
 				i++ ;
-				}
-			else if( st[i+1] == 'p' ) { 			// \p pause une seconde
+			} else if( st[i+1] == 'p' ) { 			// \p pause une seconde
 				SendKeyboard( hwnd, buffer ) ;
 				Sleep(1000);
 				buffer[0] = '\0' ; j = 0 ;
 				i++ ; 
-				}
-			else if( st[i+1] == 's' ) { 			// \s03 pause 3 secondes
+			} else if( st[i+1] == 's' ) { 			// \s03 pause 3 secondes
 				SendKeyboard( hwnd, buffer ) ;
 				j = 1 ;
 				if( (st[i+2]>='0')&&(st[i+2]<='9')&&(st[i+3]>='0')&&(st[i+3]<='9') ) {
 					stb[0]=st[i+2];stb[1]=st[i+3];stb[2]='\0' ;
 					j=atoi(stb) ;
 					i++ ; i++ ;
-					}
+				}
 				Sleep(j*1000);
 				buffer[0] = '\0' ; j = 0 ;
 				i++ ; 
-				}
-			else if( st[i+1] == 'c' ) { 
+			} else if( st[i+1] == 'c' ) { 
 				keybd_event(VK_CONTROL, 0x1D, 0, 0) ;
 				keybd_event(VK_CANCEL, 0x1D, 0, 0) ;
 				keybd_event(VK_CANCEL, 0x1D, KEYEVENTF_KEYUP, 0) ;
 				keybd_event(VK_CONTROL, 0x1D, KEYEVENTF_KEYUP, 0) ;
 				buffer[0] = '\0' ; j = 0 ;
 				i++ ; 
-				}
-			else if( st[i+1] == 'k' ) {
+			} else if( st[i+1] == 'k' ) {
 				SendKeyboard( hwnd, buffer ) ;
 				sprintf( stb, "0x%c%c", st[i+2],st[i+3] ) ;
 				sscanf( stb, "%x", &j ) ;
@@ -1726,26 +1721,22 @@ void SendKeyboardPlus( HWND hwnd, const char * st ) {
 						if( keyb_alt_flag )	keybd_event(VK_LMENU, 0x1D, KEYEVENTF_KEYUP, 0) ;
 						if( keyb_shift_flag )	keybd_event(VK_SHIFT, 0x1D, KEYEVENTF_KEYUP, 0) ;
 						if( keyb_control_flag )	keybd_event(VK_CONTROL, 0x1D, KEYEVENTF_KEYUP, 0) ;
-						}
-					else if( j==VK_ESCAPE ) {
+					} else if( j==VK_ESCAPE ) {
 						keybd_event( VK_ESCAPE, 1, 0, 0); 
 						keybd_event( VK_ESCAPE, 1, KEYEVENTF_KEYUP, 0) ;
-						}
-					else if( (j==VK_END) || (j==VK_HOME) ) {
+					} else if( (j==VK_END) || (j==VK_HOME) ) {
 						keybd_event( j ,0, KEYEVENTF_EXTENDEDKEY, 0 ) ;
 						keybd_event( j, 0, KEYEVENTF_EXTENDEDKEY|KEYEVENTF_KEYUP, 0 ) ; 
-					}
-					else {
+					} else {
 						sprintf( stb, "%c", j ) ;
 						SendStrToTerminal( stb, 1 ) ;
 						//SendMessage(hwnd, WM_CHAR, j, 0) ;
-						}
 					}
+				}
 				Sleep( internal_delay ) ;
 				buffer[0] = '\0' ; j = 0 ;
 				i++ ; i++ ; i++ ;
-				}
-			else if( st[i+1] == 'x' ) {
+			} else if( st[i+1] == 'x' ) {
 				SendKeyboard( hwnd, buffer ) ;
 				sprintf( stb, "0x%c%c", st[i+2],st[i+3] ) ;
 				sscanf( stb, "%X", &j ) ;
@@ -1754,10 +1745,9 @@ void SendKeyboardPlus( HWND hwnd, const char * st ) {
 				Sleep( internal_delay ) ;
 				buffer[0] = '\0' ; j = 0 ;
 				i++ ; i++ ; i++ ;
-				}
-			else { buffer[j] = '\\' ; j++ ; }
+			} else { buffer[j] = '\\' ; j++ ; 
 			}
-		else { buffer[j] = st[i] ; j++ ; }
+		} else { buffer[j] = st[i] ; j++ ; }
 		buffer[j] = '\0' ;
 		i++ ; 
 		} while( st[i] != '\0' ) ;
@@ -1766,16 +1756,15 @@ void SendKeyboardPlus( HWND hwnd, const char * st ) {
 			if( buffer[strlen(buffer)-1]=='\\' ) { // si la command se termine par \ on n'envoie pas de retour charriot
 				buffer[strlen(buffer)-1]='\0' ;
 				SendKeyboard( hwnd, buffer ) ;
-				}
-			else {
+			} else {
 				SendKeyboard( hwnd, buffer ) ;
 				if( buffer[strlen(buffer)-1] != '\n' ) // On ajoute un retour charriot au besoin
 					SendKeyboard( hwnd, "\n" ) ;
-				}
 			}
-		free( buffer ) ;
 		}
+		free( buffer ) ;
 	}
+}
 
 void SendAutoCommand( HWND hwnd, const char * cmd ) {
 	if( strlen( cmd ) > 0 ) {
@@ -2057,7 +2046,7 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	char buffer[4096], pscppath[4096]="", pscpport[4096]="22", remotedir[4096]=".",dir[4096], b1[256] ;
 	int p ;
 	
-	if( distantdir == NULL ) { distantdir = kitty_current_dir(); } 
+	if( distantdir == NULL ) { distantdir = kitty_current_dir() ; } 
 	if( PSCPPath==NULL ) {
 		if( IniFileFlag == SAVEMODE_REG ) return ;
 		else if( !SearchPSCP() ) return ;
@@ -2075,12 +2064,11 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 		}
 	if (strlen( dir ) == 0) strcpy( dir, InitialDirectory ) ;
 
-	if( (distantdir!=NULL) && (strlen(distantdir)>0) ) {
+	if( (distantdir != NULL ) && ( strlen(distantdir)>0 ) ) {
 		strcpy( remotedir, distantdir ) ;
-		}
-	else if( !ReadParameter( INIT_SECTION, "remotedir", remotedir ) ) {
+	} else if( !ReadParameter( INIT_SECTION, "remotedir", remotedir ) ) {
 		strcpy( remotedir, "." ) ;
-		}
+	}
 	if( strlen( remotedir ) == 0 ) strcpy( remotedir, "." ) ;
 
 	strcpy( buffer, "" ) ;
@@ -2093,7 +2081,7 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	}
 	//strcat( buffer, "-scp -r " ) ; //strcat( buffer, "-batch " ) ;
 	
-	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
+	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto-store-sshkey " ) ;
 	
 	if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
 		pscpport[17]='\0';
@@ -2226,7 +2214,7 @@ void RunExternPlink( HWND hwnd, char * cmd ) {
 	strcpy( buffer, "" ) ;
 	sprintf( buffer, "%s ", plinkpath ) ;
 		
-	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
+	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto-store-sshkey " ) ;
 
 	if( strlen( conf_get_str(conf, CONF_sftpconnect) ) == 0 ) {
 		sprintf( b1, "-P %d ", conf_get_int(conf, CONF_port)) ;
@@ -2313,7 +2301,7 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 	}
 	//strcat( buffer, "-scp -r " ) ; 
 	
-	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto_store_sshkey " ) ;
+	//if( GetAutoStoreSSHKeyFlag() ) strcat( buffer, "-auto-store-sshkey " ) ;
 	
 	if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
 		pscpport[17]='\0';
@@ -2571,6 +2559,13 @@ scriptfile()
 {
 if [ $# -eq 0 ] ; then echo "Usage: scriptfile filename" ; return 0 ; fi
 printf "\033]0;__ls:"$@"\007"
+}
+*/
+/* Lance internet explorer
+ie()
+{
+if [ $# -eq 0 ] ; then echo "Usage: ie url" ; return 0 ; fi
+printf "\033]0;__ie:"$@"\007"
 }
 */
 /* Copie tout ce qui est reçu dans le pipe vers le presse-papier
@@ -4078,49 +4073,50 @@ int SearchPlink( void ) {
 	
 // Gestion du drap and drop
 void recupNomFichierDragDrop(HWND hwnd, HDROP* leDrop ) {
-        HDROP hDropInfo=*leDrop;
+        HDROP hDropInfo = *leDrop ;
         int nb,taille,i;
         taille=0;
         nb=0;
-        nb=DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0 );
-        char fic[1024];
-        for( i = 0; i < nb; i++ )
-        {
+	if( leDrop==NULL ) return ;
+        nb=DragQueryFile( hDropInfo, 0xFFFFFFFF, NULL, 0 ) ;
+        char *fic ;
+	if( nb>0 ) for( i = 0; i < nb; i++ ) {
                 taille = DragQueryFile(hDropInfo, i, NULL, 0 )+1;
-                DragQueryFile(hDropInfo, i, fic, taille );
-		if( !strcmp( fic+strlen(fic)-10,"\\kitty.ini" ) ) {
+		fic = (char*)malloc(taille+1) ;
+                DragQueryFile( hDropInfo, i, fic, taille ) ;
+		if( !strcmp( fic+strlen(fic)-10,"\\kitty.ini" ) ) { // On charge le fichier de config dans l'editeur interne
 			char buffer[1024]="", shortname[1024]="" ;
 			if( GetModuleFileName( NULL, (LPTSTR)buffer, 1023 ) ) 
 				if( GetShortPathName( buffer, shortname, 1023 ) ) {
 					sprintf( buffer, "%s -ed %s", shortname, fic ) ;
 					RunCommand( hwnd, buffer ) ;
-					}
-			}
-                else { 
-			if( conf_get_int( conf, CONF_scp_auto_pwd ) !=1 ) { SendOneFile( hwnd, "", fic, NULL ) ; }
+				}
+		} else { 
+			if( conf_get_int( conf, CONF_scp_auto_pwd ) != 1 ) { SendOneFile( hwnd, "", fic, NULL ) ; }
 			else { SendOneFile( hwnd, "", fic, RemotePath  ) ; }
-			}
-                 }
-	DragFinish(hDropInfo);  //vidage de la mem...
-        *leDrop=hDropInfo;  //TOCHECK : transmistion de param...
+		}
+		free(fic);
 	}
+	DragFinish(hDropInfo) ;  //vidage de la mem...
+        *leDrop = hDropInfo ;  //TOCHECK : transmistion de param...
+}
 
 void OnDropFiles(HWND hwnd, HDROP hDropInfo) {
 	if( conf_get_int(conf,CONF_protocol) != PROT_SSH ) {
 		MessageBox( hwnd, "This function is only available with SSH connections.", "Error", MB_OK|MB_ICONERROR ) ;
 		return ;
 		}
-	if( conf_get_int( conf, CONF_scp_auto_pwd ) !=1 ) { recupNomFichierDragDrop(hwnd, &hDropInfo) ; }
+	if( conf_get_int( conf, CONF_scp_auto_pwd ) != 1 ) { recupNomFichierDragDrop(hwnd, &hDropInfo) ; }
 	else { 
-		if( RemotePath!= NULL ) { free( RemotePath ) ; RemotePath = NULL ; }
+		if( RemotePath != NULL ) { free( RemotePath ) ; RemotePath = NULL ; }
 		if( hDropInf != NULL ) { free(hDropInf) ; hDropInf = NULL ; }
 		char cmd[1024] = "printf \"\\033]0;__pw:%s\\007\" `pwd`\\n" ;
 		if( AutoCommand != NULL ) { free(AutoCommand) ; AutoCommand = NULL ; }
 		AutoCommand = (char*) malloc( strlen(cmd) + 10 ) ;
 		strcpy( AutoCommand, cmd );
-		SetTimer(hwnd, TIMER_AUTOCOMMAND,autocommand_delay, NULL);
-		hDropInf = hDropInfo;
-		SetTimer(hwnd, TIMER_DND,dnd_delay, NULL) ;
+		SetTimer(hwnd, TIMER_AUTOCOMMAND, autocommand_delay, NULL) ;
+		hDropInf = hDropInfo ;
+		SetTimer(hwnd, TIMER_DND, dnd_delay, NULL) ;
 		}
 	}
 
@@ -4524,7 +4520,7 @@ void NegativeColours(HWND hwnd) {
 	conf_set_int_int(conf, CONF_colours, i*3+2, 256-conf_get_int_int(conf, CONF_colours, i*3+2));
     }
     force_reconf=0;
-    SendMessage(hwnd,WM_COMMAND,IDM_RECONF,0);
+    PostMessage(hwnd,WM_COMMAND,IDM_RECONF,0);
     RefreshBackground(hwnd);
 }
 static int * BlackOnWhiteColoursSave = NULL ;
@@ -4556,17 +4552,22 @@ void BlackOnWhiteColours(HWND hwnd) {
 		}
 	}
 	force_reconf=0;
-	SendMessage(hwnd,WM_COMMAND,IDM_RECONF,0);
+	PostMessage(hwnd,WM_COMMAND,IDM_RECONF,0);
 	RefreshBackground(hwnd);
 }
+static int original_fontsize = -1 ;
 void ChangeFontSize(HWND hwnd, int dec) {
 	FontSpec *fontspec = conf_get_fontspec(conf, CONF_font);
-	fontspec->height = fontspec->height + dec ;
-	if(fontspec->height <=0 ) fontspec->height = 1;
+	if( original_fontsize<0 ) original_fontsize = fontspec->height ;
+	if( dec == 0 ) {fontspec->height = original_fontsize ; }
+	else {
+		fontspec->height = fontspec->height + dec ;
+		if(fontspec->height <=0 ) fontspec->height = 1 ;
+	}
 	conf_set_fontspec(conf, CONF_font, fontspec);
         fontspec_free(fontspec);
 	force_reconf=0;
-	SendMessage( hwnd,WM_COMMAND,IDM_RECONF,0);
+	PostMessage( hwnd,WM_COMMAND,IDM_RECONF,0);
 	RefreshBackground(hwnd);
 }
 void ChangeSettings(HWND hwnd) {
@@ -4907,16 +4908,21 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 	else if( BackgroundImageFlag && (key == shortcuts_tab.imagechange) ) 		// Changement d'image de fond
 		{ if( NextBgImage( hwnd ) ) InvalidateRect(hwnd, NULL, TRUE) ; return 1 ; }
 #endif
-
+/*
 	if( control_flag && shift_flag ) {
 		if(key_num == VK_UP) { SendMessage( hwnd, WM_COMMAND, IDM_FONTUP, 0 ) ; return 1 ; }
 		if(key_num == VK_DOWN) { SendMessage( hwnd, WM_COMMAND, IDM_FONTDOWN, 0 ) ; return 1 ; }
-	}
+		if(key_num == VK_LEFT ) {  ChangeFontSize(hwnd,0) ; return 1 ; }
+	}*/
 	if( control_flag && !shift_flag ) {
-		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&((key_num == VK_ADD)||(key_num == VK_UP)) ) // Augmenter l'opacite (diminuer la transparence)
+		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&(key_num == VK_UP) ) // Augmenter l'opacite (diminuer la transparence)
 			{ SendMessage( hwnd, WM_COMMAND, IDM_TRANSPARUP, 0 ) ; return 1 ; }
-		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&((key_num == VK_SUBTRACT)||(key_num == VK_DOWN)) ) // Diminuer l'opacite (augmenter la transparence)
+		if( TransparencyFlag && (conf_get_int(conf,CONF_transparencynumber)!=-1)&&(key_num == VK_DOWN) ) // Diminuer l'opacite (augmenter la transparence)
 			{ SendMessage( hwnd, WM_COMMAND, IDM_TRANSPARDOWN, 0 ) ; return 1 ; }
+
+		if (key_num == VK_ADD) { SendMessage( hwnd, WM_COMMAND, IDM_FONTUP, 0 ) ; return 1 ; }
+		if (key_num == VK_SUBTRACT) { SendMessage( hwnd, WM_COMMAND, IDM_FONTDOWN, 0 ) ; return 1 ; }
+		if (key_num == VK_NUMPAD0) { ChangeFontSize(hwnd,0) ; return 1 ; }
 #ifdef LAUNCHERPORT
 		/*    ====> Ne fonctionne pas !!!
 		if (key_num == VK_LEFT ) //Fenetre KiTTY precedente
@@ -5274,6 +5280,7 @@ void InitWinMain( void ) {
 	appname = KiTTYClassName ;
 #endif
 
+
 	// Initialise le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;
 	
@@ -5423,3 +5430,9 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) ;
 // Nettoie la clé de PuTTY pour enlever les clés et valeurs spécifique à KiTTY
 // Se trouve dans le fichier kitty_registry.c
 BOOL RegCleanPuTTY( void ) ;
+
+// Envoi de caractères
+void SendKeyboardPlus( HWND hwnd, const char * st ) ;
+
+// Envoi d'une commande à l'écran
+void SendAutoCommand( HWND hwnd, const char * cmd ) ;
