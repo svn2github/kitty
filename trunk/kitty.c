@@ -2099,9 +2099,8 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 		strcat( buffer, b1 ) ;
 	}
 
-	if( conf_get_int(conf, CONF_sshprot) == 2 ) {
-		sprintf( b1, "-%d", conf_get_int(conf, CONF_sshprot) ) ; strcat( buffer, b1 ); 
-		strcat( buffer, " " ) ;
+	if( conf_get_int(conf, CONF_sshprot) == 3 ) { // SSH-2 Only (voir putty.h)
+		strcat( buffer, "-2 " ) ;
 		}
 	if( strlen( conf_get_str(conf,CONF_password)) > 0 ) {
 		strcat( buffer, "-pw \"" ) ;
@@ -2140,7 +2139,7 @@ void SendOneFile( HWND hwnd, char * directory, char * filename, char * distantdi
 	}
 	
 	strcat( buffer, ":" ) ; strcat( buffer, remotedir ) ;
-
+	
 	chdir( InitialDirectory ) ;
 	if( debug_flag ) { debug_logevent( "Run: %s", buffer ) ; }
 	if( system( buffer ) ) MessageBox( NULL, buffer, "Transfer problem", MB_OK|MB_ICONERROR  ) ;
@@ -2221,10 +2220,8 @@ void RunExternPlink( HWND hwnd, char * cmd ) {
 		strcat( buffer, b1 ) ;
 	}
 	
-	if( conf_get_int(conf,CONF_sshprot) == 2 ) {
-		sprintf( b1, "-%d", conf_get_int(conf,CONF_sshprot) ) ;
-		strcat( buffer, b1 ); 
-		strcat( buffer, " " ) ;
+	if( conf_get_int(conf,CONF_sshprot) == 3 ) { // SSH-2 Only (voir putty.h)
+		strcat( buffer, "-2 " ) ;
 	}
 
 	if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
@@ -2318,9 +2315,8 @@ void GetOneFile( HWND hwnd, char * directory, char * filename ) {
 		strcat( buffer, b1 ) ;
 	}
 	
-	if( conf_get_int(conf,CONF_sshprot) == 2 ) {
-		sprintf( b1, "-%d", conf_get_int(conf,CONF_sshprot) ) ; strcat( buffer, b1 ); 
-		strcat( buffer, " " ) ;
+	if( conf_get_int(conf,CONF_sshprot) == 3 ) { // SSH-2 Only (voir putty.h)
+		strcat( buffer, "-2 " ) ;
 		}
 	if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 		strcat( buffer, "-pw \"" ) ;
@@ -2415,9 +2411,8 @@ void GetFile( HWND hwnd ) {
 				if( strlen(PSCPOptions)>0 ) {
 					strcat( buffer, PSCPOptions ) ; strcat( buffer, " " ) ;
 				}
-				if( conf_get_int(conf,CONF_sshprot) == 2 ) {
-					sprintf( b1, "-%d", conf_get_int(conf,CONF_sshprot) ) ; strcat( buffer, b1 ); 
-					strcat( buffer, " " ) ;
+				if( conf_get_int(conf,CONF_sshprot) == 3 ) { // SSH-2 Only (voir putty.h)
+					strcat( buffer, "-2 " ) ;
 					}
 						
 				if( ReadParameter( INIT_SECTION, "pscpport", pscpport ) ) {
@@ -3819,7 +3814,7 @@ void StartNewSession( HWND hwnd, char * directory ) {
 
 	if( conf_get_int(conf,CONF_protocol) == PROT_SSH ) {
 		sprintf( cmd, "%s -ssh ", shortpath ) ;
-		if( conf_get_int(conf,CONF_sshprot) == 2 ) strcat( cmd, "-2 " ) ;
+		if( conf_get_int(conf,CONF_sshprot) == 3 ) strcat( cmd, "-2 " ) ;
 		strcat( cmd, conf_get_str(conf,CONF_username) ) ;
 		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
 		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
@@ -5279,7 +5274,6 @@ void InitWinMain( void ) {
 		{ if( (strlen(buffer)>0) && (strlen(buffer)<128) ) { buffer[127]='\0'; strcpy( KiTTYClassName, buffer ) ; } }
 	appname = KiTTYClassName ;
 #endif
-
 
 	// Initialise le tableau des menus
 	for( i=0 ; i < NB_MENU_MAX ; i++ ) SpecialMenu[i] = NULL ;
