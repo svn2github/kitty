@@ -417,7 +417,7 @@ char PSCPOptions[1024] = "-scp -r"  ;
 char * PlinkPath = NULL ;
 
 // Repertoire de lancement
-char InitialDirectory[4096] ;
+char InitialDirectory[4096] ; 
 
 // Chemin complet des fichiers de configuration kitty.ini et kitty.sav
 static char * KittyIniFile = NULL ;
@@ -1301,7 +1301,7 @@ void CountUp( void ) {
 // Si le fichier kitty.ini n'existe pas => creation du fichier par defaut
 void CreateDefaultIniFile( void ) {
 	char buffer[4096] ;
-	if( !NoKittyFileFlag ) {
+	if( !NoKittyFileFlag ) if( !GetReadOnlyFlag() ) {
 		if( KittyIniFile==NULL ) return ;
 		if( strlen(KittyIniFile)==0 ) return ;
 		if( !existfile( KittyIniFile ) ) {
@@ -1399,6 +1399,7 @@ void CreateDefaultIniFile( void ) {
 			writeINI( KittyIniFile, INIT_SECTION, "#commanddelay", "0.05" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#initdelay", "2.0" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "#internaldelay", "10" ) ;
+			writeINI( KittyIniFile, INIT_SECTION, "#readonly", "no" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "slidedelay", "0" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "winrol", "yes" ) ;
 			writeINI( KittyIniFile, INIT_SECTION, "wintitle", "yes" ) ;
@@ -1430,14 +1431,15 @@ int WriteParameter( const char * key, const char * name, char * value ) {
 	int ret = 1 ;
 	char buffer[4096] ;
 	if( IniFileFlag == SAVEMODE_DIR ) { 
-		ret = writeINI( KittyIniFile, key, name, value ) ; 
+		if( !GetReadOnlyFlag() ) {
+			ret = writeINI( KittyIniFile, key, name, value ) ; 
 		}
-	else { 
+	} else { 
 		sprintf( buffer, "%s\\%s", TEXT(PUTTY_REG_PARENT), key ) ;
 		RegTestOrCreate( HKEY_CURRENT_USER, buffer, name, value ) ; 
-		}
-	return ret ;
 	}
+	return ret ;
+}
 
 // Lit un parametre soit dans le fichier de configuration, soit dans le registre
 int ReadParameter( const char * key, const char * name, char * value ) {
@@ -1456,7 +1458,7 @@ int ReadParameter( const char * key, const char * name, char * value ) {
 // Supprime un parametre
 int DelParameter( const char * key, const char * name ) {
 	char buffer[4096] ;
-	delINI( KittyIniFile, key, name ) ;
+	if( !GetReadOnlyFlag() ) { delINI( KittyIniFile, key, name ) ; }
 	sprintf( buffer, "%s\\%s", TEXT(PUTTY_REG_PARENT), key ) ;
 	RegDelValue( HKEY_CURRENT_USER, buffer, (char*)name ) ;
 	return 1 ;
@@ -5041,6 +5043,7 @@ void LoadParameters( void ) {
 	if( ReadParameter( INIT_SECTION, "size", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SizeFlag = 1 ; }
 	if( ReadParameter( INIT_SECTION, "slidedelay", buffer ) ) { ImageSlideDelay = atoi( buffer ) ; }
 	if( ReadParameter( INIT_SECTION, "sshversion", buffer ) ) { set_sshver( buffer ) ; }
+	if( ReadParameter( INIT_SECTION, "readonly", buffer ) ) { if( !stricmp( buffer, "YES" ) ) SetReadOnlyFlag(1) ; }
 	if( ReadParameter( INIT_SECTION, "maxblinkingtime", buffer ) ) { MaxBlinkingTime=2*atoi(buffer);if(MaxBlinkingTime<0) MaxBlinkingTime=0; }
 	if( ReadParameter( INIT_SECTION, "userpasssshnosave", buffer ) ) { 
 		if( !stricmp( buffer, "no" ) ) SetUserPassSSHNoSave(0) ;

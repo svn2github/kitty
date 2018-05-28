@@ -25,6 +25,11 @@ void SetUserPassSSHNoSave( const int flag ) ;
 int GetAskConfirmationFlag(void) ;
 void SetAskConfirmationFlag( const int flag ) ;
 
+// Flag pour empêcher l'écriture des fichiers (default settings, jump file list ...)
+// [KiTTY] readonly=no
+int GetReadOnlyFlag(void) ;
+void SetReadOnlyFlag( const int flag ) ;
+
 #ifdef ADBPORT
 // Flag pour inhiber le support d'ADB
 int GetADBFlag(void) ;

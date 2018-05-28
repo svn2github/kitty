@@ -49,6 +49,12 @@ static int AskConfirmationFlag=2 ;
 int GetAskConfirmationFlag(void) { return AskConfirmationFlag ; }
 void SetAskConfirmationFlag( const int flag ) { AskConfirmationFlag = flag ; }
 
+// Flag pour empêcher l'écriture des fichiers (default settings, jump file list ...)
+// [KiTTY] readonly=no
+static int ReadOnlyFlag = 0 ;
+int GetReadOnlyFlag(void) { return ReadOnlyFlag ; }
+void SetReadOnlyFlag( const int flag ) { ReadOnlyFlag = flag ; }
+
 #ifdef ADBPORT
 // Flag pour inhiber le support d'ADB
 static int ADBFlag = 1 ;

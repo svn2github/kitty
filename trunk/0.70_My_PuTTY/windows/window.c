@@ -283,6 +283,9 @@ COLORREF return_colours258(void) { return colours[258]; }
 struct netscheduler_tag* netscheduler_new(void) ;
 void netscheduler_free(struct netscheduler_tag* netscheduler) ;
 
+/* String pour charger automatiquement au démarrage un fichier dans un editeur connecté */
+static char *LoadFile = NULL ;
+
 /* Flag pour interdire l'ouverture de boite configuration */
 int force_reconf = 1 ;
 
@@ -746,7 +749,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 		} else if( !strcmp(p, "-nofiles") ) {
 			SetNoKittyFileFlag( 1 ) ;
 		} else if( !strcmp(p, "-edit") ) {
-			
+			i++;
+			if( existfile(argv[i]) ) {
+				LoadFile = (char*) malloc( strlen(argv[i])+1 ) ;
+				strcpy( LoadFile, argv[i] ) ;
+			}
 		} else if( !strcmp(p, "-folder") ) {
 			char *pfolder ;
 			pfolder=p+7;
@@ -848,6 +855,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			SetCtrlTabFlag( 0 ) ;
 			SetRuTTYFlag( 0 ) ;
 			SetDefaultSettingsFlag(1);
+			SetReadOnlyFlag(0);
 #ifdef CYGTERMPORT
 			cygterm_set_flag( 0 ) ;
 #endif
@@ -863,6 +871,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 			SetSessionFilterFlag( 0 ) ;
 			PuttyFlag = 1 ;
 			//SetWindowPos(GetForegroundWindow(), HWND_TOP, 0, 0, 0, 252, SWP_SHOWWINDOW|SWP_NOMOVE);
+		} else if( !strcmp(p, "-readonly") ) {
+			SetDefaultSettingsFlag(0);
+			SetReadOnlyFlag(1);
 		} else if( !strcmp(p, "-send-to-tray") ) {
 			SetAutoSendToTray( 1 ) ;
 		} else if( !strcmp(p, "-sshhandler") ) {
@@ -1592,7 +1603,6 @@ TrayIcone.hWnd = hwnd ;
 		// Lancement du timer d'anti-idle
 		SetTimer(hwnd, TIMER_ANTIIDLE, (int)(30*1000), NULL) ;
 #endif
-			
 		} // fin de if( !PuttyFlag )
 #ifdef HYPERLINKPORT
 else {
@@ -3072,6 +3082,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 else if((UINT_PTR)wParam == TIMER_INIT) {  // Initialisation
 	char buffer[4096] = "" ;
 
+	// On charge automatiquement au démarrage (-edit) un fichier dans l'editeur connecté
+	if( !PuttyFlag ) if( LoadFile!=NULL ) { RunPuttyEd( hwnd, LoadFile ) ; free( LoadFile ) ; LoadFile = NULL ; }
+	
 	if( (conf_get_int(conf,CONF_protocol) == PROT_SSH) && (!backend_connected) ) break ; // On sort si en SSH on n'est pas connecte
 	// Lancement d'une (ou plusieurs separees par \\n) commande(s) automatique(s) a l'initialisation
 	KillTimer( hwnd, TIMER_INIT ) ;
@@ -6195,7 +6208,13 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 	if (wParam == VK_MENU && (HIWORD(lParam) & KF_EXTENDED)) {
 	    keystate[VK_RMENU] = keystate[VK_MENU];
 	}
-
+	
+#ifdef DISABLEALTGRPORT
+/*disable altgr*/
+if( !get_param("PUTTY") && conf_get_int(conf, CONF_disablealtgr) ) {
+	keystate[VK_RMENU] = 0;
+}
+#endif
 
 	/* Nastyness with NUMLock - Shift-NUMLock is left alone though */
 	if ((funky_type == FUNKY_VT400 ||
@@ -6521,26 +6540,6 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 	if( !PuttyFlag ) {
 		if (wParam == VK_TAB && shift_state == 2) { /* Ctrl-Tab */
 		p += sprintf((char *) p, "\x1B[27;5;9~");
-		return p - output;
-		}
-		if (wParam == VK_TAB && shift_state == 3) { /* Ctrl-Shift-Tab */
-		p += sprintf((char *) p, "\x1B[27;6;9~");
-		return p - output;
-		}
-		if (wParam == VK_UP && shift_state == 3) { /* Ctrl-Shift-Up */
-		p += sprintf((char *) p, "\x1B[1;6A");
-		return p - output;
-		}
-		if (wParam == VK_DOWN && shift_state == 3) { /* Ctrl-Shift-Down */
-		p += sprintf((char *) p, "\x1B[1;6B");
-		return p - output;
-		}
-		if (wParam == VK_RIGHT && shift_state == 3) { /* Ctrl-Shift-Right */
-		p += sprintf((char *) p, "\x1B[1;6C");
-		return p - output;
-		}
-		if (wParam == VK_LEFT && shift_state == 3) { /* Ctrl-Shift-Left */
-		p += sprintf((char *) p, "\x1B[1;6D");
 		return p - output;
 		}
 	}

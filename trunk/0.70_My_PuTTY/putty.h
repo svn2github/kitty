@@ -1117,7 +1117,10 @@ void cleanup_exit(int);
     /* port knocking options */ \
     X(STR, NONE, portknockingoptions) \
 /* #endif */ \
-
+/* #ifdef DISABLEALTGRPORT */ \
+   /* Disable AltGr button */ \
+   X(INT, NONE, disablealtgr) \
+/* #endif */ \
 
 /* Now define the actual enum of option keywords using that macro. */
 #define CONF_ENUM_DEF(valtype, keytype, keyword) CONF_ ## keyword,

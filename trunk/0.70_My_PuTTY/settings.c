@@ -859,6 +859,9 @@ void save_open_settings(void *sesskey, Conf *conf)
 #ifdef PORTKNOCKINGPORT
 	write_setting_s(sesskey, "PortKnocking", conf_get_str(conf, CONF_portknockingoptions) );
 #endif
+#ifdef DISABLEALTGRPORT
+	write_setting_i(sesskey, "DisableAltGr", conf_get_int(conf, CONF_disablealtgr));
+#endif
 }
 
 void load_settings(const char *section, Conf *conf)
@@ -1528,6 +1531,9 @@ void load_open_settings(void *sesskey, Conf *conf)
 #endif
 #ifdef PORTKNOCKINGPORT
 	gpps(sesskey, "PortKnocking", "", conf, CONF_portknockingoptions );
+#endif
+#ifdef DISABLEALTGRPORT
+	gppi(sesskey, "DisableAltGr", 0, conf, CONF_disablealtgr);
 #endif
 }
 

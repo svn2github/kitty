@@ -56,6 +56,7 @@ void DelDir( const char * directory ) ;
 BOOL RegDelTree (HKEY hKeyRoot, LPCTSTR lpSubKey) ;
 void CleanFolderName( char * folder ) ;
 char * GetConfigDirectory( void ) ;
+int GetReadOnlyFlag(void) ;
 
 char * ltoa (long int __val, char *__s, int __radix) ;
 char * itoa (int __val, char *__s, int __radix)  ;
@@ -86,7 +87,7 @@ DWORD errorShow(const char* pcErrText, const char* pcErrParam) {
 	HWND hwRodic;
 	DWORD erChyba;
 	char pcBuf[16];
-	char* pcHlaska = snewn(strlen(pcErrParam) + strlen(pcErrText) + 41, char);
+	char* pcHlaska = snewn((pcErrParam?strlen(pcErrParam):0) + strlen(pcErrText) + 41, char);
 	
 	erChyba = GetLastError();		
 	ltoa(erChyba, pcBuf, 10);
@@ -142,6 +143,7 @@ EMERGENCY_BREAK
 */
 int createPath(char* dir) {
     char *p;
+	if( GetReadOnlyFlag() ) { return 1 ; }
 	p = strrchr(dir, '\\');
 
 	if (p == NULL) {
@@ -238,14 +240,13 @@ int loadPath() {
 	DWORD bytesRead;
 	char *p = NULL;
 	char *p2 = NULL;
-	HANDLE hFile;
+	HANDLE hFile ;
 
 	char* puttypath = snewn( (MAX_PATH*2), char);
 
 	/* JK:  save path/curdir */
 	GetCurrentDirectory( (MAX_PATH*2), oldpath);
 
-	
 	/* JK: try curdir for putty.conf first */
 	hFile = CreateFile("putty.conf",GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
 
@@ -680,6 +681,7 @@ void close_settings_w(void *handle)
 		}
 	if (!handle) return;
 
+	if( GetReadOnlyFlag() ) return ; 
 	/* JK: we will write to disk now - open file, filename stored in handle already packed */
 	if ((hFile = FindFirstFile(sesspath, &FindFile)) == INVALID_HANDLE_VALUE) {
 		if (!createPath(sesspath)) {
@@ -1148,6 +1150,7 @@ void del_settings(const char *sessionname)
 		sfree(p);
 	}
 	else {
+		if( GetReadOnlyFlag() ) return ;
 		/* JK: delete from file - file itself */
 		if( (strstr( sessionname, " [" )==sessionname)&&(sessionname[strlen(sessionname)-1]==']') ) {
 			// La session a purger est un folder
@@ -1163,8 +1166,7 @@ void del_settings(const char *sessionname)
 					SetCurrentDirectory(oldpath);
 					}
 			sfree(p);
-			}
-		else {
+		} else {
 			/* JK: if sessionname contains [registry] -> cut it off */
 			if( get_param("INIFILE")==SAVEMODE_DIR ) {
 				if ( *(sessionname+strlen(sessionname)-1) == ']') {
@@ -1180,12 +1182,14 @@ void del_settings(const char *sessionname)
 			DelDir( buffer ) ;
 			GetCurrentDirectory( (MAX_PATH*2), oldpath);
 			if (SetCurrentDirectory(sesspath)) {
-				if (!DeleteFile(p2)) { errorShow("Unable to delete settings.", NULL) ; }
+				if (!DeleteFile(p2)) { 
+					errorShow("Unable to delete settings.", NULL) ; 
+				}
 				SetCurrentDirectory(oldpath);
 				}
 			sfree(p);
 			sfree(p2);
-			}
+		}
 	}
 #else
     if (RegOpenKey(HKEY_CURRENT_USER, puttystr, &subkey1) != ERROR_SUCCESS)
@@ -1569,6 +1573,7 @@ EMERGENCY_BREAK
 		/* JK: matching key found in registry -> warn user, ask what to do */
 		p = snewn(256, char);
 		if( GetAutoStoreSSHKeyFlag() ) { userMB=IDYES ; }
+		else if( GetReadOnlyFlag() ) { userMB=IDCANCEL ; }
 		else
 		userMB = MessageBox(NULL, "Host key is cached but in registry. "
 			"Do you want to move it to file? \n\n"
@@ -1766,6 +1771,7 @@ else {
 	char* p = NULL;
 	DWORD bytesWritten;
 
+	if( GetReadOnlyFlag() ) return ;
 	/* JK: save hostkey to file in dir */
 	if ((hFile = FindFirstFile(sshkpath, &FindFile)) == INVALID_HANDLE_VALUE) {
 		if( !createPath(sshkpath) ) { errorShow("Unable to create directory for storing ssh host keys", sshkpath); }
@@ -1965,6 +1971,9 @@ EMERGENCY_BREAK
 
 void write_random_seed(void *data, int len)
 {
+#ifdef PERSOPORT
+	if( GetReadOnlyFlag() ) return ;
+#endif
     HANDLE seedf = access_random_seed(OPEN_W);
 
     if (seedf != INVALID_HANDLE_VALUE) {
@@ -2122,6 +2131,7 @@ else {
 #ifdef PERSOPORT
 if( get_param("INIFILE")==SAVEMODE_DIR ) {
 	FILE *fp ;
+	if( !GetReadOnlyFlag() )
 	if( (fp = fopen( RecentSessionsFile, "w" )) != NULL ) {
 		fwrite ( new_value, piterator_new - new_value, 1, fp ) ;
 		fclose(fp) ;

@@ -14,6 +14,7 @@
 #include "winsecur.h"
 
 #ifdef PERSOPORT
+#include <winerror.h>
 
 // Flag pour le fonctionnement en mode "portable" (gestion par fichiers)
 extern int IniFileFlag ;

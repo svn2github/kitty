@@ -554,6 +554,9 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 #ifdef PORTKNOCKINGPORT
 	fprintf( fp, "portknocking=%s\n",		conf_get_str(conf,CONF_portknockingoptions) ) ;
 #endif
+#ifdef DISABLEALTGRPORT
+	fprintf( fp, "disablealtgr=%d\n",		conf_get_int(conf,CONF_disablealtgr) ) ;
+#endif
 	//FontSpec boldfont; //FontSpec widefont; //FontSpec wideboldfont;
 
 	fprintf( fp, "\n[[KiTTY specific configuration]]\n" ) ;
@@ -597,8 +600,8 @@ void SaveDumpConfig( FILE *fp, Conf * conf ) {
 	fprintf( fp,"ADBFlag=%d\n",GetADBFlag() );
 #endif
 	if( PasswordConf!= NULL ) fprintf( fp, "PasswordConf=%s\n", PasswordConf ) ;
-	fprintf( fp, "SessionFilterFlag=%d\nSessionsInDefaultFlag=%d\nDefaultSettingsFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nMaxBlinkingTime=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\n"
-	,SessionFilterFlag,SessionsInDefaultFlag,DefaultSettingsFlag,ImageViewerFlag,ImageSlideDelay,MaxBlinkingTime,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine);
+	fprintf( fp, "SessionFilterFlag=%d\nSessionsInDefaultFlag=%d\nDefaultSettingsFlag=%d\nImageViewerFlag=%d\nImageSlideDelay=%d\nMaxBlinkingTime=%d\nPrintCharSize=%d\nPrintMaxLinePerPage=%d\nPrintMaxCharPerLine=%d\nReadOnlyFlag=%d\n"
+	,SessionFilterFlag,SessionsInDefaultFlag,DefaultSettingsFlag,ImageViewerFlag,ImageSlideDelay,MaxBlinkingTime,PrintCharSize,PrintMaxLinePerPage,PrintMaxCharPerLine,GetReadOnlyFlag());
 	fprintf( fp, "AntiIdleCount=%d\nAntiIdleCountMax=%d\nIconeNum=%d\n"
 	,AntiIdleCount,AntiIdleCountMax,IconeNum);
 	fprintf( fp, "AntiIdleStr=%s\nInitialDirectory=%s\nConfigDirectory=%s\nBuildVersionTime=%s\n",AntiIdleStr,InitialDirectory,ConfigDirectory,BuildVersionTime);

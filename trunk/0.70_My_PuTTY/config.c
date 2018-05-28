@@ -21,6 +21,7 @@ int cygterm_get_flag( void ) ;
 union control * ctrlHostnameEdit = NULL ;
 void MASKPASS( char * password ) ;
 int stricmp(const char *s1, const char *s2) ;
+int GetReadOnlyFlag(void) ;
 #endif
 
 #define PRINTER_DISABLED_STRING "None (printing disabled)"
@@ -2280,17 +2281,19 @@ void setup_config_box(struct controlbox *b, int midsession,
     }
     /* "Save" button is permitted mid-session. */
 #ifdef PERSOPORT
-    if( get_param("INIFILE") == 1 )
-	ssd->savebutton = ctrl_pushbutton(s, "Save (f)", 'v', HELPCTX(session_saved), sessionsaver_handler, P(ssd));
-    else if( get_param("INIFILE") == 2 )
-	ssd->savebutton = ctrl_pushbutton(s, "Save (d)", 'v', HELPCTX(session_saved), sessionsaver_handler, P(ssd));
-    else
-#endif
-    ssd->savebutton = ctrl_pushbutton(s, "Save", 'v',
+    if( !GetReadOnlyFlag() ) {
+	if( get_param("INIFILE") == 1 )
+		ssd->savebutton = ctrl_pushbutton(s, "Save (f)", 'v', HELPCTX(session_saved), sessionsaver_handler, P(ssd));
+	else if( get_param("INIFILE") == 2 )
+		ssd->savebutton = ctrl_pushbutton(s, "Save (d)", 'v', HELPCTX(session_saved), sessionsaver_handler, P(ssd));
+	else
+		ssd->savebutton = ctrl_pushbutton(s, "Save", 'v',
 				      HELPCTX(session_saved),
 				      sessionsaver_handler, P(ssd));
-    ssd->savebutton->generic.column = 1;
-    if (!midsession) {
+	ssd->savebutton->generic.column = 1;
+    } else { ssd->savebutton = NULL ; }
+    
+    if( !midsession && !GetReadOnlyFlag() ) {
 	ssd->delbutton = ctrl_pushbutton(s, "Delete", 'd',
 					 HELPCTX(session_saved),
 					 sessionsaver_handler, P(ssd));
@@ -2299,9 +2302,9 @@ void setup_config_box(struct controlbox *b, int midsession,
 	/* Disable the Delete button mid-session too, for UI consistency. */
 	ssd->delbutton = NULL;
     }
-#ifdef PERSOPORT
-	if( GetConfigBoxHeight() > 7 ) { // On n'affiche les boutons KiTTY que si la taille de la config box le permet
-	if (!midsession) { // Bouton de creation d'un folder
+    
+    if( GetConfigBoxHeight() > 7 ) { // On n'affiche les boutons KiTTY que si la taille de la config box le permet
+	if (!midsession && !GetReadOnlyFlag()) { // Bouton de creation d'un folder
 	ssd->createbutton = ctrl_pushbutton(s, "New folder", NO_SHORTCUT,
 					  HELPCTX(session_saved),
 					  sessionsaver_handler, P(ssd));
@@ -2312,7 +2315,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 	}
 
 	if( !get_param("DIRECTORYBROWSE" ) ) {
-		if (!midsession) { // Bouton de suppression d'un folder
+		if (!midsession && !GetReadOnlyFlag()) { // Bouton de suppression d'un folder
 		ssd->delfolderbutton = ctrl_pushbutton(s, "Del folder", NO_SHORTCUT,
 					  HELPCTX(session_saved),
 					  sessionsaver_handler, P(ssd));
@@ -2324,7 +2327,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 	}
 	
 	if( !get_param("DIRECTORYBROWSE" ) ) {
-		if ( !midsession ) { // Bouton d'arrange de l'ordre de la liste des folders
+		if ( !midsession && !GetReadOnlyFlag() ) { // Bouton d'arrange de l'ordre de la liste des folders
 		ssd->arrangebutton = ctrl_pushbutton(s, "Up folder", NO_SHORTCUT,
 					  HELPCTX(session_saved),
 					  sessionsaver_handler, P(ssd));
@@ -2340,6 +2343,20 @@ void setup_config_box(struct controlbox *b, int midsession,
 			  HELPCTX(no_help),
 			  folder_handler, I(CONF_folder)) ; // folder_handler, I(offsetof(Config,folder)));
 	}
+#else
+    ssd->savebutton = ctrl_pushbutton(s, "Save", 'v',
+				      HELPCTX(session_saved),
+				      sessionsaver_handler, P(ssd));
+    ssd->savebutton->generic.column = 1;
+    if (!midsession) {
+	ssd->delbutton = ctrl_pushbutton(s, "Delete", 'd',
+					 HELPCTX(session_saved),
+					 sessionsaver_handler, P(ssd));
+	ssd->delbutton->generic.column = 1;
+    } else {
+	/* Disable the Delete button mid-session too, for UI consistency. */
+	ssd->delbutton = NULL;
+    }
 #endif
     ctrl_columns(s, 1, 100);
 
@@ -2884,6 +2901,7 @@ void setup_config_box(struct controlbox *b, int midsession,
 		 HELPCTX(appearance_title),
 		 conf_editbox_handler, I(CONF_wintitle), I(1));
 #ifdef PERSOPORT
+if( !get_param("PUTTY") ) {
       ctrl_text(s, "     %%f: folder name", HELPCTX(appearance_title));
       ctrl_text(s, "     %%h: hostname", HELPCTX(appearance_title));
       ctrl_text(s, "     %%p: port number", HELPCTX(appearance_title));
@@ -2891,6 +2909,7 @@ void setup_config_box(struct controlbox *b, int midsession,
       ctrl_text(s, "     %%s: session name", HELPCTX(appearance_title));
       ctrl_text(s, "     %%u: username", HELPCTX(appearance_title));
       ctrl_text(s, "     %%w: forwarded ports list", HELPCTX(appearance_title));
+}
 #endif
     ctrl_checkbox(s, "Separate window and icon titles", 'i',
 		  HELPCTX(appearance_title),
@@ -2901,6 +2920,13 @@ void setup_config_box(struct controlbox *b, int midsession,
     ctrl_checkbox(s, "Warn before closing window", 'w',
 		  HELPCTX(behaviour_closewarn),
 		  conf_checkbox_handler, I(CONF_warn_on_close));
+#ifdef DISABLEALTGRPORT
+if( !get_param("PUTTY") ) {
+    ctrl_checkbox(s, "Disable AltGr menu", NO_SHORTCUT,
+		  HELPCTX(no_help),
+		  conf_checkbox_handler, I(CONF_disablealtgr));
+}
+#endif
 
     /*
      * The Window/Translation panel.
