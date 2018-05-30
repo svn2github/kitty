@@ -723,8 +723,9 @@ int WINAPI Launcher_WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int s
 void RunConfig( Conf * conf ) {
 	
 		char b[2048];
-		char c[180], *cl;
-		int freecl = FALSE;
+		//char c[180];
+		//int freecl = FALSE;
+		char *cl;
 		const char *argprefix;
 		BOOL inherit_handles;
 		STARTUPINFO si;
@@ -736,10 +737,11 @@ void RunConfig( Conf * conf ) {
 		MASKPASS(bufpass) ;
 		conf_set_str(conf,CONF_password,bufpass) ;
 	
-                if (restricted_acl)
+                if (restricted_acl) {
                     argprefix = "&R";
-                else
+                } else {
                     argprefix = "";
+		}
 		    /*
 		     * Allocate a file-mapping memory chunk for the
 		     * config structure.

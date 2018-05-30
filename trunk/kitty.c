@@ -510,6 +510,7 @@ static struct TShortcuts {
 	int winscp ;
 	int showportforward ;
 	int resetterminal ;
+	int duplicate ;
 	} shortcuts_tab ;
 
 static int NbShortCuts = 0 ;
@@ -2576,7 +2577,8 @@ function wcl {
 int ManageLocalCmd( HWND hwnd, char * cmd ) {
 	char buffer[1024] = "", title[1024] = "" ;
 	if( debug_flag ) { debug_logevent( "LocalCmd: %s", cmd ) ;  }
-	if( cmd == NULL ) return 0 ; if( (cmd[2] != ':')&&(cmd[2] != '\0') ) return 0 ;
+	if( cmd == NULL ) return 0 ; 
+	if( (cmd[2] != ':')&&(cmd[2] != '\0') ) return 0 ;
 	if( (cmd[2] == ':')&&( strlen( cmd ) <= 3 ) ) return 0 ;
 	if( (cmd[0]=='p')&&(cmd[1]=='w')&&(cmd[2]==':') ) { // __pw: nouveau remote directory
 		if( RemotePath!= NULL ) free( RemotePath ) ;
@@ -4556,7 +4558,7 @@ static int original_fontsize = -1 ;
 void ChangeFontSize(HWND hwnd, int dec) {
 	FontSpec *fontspec = conf_get_fontspec(conf, CONF_font);
 	if( original_fontsize<0 ) original_fontsize = fontspec->height ;
-	if( dec == 0 ) {fontspec->height = original_fontsize ; }
+	if( dec == 0 ) { fontspec->height = original_fontsize ; }
 	else {
 		fontspec->height = fontspec->height + dec ;
 		if(fontspec->height <=0 ) fontspec->height = 1 ;
@@ -4564,7 +4566,10 @@ void ChangeFontSize(HWND hwnd, int dec) {
 	conf_set_fontspec(conf, CONF_font, fontspec);
         fontspec_free(fontspec);
 	force_reconf=0;
-	PostMessage( hwnd,WM_COMMAND,IDM_RECONF,0);
+	
+	//char b[256];sprintf(b,"%d %d",hwnd,fontspec->height);MessageBox(NULL,b,"ici",MB_OK);
+	
+	SendMessage( hwnd, WM_COMMAND, IDM_RECONF, 0 ) ;
 	RefreshBackground(hwnd);
 }
 void ChangeSettings(HWND hwnd) {
@@ -4778,6 +4783,8 @@ void InitShortcuts( void ) {
 	if( !readINI(KittyIniFile,"Shortcuts","rollup",buffer) || ( (shortcuts_tab.rollup=DefineShortcuts(buffer))<=0 ) )
 		shortcuts_tab.rollup = CONTROLKEY+VK_F12 ;
 	if( !readINI(KittyIniFile,"Shortcuts","resetterminal",buffer) || ( (shortcuts_tab.resetterminal=DefineShortcuts(buffer))<=0 ) ) { }
+	if( !readINI(KittyIniFile,"Shortcuts","duplicate",buffer) || ( (shortcuts_tab.duplicate=DefineShortcuts(buffer))<=0 ) )
+		shortcuts_tab.duplicate = CONTROLKEY+ALTKEY+84 ;
 
 	if( NbShortCuts>0 ) for( i=0 ; i<NbShortCuts ; i++ ) { if( shortcuts_tab2[i].st!=NULL ) { free(shortcuts_tab2[i].st) ; } }
 	NbShortCuts=0 ;
@@ -4817,8 +4824,8 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 	if( control_flag ) key = key + CONTROLKEY ;
 	if( win_flag ) key = key + WINKEY ;
 
-//if( (key_num!=VK_SHIFT)&&(key_num!=VK_CONTROL) ) {char b[256] ; sprintf( b, "alt=%d altgr=%d shift=%d control=%d key=%d print=%d", alt_flag, altgr_flag, shift_flag, control_flag, key, shortcuts_tab.print ); MessageBox(hwnd, b, "Info", MB_OK);}
-	
+//if( (key_num!=VK_SHIFT)&&(key_num!=VK_CONTROL) ) {char b[256] ; sprintf( b, "alt=%d altgr=%d shift=%d control=%d key_num=%d key=%d action=%d", alt_flag, altgr_flag, shift_flag, control_flag, key_num, key, shortcuts_tab.duplicate ); MessageBox(hwnd, b, "Info", MB_OK);}
+
 	if( key == shortcuts_tab.protect )				// Protection
 		{ SendMessage( hwnd, WM_COMMAND, IDM_PROTECT, 0 ) ; InvalidateRect( hwnd, NULL, TRUE ) ; return 1 ; }
 	if( key == shortcuts_tab.rollup ) 				// Fonction winrol
@@ -4839,7 +4846,6 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		if( ManageViewer( hwnd, key_num ) ) return 1 ;
 		}
 #endif
-
 	if( control_flag && shift_flag && (key_num==VK_F12) ) {
 		ResizeWinList( hwnd, conf_get_int(conf,CONF_width), conf_get_int(conf,CONF_height) ) ; return 1 ; 
 		} // Retaille toutes les autres fenetres a la dimension de celle-ci
@@ -4851,7 +4857,7 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		}
 
 	if( ( IniFileFlag != SAVEMODE_DIR ) && shift_flag && control_flag ) {		
-		if( ( key_num >= 'A' ) && ( key_num <= 'Z' ) ) // Raccourci commandes speciales (SpecialMenu)
+		if( ( key_num >= 'A' ) && ( key_num <= 'Z' ) ) // Raccourci commandes speciales (SpecialMenu) CTRL+SHIFT+'A' ... CTRL+SHIFT+'Z'
 			{ SendMessage( hwnd, WM_COMMAND, IDM_USERCMD+key_num-'A', 0 ) ; return 1 ; }
 		}
 		
@@ -4872,10 +4878,10 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 		}
 #ifndef FDJ
 	if( key == shortcuts_tab.inputm )	 		// Fenetre de controle
-			{ 
-			MainHwnd = hwnd ; _beginthread( routine_inputbox_multiline, 0, (void*)&hwnd ) ;
-			return 1 ;
-			}
+		{
+		MainHwnd = hwnd ; _beginthread( routine_inputbox_multiline, 0, (void*)&hwnd ) ;
+		return 1 ;
+		}
 #endif
 	if( key == shortcuts_tab.viewer ) 			// Switcher le mode visualiseur d'image
 		{ ImageViewerFlag = abs(ImageViewerFlag-1) ; set_title(NULL, conf_get_str(conf,CONF_wintitle)/*cfg.wintitle*/) ; return 1 ; }
@@ -4891,9 +4897,11 @@ int ManageShortcuts( HWND hwnd, int key_num, int shift_flag, int control_flag, i
 	else if( key == shortcuts_tab.tray ) 		// Send to tray
 		{ SendMessage( hwnd, WM_COMMAND, IDM_TOTRAY, 0 ) ; return 1 ; }
 	else if( key == shortcuts_tab.visible )  		// Always visible 
-			{ SendMessage( hwnd, WM_COMMAND, IDM_VISIBLE, 0 ) ; return 1 ; }
+		{ SendMessage( hwnd, WM_COMMAND, IDM_VISIBLE, 0 ) ; return 1 ; }
 	else if( key == shortcuts_tab.resetterminal ) 		// Envoi d'un fichier par SCP
 		{ SendMessage( hwnd, WM_COMMAND, IDM_RESET, 0 ) ; return 1 ; }
+	else if( key == shortcuts_tab.duplicate ) 		// Duplicate session
+		{ SendMessage( hwnd, WM_COMMAND, IDM_DUPSESS, 0 ) ; return 1 ; }
 #ifndef FDJ
 	else if( key == shortcuts_tab.input ) 			// Fenetre de controle
 			{ MainHwnd = hwnd ; _beginthread( routine_inputbox, 0, (void*)&hwnd ) ;
@@ -5160,7 +5168,8 @@ void LoadParameters( void ) {
 // 
 void InitNameConfigFile( void ) {
 	char buffer[4096] ;
-	if( KittyIniFile != NULL ) free( KittyIniFile ) ; KittyIniFile=NULL ;
+	if( KittyIniFile != NULL ) { free( KittyIniFile ) ; }
+	KittyIniFile=NULL ;
 
 	if( getenv("KITTY_INI_FILE") != NULL ) { strcpy( buffer, getenv("KITTY_INI_FILE") ) ; }
 	if( !existfile( buffer ) ) {
@@ -5187,7 +5196,8 @@ void InitNameConfigFile( void ) {
 
 	KittyIniFile=(char*)malloc( strlen( buffer)+2 ) ; strcpy( KittyIniFile, buffer) ;
 
-	if( KittySavFile != NULL ) free( KittySavFile ) ; KittySavFile=NULL ;
+	if( KittySavFile != NULL ) { free( KittySavFile ) ; } 
+	KittySavFile=NULL ;
 	sprintf( buffer, "%s\\%s", InitialDirectory, DEFAULT_SAV_FILE ) ;
 #ifndef PORTABLE
 	if( !existfile( buffer ) ) {
@@ -5312,15 +5322,14 @@ void InitWinMain( void ) {
 				InfoBoxSetText( hdlg, "Loading saved sessions from file." ) ;
 				LoadRegistryKey( hdlg ) ; 
 				InfoBoxClose( hdlg ) ;
-				}
-			else // Sinon on regarde si il y a la cle de PuTTY et on la recupere
+			} else { // Sinon on regarde si il y a la cle de PuTTY et on la recupere
 				InfoBoxSetText( hdlg, "Initializing registry." ) ;
 				InfoBoxSetText( hdlg, "First time running. Loading saved sessions from PuTTY registry." ) ;
 				TestRegKeyOrCopyFromPuTTY( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ; 
 				InfoBoxClose( hdlg ) ;
 			}
 		}
-	else if( IniFileFlag == SAVEMODE_FILE ){ // Mode de sauvegarde fichier
+	} else if( IniFileFlag == SAVEMODE_FILE ){ // Mode de sauvegarde fichier
 		if( !RegTestKey( HKEY_CURRENT_USER, TEXT(PUTTY_REG_POS) ) ) { // la cle de registre n'existe pas 
 			HWND hdlg = InfoBox( hinst, NULL ) ;
 			InfoBoxSetText( hdlg, "Initializing registry." ) ;

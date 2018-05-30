@@ -272,6 +272,7 @@ void resize( int height, int width ) {
 	conf_set_int(conf,CONF_width,w); 
 	}
 int Convert1Reg( const char * filename ) ;
+int get_param( const char * val ) ;
 void SendKeyboardPlus( HWND hwnd, const char * st ) ;
 //`colours'
 int return_offset_height(void) { return offset_height ; }

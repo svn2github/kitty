@@ -637,6 +637,7 @@ void SaveShortCuts( FILE *fp ) {
 	fprintf( fp, "visible=%d\n", shortcuts_tab.visible ) ;
 	fprintf( fp, "winscp=%d\n", shortcuts_tab.winscp ) ;
 	fprintf( fp, "showportforward=%d\n", shortcuts_tab.showportforward ) ;
+	fprintf( fp, "duplicate=%d\n", shortcuts_tab.duplicate ) ;
 	
 	fprintf( fp, "\nNbShortCuts=%d\n", NbShortCuts ) ;
 	if( NbShortCuts>0 ) {

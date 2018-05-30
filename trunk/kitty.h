@@ -622,5 +622,8 @@ extern int backend_first_connected ; /* Variable permettant de savoir qu'on a de
 #ifndef IDM_RESTART
 #define IDM_RESTART   0x0040
 #endif
+#ifndef IDM_DUPSESS
+#define IDM_DUPSESS   0x0030
+#endif
 
 #endif // KITTY_H
