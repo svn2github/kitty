@@ -40,7 +40,9 @@ struct termchar {
      */
     unsigned long chr;
     unsigned long attr;
-
+#ifdef TRUECOLORPORT
+    truecolour truecolour;
+#endif
     /*
      * The cc_next field is used to link multiple termchars
      * together into a list, so as to fit more than one character
@@ -102,6 +104,9 @@ struct terminal_tag {
 #endif /* OPTIMISE_SCROLL */
 
     int default_attr, curr_attr, save_attr;
+#ifdef TRUECOLORPORT
+    truecolour curr_truecolour;
+#endif
     termchar basic_erase_char, erase_char;
 
     bufchain inbuf;		       /* terminal input buffer */

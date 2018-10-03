@@ -2573,6 +2573,14 @@ function wcl {
   echo -ne '\e''[4i'
   echo "Copied to Windows clipboard" 1>&2
 }
+/* Lance WinSCP sur un user et un host dans un répertoire donnés
+wt() { printf "\033]0;__wt:"$(hostname)":"${USER}":"`pwd`"\007" ; printf "\033]0;__ti\007" ; }
+/* Executer une commande locale
+lcmd() { if [ $# -eq 0 ] ; then echo "Usage: cmd command" ; return 0 ; fi ; printf "\033]0;__cm:"$*"\007" ; }
+/* Lance une session dupliquee dans le meme repertoire 
+ds() { printf "\033]0;__ds:`pwd`\007" ; }
+# Duplique une session sur le meme user, meme host, meme repertoire
+dt() { printf "\033]0;__dt:"$(hostname)":"${USER}":"`pwd`"\007" ; }
 */
 int ManageLocalCmd( HWND hwnd, char * cmd ) {
 	char buffer[1024] = "", title[1024] = "" ;
@@ -2609,7 +2617,22 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		if( RemotePath!= NULL ) free( RemotePath ) ;
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
-		StartWinSCP( hwnd, RemotePath ) ;
+		StartWinSCP( hwnd, RemotePath, NULL, NULL ) ;
+		// free( RemotePath ) ; RemotePath = NULL ;
+		return 1 ;
+		}
+	else if( (cmd[0]=='w')&&(cmd[1]=='t')&&(cmd[2]==':') ) { // __wt: Lance WinSCP dans sur un host et un user donné et dans un repertoire donné
+		char host[1024]="";char user[256]="";
+		int i;
+		if( RemotePath!= NULL ) free( RemotePath ) ;
+		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
+		strcpy(host,cmd+3);i=poss(":",host);
+		strcpy(user,host+i);
+		host[i-1]='\0';
+		i=poss(":",user);
+		strcpy( RemotePath, user+i ) ;
+		user[i-1]='\0';
+		StartWinSCP( hwnd, RemotePath, host, user ) ;
 		// free( RemotePath ) ; RemotePath = NULL ;
 		return 1 ;
 		}
@@ -2623,7 +2646,22 @@ int ManageLocalCmd( HWND hwnd, char * cmd ) {
 		if( RemotePath!= NULL ) free( RemotePath ) ;
 		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
 		strcpy( RemotePath, cmd+3 ) ;
-		StartNewSession( hwnd, RemotePath ) ;
+		StartNewSession( hwnd, RemotePath, NULL, NULL ) ;
+		// free( RemotePath ) ; RemotePath = NULL ;
+		return 1 ;
+		}
+	else if( (cmd[0]=='d')&&(cmd[1]=='t')&&(cmd[2]==':') ) { // __dt: Lance une session dupliquee dans le meme repertoire, meme host, meme user dt() { printf "\033]0;__dt:"$(hostname)":"${USER}":"`pwd`"\007" ; }
+		char host[1024]="";char user[256]="";
+		int i;
+		if( RemotePath!= NULL ) free( RemotePath ) ;
+		RemotePath = (char*) malloc( strlen( cmd ) - 2 ) ;
+		strcpy(host,cmd+3);i=poss(":",host);
+		strcpy(user,host+i);
+		host[i-1]='\0';
+		i=poss(":",user);
+		strcpy( RemotePath, user+i ) ;
+		user[i-1]='\0';
+		StartNewSession( hwnd, RemotePath, host, user ) ;
 		// free( RemotePath ) ; RemotePath = NULL ;
 		return 1 ;
 		}
@@ -3807,7 +3845,7 @@ printf "\033]0;__ds:"`pwd`"\007"
 Il faut ensuite simplement taper: dupsess
 C'est traite dans KiTTY par la fonction ManageLocalCmd
 */	
-void StartNewSession( HWND hwnd, char * directory ) {
+void StartNewSession( HWND hwnd, char * directory, char * host, char * user ) {
 	char cmd[4096], shortpath[1024], buffer[256] ;
 	
 	if( directory == NULL ) { directory = kitty_current_dir(); } 
@@ -3819,8 +3857,17 @@ void StartNewSession( HWND hwnd, char * directory ) {
 	if( conf_get_int(conf,CONF_protocol) == PROT_SSH ) {
 		sprintf( cmd, "%s -ssh ", shortpath ) ;
 		if( conf_get_int(conf,CONF_sshprot) == 3 ) strcat( cmd, "-2 " ) ;
-		strcat( cmd, conf_get_str(conf,CONF_username) ) ;
-		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
+		if( user!=NULL ) {
+			strcat( cmd, user ) ;
+		} else {
+			strcat( cmd, conf_get_str(conf,CONF_username) ) ;
+		}
+		strcat( cmd, "@" ) ; 
+		if( host!=NULL ) { 
+			strcat( cmd, host ) ;
+		} else {
+			strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
+		}
 		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) {
 			char bufpass[1024] ;
 			strcpy( bufpass, conf_get_str(conf,CONF_password) ) ;
@@ -3878,7 +3925,7 @@ Le chemin vers l'exécutable WinSCP est défini dans la variable WInSCPPath. Ell
 start "C:\Program Files\WinSCP\WinSCP.exe" "%1" "%2" "%3" "%4" "%5" "%6" "%7" "%8" "%9"
 */	
 // winscp.exe [(sftp|ftp|scp)://][user[:password]@]host[:port][/path/[file]] [/privatekey=key_file]
-void StartWinSCP( HWND hwnd, char * directory ) {
+void StartWinSCP( HWND hwnd, char * directory, char * host, char * user ) {
 	char cmd[4096], shortpath[1024], buffer[4096], proto[10] ;
 	
 	if( directory == NULL ) { directory = kitty_current_dir(); } 
@@ -3904,7 +3951,11 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 		if( strlen( conf_get_str(conf, CONF_sftpconnect) ) > 0 ) {
 			strcat( cmd, conf_get_str(conf, CONF_sftpconnect) ) ;
 		} else {
-		strcat( cmd, conf_get_str(conf,CONF_username) ) ;
+		if( user!=NULL ) {
+			strcat( cmd, user ) ; 
+		} else { 
+			strcat( cmd, conf_get_str(conf,CONF_username) ) ; 
+		}
 		if( strlen( conf_get_str(conf,CONF_password) ) > 0 ) { 
 			char bufpass[1024] ;
 			strcat( cmd, ":" ); 
@@ -3913,7 +3964,12 @@ void StartWinSCP( HWND hwnd, char * directory ) {
 			strcat(cmd,bufpass);
 			memset(bufpass,0,strlen(bufpass));
 			}
-		strcat( cmd, "@" ) ; strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
+		strcat( cmd, "@" ) ; 
+		if( host!=NULL ) {
+			strcat( cmd, host ) ; 
+		} else {
+			strcat( cmd, conf_get_str(conf,CONF_host) ) ; 
+		}
 		strcat( cmd, ":" ) ; sprintf( buffer, "%d", conf_get_int(conf,CONF_port) ); strcat( cmd, buffer ) ;
 		}
 		

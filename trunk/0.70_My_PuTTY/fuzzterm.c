@@ -45,7 +45,11 @@ int from_backend(void *frontend, int is_stderr, const char *data, int len)
 
 void request_resize(void *frontend, int x, int y) { }
 void do_text(Context ctx, int x, int y, wchar_t * text, int len,
+#ifdef TRUECOLORPORT
+	     unsigned long attr, int lattr, truecolour tc)
+#else
 	     unsigned long attr, int lattr)
+#endif
 {
     int i;
 
@@ -56,7 +60,11 @@ void do_text(Context ctx, int x, int y, wchar_t * text, int len,
     printf("\n");
 }
 void do_cursor(Context ctx, int x, int y, wchar_t * text, int len,
+#ifdef TRUECOLORPORT
+            unsigned long attr, int lattr, truecolour tc)
+#else
 	     unsigned long attr, int lattr)
+#endif
 {
     int i;
 

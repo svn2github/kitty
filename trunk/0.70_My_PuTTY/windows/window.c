@@ -725,6 +725,16 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 #endif
 		} else if( !strcmp(p, "-auto_store_sshkey") || !strcmp(p, "-auto-store-sshkey") ) {
 			SetAutoStoreSSHKeyFlag( 1 ) ;
+		} else if( !strcmp(p, "-bgcolor" ) ) {
+			i++ ;
+			int j = 2, r,g,b ;
+			sscanf( argv[i], "%d:%d:%d", &r, &g, &b ) ;
+			if( r<0 ) r=0 ; if( r>255 ) r=255;
+			if( g<0 ) g=0 ; if( g>255 ) g=255;
+			if( b<0 ) b=0 ; if( b>255 ) b=255;
+			conf_set_int_int(conf, CONF_colours, j*3+0, r);
+			conf_set_int_int(conf, CONF_colours, j*3+1, g);
+			conf_set_int_int(conf, CONF_colours, j*3+2, b);
 		} else if( !strcmp(p, "-cmd") ) {
 			i++ ;
 			conf_set_str( conf, CONF_autocommand, argv[i] ) ;
@@ -3886,7 +3896,7 @@ else if((UINT_PTR)wParam == TIMER_LOGROTATION) {  // log rotation
 		SendFile( hwnd ) ;
 		break ;
 	  case IDM_WINSCP:
-		StartWinSCP( hwnd, NULL ) ;
+		StartWinSCP( hwnd, NULL, NULL, NULL ) ;
 		break ;
 	  case IDM_PRINT:
 		ManagePrint( hwnd ) ;
@@ -5378,7 +5388,11 @@ static void sys_cursor_update(void)
  * We are allowed to fiddle with the contents of `text'.
  */
 void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
+#ifdef TRUECOLORPORT
+                      unsigned long attr, int lattr, truecolour truecolour)
+#else
 		      unsigned long attr, int lattr)
+#endif
 {
     COLORREF fg, bg, t;
     int nfg, nbg, nfont;
@@ -5565,8 +5579,20 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
 	};
     };
 #endif
+#ifdef TRUECOLORPORT
+    if (truecolour.fg.enabled)
+       fg = RGB(truecolour.fg.r, truecolour.fg.g, truecolour.fg.b);
+    else
+       fg = colours[nfg];
+
+    if (truecolour.bg.enabled)
+       bg = RGB(truecolour.bg.r, truecolour.bg.g, truecolour.bg.b);
+    else
+       bg = colours[nbg];
+#else
     fg = colours[nfg];
     bg = colours[nbg];
+#endif
 #if (defined IMAGEPORT) && (!defined FDJ)
     if( BackgroundImageFlag && (!PuttyFlag) ) {
     line_box.left = x;
@@ -5910,7 +5936,11 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
  * Wrapper that handles combining characters.
  */
 void do_text(Context ctx, int x, int y, wchar_t *text, int len,
+#ifdef TRUECOLORPORT
+             unsigned long attr, int lattr, truecolour truecolour)
+#else
 	     unsigned long attr, int lattr)
+#endif
 {
     if (attr & TATTR_COMBINING) {
 	unsigned long a = 0;
@@ -5920,13 +5950,21 @@ void do_text(Context ctx, int x, int y, wchar_t *text, int len,
 	    len0 = 2;
 	if (len-len0 >= 1 && IS_LOW_VARSEL(text[len0])) {
 	    attr &= ~TATTR_COMBINING;
+#ifdef TRUECOLORPORT
+	    do_text_internal(ctx, x, y, text, len0+1, attr, lattr, truecolour);
+#else
 	    do_text_internal(ctx, x, y, text, len0+1, attr, lattr);
+#endif
 	    text += len0+1;
 	    len -= len0+1;
 	    a = TATTR_COMBINING;
 	} else if (len-len0 >= 2 && IS_HIGH_VARSEL(text[len0], text[len0+1])) {
 	    attr &= ~TATTR_COMBINING;
+#ifdef TRUECOLORPORT
+	    do_text_internal(ctx, x, y, text, len0+2, attr, lattr, truecolour);
+#else
 	    do_text_internal(ctx, x, y, text, len0+2, attr, lattr);
+#endif
 	    text += len0+2;
 	    len -= len0+2;
 	    a = TATTR_COMBINING;
@@ -5936,22 +5974,39 @@ void do_text(Context ctx, int x, int y, wchar_t *text, int len,
 
 	while (len--) {
 	    if (len >= 1 && IS_SURROGATE_PAIR(text[0], text[1])) {
+#ifdef TRUECOLORPORT
+		do_text_internal(ctx, x, y, text, 2, attr | a, lattr, truecolour);
+#else
 		do_text_internal(ctx, x, y, text, 2, attr | a, lattr);
+#endif
 		len--;
 		text++;
+#ifdef TRUECOLORPORT
+           } else
+                do_text_internal(ctx, x, y, text, 1, attr | a, lattr, truecolour);
+#else
 	    } else {
                 do_text_internal(ctx, x, y, text, 1, attr | a, lattr);
             }
+#endif
 
 	    text++;
 	    a = TATTR_COMBINING;
 	}
     } else
+#ifdef TRUECOLORPORT
+        do_text_internal(ctx, x, y, text, len, attr, lattr, truecolour);
+#else
 	do_text_internal(ctx, x, y, text, len, attr, lattr);
+#endif
 }
 
 void do_cursor(Context ctx, int x, int y, wchar_t *text, int len,
+#ifdef TRUECOLORPORT
+               unsigned long attr, int lattr, truecolour truecolour)
+#else
 	       unsigned long attr, int lattr)
+#endif
 {
 
     int fnt_width;
@@ -5963,7 +6018,11 @@ void do_cursor(Context ctx, int x, int y, wchar_t *text, int len,
 
     if ((attr & TATTR_ACTCURS) && (ctype == 0 || term->big_cursor)) {
 	if (*text != UCSWIDE) {
+#ifdef TRUECOLORPORT
+	    do_text(ctx, x, y, text, len, attr, lattr, truecolour);
+#else
 	    do_text(ctx, x, y, text, len, attr, lattr);
+#endif
 	    return;
 	}
 	ctype = 2;
